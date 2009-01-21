@@ -33,7 +33,7 @@ void GM_host_ip()
   	gethostname(hostname, 512);
 	host = gethostbyname(hostname);
 	h_addr.s_addr = *((unsigned long *) host->h_addr_list[0]);
-      sprintf(hostip, "%s", inet_ntoa(h_addr));
+	sprintf(hostip, "%s", inet_ntoa(h_addr));
 }
 
 int GM_print(int comm)
@@ -237,7 +237,6 @@ void send_buffer_delete()
 
 NODEPTR send_buffer_insert(NODEPTR currinsertpt, int header[5], int new_reqs[3], void *buf)
 {
-	NODEPTR newnode;
 	char *tmpbuf=NULL;
 	
 	PRINTF(("currinsertpt->counter = %d\n", currinsertpt->counter));
