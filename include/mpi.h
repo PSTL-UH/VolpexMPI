@@ -74,7 +74,7 @@ struct hidden_data{
     int mysize;
     int myrank;
     int mybarrier;     
-}
+};
 typedef struct hidden_data Hidden_Data;
 
 struct request_list{
@@ -290,8 +290,8 @@ int  MPI_Waitall(int, MPI_Request *, MPI_Status *);
 int  MPI_Alltoall(void *, int, MPI_Datatype, void *, int, MPI_Datatype, MPI_Comm);
 int  MPI_Alltoallv(void *, int *, int *, MPI_Datatype, void *, int *, int *, MPI_Datatype, MPI_Comm);
 int  MPI_Comm_dup(MPI_Comm, MPI_Comm *);
-int  MPI_Comm_split(MPI_Comm, int, int, MPI_Comm *)
-int  MPI_Gather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Comm)
+int  MPI_Comm_split(MPI_Comm, int, int, MPI_Comm *);
+int  MPI_Gather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Comm);
 int  MPI_Allgather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, MPI_Comm);
 
 double  MPI_Wtime(void);
@@ -305,7 +305,7 @@ int  VolPEx_Bcast(void *, int, MPI_Datatype, int, MPI_Comm);
 int  VolPEx_Reduce(void *, void *, int, MPI_Datatype, MPI_Op, int, MPI_Comm);
 int  VolPEx_Isend(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
 int  VolPEx_Irecv(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
-int  VolPEx_Irecv_ll(void *, int, int, int, MPI_Comm, MPI_Request *, int)
+int  VolPEx_Irecv_ll(void *, int, int, int, MPI_Comm, MPI_Request *, int);
 int  VolPEx_Wait(MPI_Request *, MPI_Status *);
 int  VolPEx_Allreduce(void *, void *, int, MPI_Datatype, MPI_Op, MPI_Comm);
 int  VolPEx_Barrier(MPI_Comm);
@@ -313,15 +313,15 @@ int  VolPEx_Redundancy_Barrier ( MPI_Comm, int);
 int  VolPEx_Abort(MPI_Comm, int);
 int  VolPEx_Waitall(int, MPI_Request *, MPI_Status *);
 int  VolPEx_Alltoall(void *, int, MPI_Datatype, void *, int, MPI_Datatype, MPI_Comm);
-int  VolPEx_Alltoallv(void *, int *, int *, MPI_Datatype, void *, int *, int *, MPI_Datatype, MPI_Comm)
-int  VolPEx_Gather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Comm)
-int  VolPEx_Allgather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, MPI_Comm)
+int  VolPEx_Alltoallv(void *, int *, int *, MPI_Datatype, void *, int *, int *, MPI_Datatype, MPI_Comm);
+int  VolPEx_Gather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Comm);
+int  VolPEx_Allgather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, MPI_Comm);
 int  VolPEx_Comm_dup(MPI_Comm, MPI_Comm *);
 int  VolPEx_Comm_split(MPI_Comm, int, int, MPI_Comm *);
 int  VolPEx_Cancel_byReqnumber(int);
 int  tag_reuse_check(int, int);
 void VolPEx_reduce_ll(void *, void *, int, MPI_Datatype, MPI_Op, int, MPI_Comm, int);
-void GM_host_ip()
+void GM_host_ip();
 int  GM_print(int);
 int  GM_proc_read_and_set (void);
 int  GM_get_fullrank(char *);
@@ -333,6 +333,6 @@ NODEPTR send_buffer_insert(NODEPTR, int[], int[], void *);
 NODEPTR send_buffer_search(NODEPTR, int [], int *);
 void send_buffer_delete(void);
 void send_buffer_print(NODEPTR);
-int  get_len(int, MPI_Datatype)
+int  get_len(int, MPI_Datatype);
 
 #endif	/* MPI_H_INCLUDED */
