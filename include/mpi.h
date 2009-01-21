@@ -30,6 +30,7 @@
 #endif
 
 #include "SL.h"
+#include "mpi_fortran.h"
 
 #define TOTAL_NODES	2000
 #define TOTAL_COMMS	20
@@ -54,7 +55,7 @@ struct global_map{
       char host[32];
       int port;
       char rank[16];
-	  int state;
+      int state;
 };
 typedef struct global_map Global_Map;
 
