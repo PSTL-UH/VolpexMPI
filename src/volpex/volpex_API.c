@@ -38,7 +38,7 @@ int mpi_init(int *ierr)
     SL_this_procid = GM_get_procid_fullrank(fullrank);
     PRINTF(("My full rank is %s\n", fullrank));
     
-    head = insertpt = curr = send_buffer_init();
+    head = insertpt = curr = VolPex_send_buffer_init();
     hdata[1].mybarrier = 0;
     
     SL_Init();
@@ -78,7 +78,7 @@ int  MPI_Init( int *argc, char ***argv )
     else
 	SL_this_procid = GM_get_procid_fullrank(fullrank);
     PRINTF(("My full rank is %s\n", fullrank));
-    head = insertpt = curr = send_buffer_init();
+    head = insertpt = curr = VolPex_send_buffer_init();
     hdata[1].mybarrier = 0;
     SL_Init();
     PRINTF(("Initializing MPI Program\n"));
@@ -512,11 +512,11 @@ int  MPI_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm)
 #pragma weak mpi_gather__  = mpi_gather
 #pragma weak MPI_GATHER    = mpi_gather
 
-int mpi_gather(void *sendbuf, int sendcnt, MPI_Datatype sendtype, void *recvbuf, 
-	       int recvcnt, MPI_Datatype recvtype, int root, unsigned int *comm, 
+int mpi_gather(void *sendbuf, int *sendcnt, unsigned int *sendtype, void *recvbuf, 
+	       int *recvcnt, unsigned int *recvtype, int *root, unsigned int *comm, 
 	       int *ierr)
 {
-    VolPEx_Gather(sendbuf, sendcnt, sendtype, recvbuf, recvcnt, recvtype, root, comm);
+    VolPEx_Gather(sendbuf, *sendcnt, *sendtype, recvbuf, *recvcnt, *recvtype, *root, *comm);
     *ierr = 0;
     return MPI_SUCCESS;
 }
@@ -535,10 +535,10 @@ int  MPI_Gather(void *sendbuf, int sendcnt, MPI_Datatype sendtype, void *recvbuf
 #pragma weak mpi_allgather__  = mpi_allgather
 #pragma weak MPI_ALLGATHER    = mpi_allgather
 
-int mpi_allgather(void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf, 
-		  int recvcount, MPI_Datatype recvtype, unsigned int *comm, int *ierr)
+int mpi_allgather(void *sendbuf, int *sendcount, unsigned int *sendtype, void *recvbuf, 
+		  int *recvcount, unsigned int *recvtype, unsigned int *comm, int *ierr)
 {
-    VolPEx_Allgather(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm);
+    VolPEx_Allgather(sendbuf, *sendcount, *sendtype, recvbuf, *recvcount, *recvtype, *comm);
     *ierr = 0;
     return MPI_SUCCESS;
 }

@@ -105,6 +105,16 @@ struct mpi_msg{
 typedef struct mpi_msg NODE;
 typedef NODE *NODEPTR;
 
+struct VolPex_msg_header{
+	int	 len;
+	int 	dest;
+	int 	 tag;
+	int 	comm;
+	int    reuse;
+};
+typedef struct VolPex_msg_header VolPex_msg_header;
+
+
 #define MPI_VERSION	1
 #define MPI_SUBVERSION	2
 
@@ -320,7 +330,7 @@ int  VolPEx_Allgather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, MPI_
 int  VolPEx_Comm_dup(MPI_Comm, MPI_Comm *);
 int  VolPEx_Comm_split(MPI_Comm, int, int, MPI_Comm *);
 int  VolPEx_Cancel_byReqnumber(int);
-int  tag_reuse_check(int, int);
+int  VolPex_tag_reuse_check(int, int);
 void VolPEx_reduce_ll(void *, void *, int, MPI_Datatype, MPI_Op, int, MPI_Comm, int);
 void GM_host_ip();
 int  GM_print(int);
@@ -329,11 +339,11 @@ int  GM_get_fullrank(char *);
 int  GM_get_procid_fullrank(char *);
 int  GM_dest_src_locator(int, int, char *, int[]);
 int  GM_set_state_not_connected(int);
-NODEPTR send_buffer_init(void);
-NODEPTR send_buffer_insert(NODEPTR, int[], int[], void *);
-NODEPTR send_buffer_search(NODEPTR, int [], int *);
-void send_buffer_delete(void);
-void send_buffer_print(NODEPTR);
-int  get_len(int, MPI_Datatype);
+NODEPTR VolPex_send_buffer_init(void);
+NODEPTR VolPex_send_buffer_insert(NODEPTR, int[], int[], void *);
+NODEPTR VolPex_send_buffer_search(NODEPTR, int [], int *);
+void VolPex_send_buffer_delete(void);
+void VolPex_send_buffer_print(NODEPTR);
+int  VolPex_get_len(int, MPI_Datatype);
 
 #endif	/* MPI_H_INCLUDED */

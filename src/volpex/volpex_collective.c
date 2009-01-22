@@ -27,7 +27,7 @@ int  VolPEx_Finalize()
 #ifdef MINGW
     WSACleanup();
 #endif
-    send_buffer_delete();
+    VolPex_send_buffer_delete();
     return MPI_SUCCESS;
 }
 
@@ -309,8 +309,8 @@ int  VolPEx_Alltoall(void *sendbuf, int sendcount, MPI_Datatype sendtype, void *
     int i, waitcount;
     MPI_Request *req;
     MPI_Status *stats;
-    int slen = get_len (sendcount, sendtype );
-    int rlen = get_len (recvcount, recvtype );
+    int slen = VolPex_get_len (sendcount, sendtype );
+    int rlen = VolPex_get_len (recvcount, recvtype );
     char *sbuf = (char *)sendbuf;
     char *rbuf = (char *)recvbuf; 
     
@@ -395,7 +395,7 @@ int VolPEx_Gather(void *sendbuf, int sendcnt, MPI_Datatype sendtype, void *recvb
 {
     int j;
     MPI_Status *status = (MPI_Status *)MPI_STATUS_IGNORE;
-    int rlen = get_len(recvcnt, recvtype);
+    int rlen = VolPex_get_len(recvcnt, recvtype);
     char *rbuf = (char *)recvbuf; 
     
     PRINTF(("Into VolPEx_Gather\n"));

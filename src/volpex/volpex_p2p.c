@@ -59,7 +59,7 @@ int  VolPEx_progress()
 	    
 	    if(flag == 1 && reqlist[i].send_status == 0){
 		if ( ret == SL_SUCCESS ) {
-		    curr = send_buffer_search(head, reqlist[i].header, &answer);
+		    curr = VolPex_send_buffer_search(head, reqlist[i].header, &answer);
 		    if(answer && reqlist[i].cktag == CK_TAG){
 			answer = 0;
 			PRINTF(("  VProgress: send req %d: Into SL_Send with %d,%d,%d,%d\n", i,			   
@@ -248,7 +248,7 @@ int  VolPEx_Isend(void *buf, int count, MPI_Datatype datatype, int dest, int tag
     int assoc_reqs[3] = {-1,-1,-1}; 
     
     PRINTF(("Into VolPEx_Isend\n"));
-    len = get_len(count, datatype);
+    len = VolPex_get_len(count, datatype);
     if(dest == hdata[comm].myrank){
 	SL_Request req;
 	PRINTF(("Calling send-to-self from volpex!\n"));
@@ -256,7 +256,7 @@ int  VolPEx_Isend(void *buf, int count, MPI_Datatype datatype, int dest, int tag
 	return MPI_SUCCESS;
     }
     
-    reuse = tag_reuse_check(tag, 0);
+    reuse = VolPex_tag_reuse_check(tag, 0);
     header[0] = len;
     header[1] = dest;
     header[2] = tag;
@@ -300,7 +300,7 @@ int  VolPEx_Isend(void *buf, int count, MPI_Datatype datatype, int dest, int tag
 	}
     }
     request_counter = request_counter + redundancy;
-    insertpt = send_buffer_insert(insertpt, header, assoc_reqs, buf);
+    insertpt = VolPex_send_buffer_insert(insertpt, header, assoc_reqs, buf);
     *request = MPI_REQUEST_NULL;
     VolPEx_progress();
     
@@ -315,8 +315,8 @@ int  VolPEx_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int t
     
     PRINTF(("VIrecv: count %d, from %d, tag %d, comm %d\n", count, source, tag, comm));
     
-    reuse = tag_reuse_check(tag, 1);
-    len = get_len(count, datatype);
+    reuse = VolPex_tag_reuse_check(tag, 1);
+    len = VolPex_get_len(count, datatype);
     header[0] = len;
     header[1] = hdata[comm].myrank;
     header[2] = tag;
@@ -359,7 +359,7 @@ int  VolPEx_Irecv_ll(void *buf, int len, int source, int tag,
 	reqlist[i].header[1] = source;
 	reqlist[i].header[2] = tag;
 	reqlist[i].header[3] = comm;
-	reuse = tag_reuse_check(tag, 1);
+	reuse = VolPex_tag_reuse_check(tag, 1);
 	reqlist[i].header[4] = reuse;
 	reqlist[i].reqnumber = i;
 	reqlist[i].recv_status = 1; /* no need to post a follow up operation */
@@ -367,7 +367,7 @@ int  VolPEx_Irecv_ll(void *buf, int len, int source, int tag,
 	return MPI_SUCCESS;
     }
     
-    reuse = tag_reuse_check(tag, 1);
+    reuse = VolPex_tag_reuse_check(tag, 1);
     header[0] = len;
     header[1] = hdata[comm].myrank;
     header[2] = tag;

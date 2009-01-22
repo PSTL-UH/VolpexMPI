@@ -111,15 +111,15 @@ int mpi_comm_split_  ( unsigned int *, int *, int *, unsigned int *, int * );
 int mpi_comm_split__ ( unsigned int *, int *, int *, unsigned int *, int * );
 int MPI_COMM_SPLIT   ( unsigned int *, int *, int *, unsigned int *, int * );
 
-int mpi_gather   (void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, unsigned int *, int * );
-int MPI_gather_  (void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, unsigned int *, int * );
-int MPI_gather__ (void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, unsigned int *, int * );
-int MPI_GATHER   (void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, unsigned int *, int * );
+int mpi_gather   (void *, int *, unsigned int *, void *, int *, unsigned int *, int *, unsigned int *, int * );
+int MPI_gather_  (void *, int *, unsigned int *, void *, int *, unsigned int *, int *, unsigned int *, int * );
+int MPI_gather__ (void *, int *, unsigned int *, void *, int *, unsigned int *, int *, unsigned int *, int * );
+int MPI_GATHER   (void *, int *, unsigned int *, void *, int *, unsigned int *, int *, unsigned int *, int * );
 
-int mpi_allgather   (void *, int, MPI_Datatype, void *, int, MPI_Datatype, unsigned int *, int * );
-int MPI_allgather_  (void *, int, MPI_Datatype, void *, int, MPI_Datatype, unsigned int *, int * );
-int MPI_allgather__ (void *, int, MPI_Datatype, void *, int, MPI_Datatype, unsigned int *, int * );
-int MPI_ALLGATHER   (void *, int, MPI_Datatype, void *, int, MPI_Datatype, unsigned int *, int * );
+int mpi_allgather   (void *, int *, unsigned int *, void *, int *, unsigned int *, unsigned int *, int * );
+int MPI_allgather_  (void *, int *, unsigned int *, void *, int *, unsigned int *, unsigned int *, int * );
+int MPI_allgather__ (void *, int *, unsigned int *, void *, int *, unsigned int *, unsigned int *, int * );
+int MPI_ALLGATHER   (void *, int *, unsigned int *, void *, int *, unsigned int *, unsigned int *, int * );
 
 
 

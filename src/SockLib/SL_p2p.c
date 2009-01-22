@@ -78,11 +78,7 @@ int SL_recv_post ( void *buf, int len, int src, int tag, int context_id, double 
     int ret;
     
     /* Step 1. Post the message into the recv queue of that proc */
-#ifdef MINGW
     dproc = (SL_proc*)SL_array_get_ptr_by_id ( SL_proc_array, src );
-#else
-    dproc = SL_array_get_ptr_by_id ( SL_proc_array, src );   
-#endif
     
     rq    = dproc->rqueue;
     rcq   = dproc->rcqueue;

@@ -177,7 +177,7 @@ int GM_set_state_not_connected(int target)
 	return 0;
 }
 
-NODEPTR send_buffer_init()
+NODEPTR VolPex_send_buffer_init()
 {
 	NODEPTR newnode;
 	int i;
@@ -216,7 +216,7 @@ NODEPTR send_buffer_init()
 	return head;
 }
 
-void send_buffer_delete()
+void VolPex_send_buffer_delete()
 {
    	NODEPTR tempPtr;
 	
@@ -235,7 +235,7 @@ void send_buffer_delete()
       PRINTF(("Buffer deleted\n"));
 }
 
-NODEPTR send_buffer_insert(NODEPTR currinsertpt, int header[5], int new_reqs[3], void *buf)
+NODEPTR VolPex_send_buffer_insert(NODEPTR currinsertpt, int header[5], int new_reqs[3], void *buf)
 {
 	char *tmpbuf=NULL;
 	
@@ -263,7 +263,7 @@ NODEPTR send_buffer_insert(NODEPTR currinsertpt, int header[5], int new_reqs[3],
 	return currinsertpt->fwd;
 }
 
-NODEPTR send_buffer_search(NODEPTR currpt, int header[5], int *answer)
+NODEPTR VolPex_send_buffer_search(NODEPTR currpt, int header[5], int *answer)
 {
 	int search_count = 1;
 	NODEPTR curr=currpt;
@@ -286,7 +286,7 @@ NODEPTR send_buffer_search(NODEPTR currpt, int header[5], int *answer)
 	return currpt;
 }
 
-void send_buffer_print(NODEPTR head)
+void VolPex_send_buffer_print(NODEPTR head)
 {
    	NODEPTR printPtr = head;
 
@@ -301,7 +301,7 @@ void send_buffer_print(NODEPTR head)
     }
 }
 
-int tag_reuse_check(int tag, int type)
+int VolPex_tag_reuse_check(int tag, int type)
 {
 	int i;
 
@@ -334,7 +334,7 @@ int tag_reuse_check(int tag, int type)
 	return -1;
 }
 
-int get_len(int count, MPI_Datatype datatype)
+int VolPex_get_len(int count, MPI_Datatype datatype)
 {
 	int len = 0;
 	
