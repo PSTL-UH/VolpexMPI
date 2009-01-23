@@ -384,6 +384,7 @@ int SL_msg_send_newmsg ( SL_proc *dproc, int fd )
 		 len, dproc->id ));
 	elem->lenpos += len;
 	dproc->cursendelem = elem;
+	ret = SL_MSG_STARTED;
 	
 	if ( elem->iov[1].iov_len == elem->lenpos   &&
 	     NULL != elem->move_to ) {
