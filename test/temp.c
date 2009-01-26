@@ -15,6 +15,10 @@ int main ( int argc, char * argv[] )
     MPI_Comm_size ( MPI_COMM_WORLD, &numnode );
     MPI_Comm_rank ( MPI_COMM_WORLD, &mynode );
         
+
+//	if (rank == 0){
+//		MPI_Send(
+
     root = 0;
     if ( mynode == 0){
         iarr[0] = 1;

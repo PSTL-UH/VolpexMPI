@@ -140,3 +140,4 @@ sp:
 
 clean:
 	$(RM) $(RMFLAGS) *.o *~ *.out
+	$(RM) temp

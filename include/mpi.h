@@ -30,6 +30,7 @@
 #endif
 
 #include "SL.h"
+//#include "SL_proc.h"
 #include "mpi_fortran.h"
 
 #define TOTAL_NODES	2000
@@ -78,11 +79,22 @@ struct hidden_data{
 };
 typedef struct hidden_data Hidden_Data;
 
+struct VolPex_msg_header{
+        int      len;
+        int     dest;
+        int      tag;
+        int     comm;
+        int    reuse;
+};
+typedef struct VolPex_msg_header VolPex_msg_header;
+
 struct request_list{
     int reqnumber;
 	SL_Request request;
-	int header[5];
-	int returnheader[5];
+//	int header[5];
+//	int returnheader[5];
+	VolPex_msg_header *header;
+	VolPex_msg_header returnheader;
 	int cktag;
 	int target;
 	int req_type;
@@ -97,7 +109,8 @@ typedef struct request_list Request_List;
 struct mpi_msg{
 	struct mpi_msg *back;
 	int counter;
-	int header[5];
+	VolPex_msg_header *header;
+//	int header[5];
 	void *buffer;
 	int reqnumbers[3];
    	struct mpi_msg *fwd;
@@ -105,14 +118,6 @@ struct mpi_msg{
 typedef struct mpi_msg NODE;
 typedef NODE *NODEPTR;
 
-struct VolPex_msg_header{
-	int	 len;
-	int 	dest;
-	int 	 tag;
-	int 	comm;
-	int    reuse;
-};
-typedef struct VolPex_msg_header VolPex_msg_header;
 
 
 #define MPI_VERSION	1
@@ -340,10 +345,19 @@ int  GM_get_procid_fullrank(char *);
 int  GM_dest_src_locator(int, int, char *, int[]);
 int  GM_set_state_not_connected(int);
 NODEPTR VolPex_send_buffer_init(void);
-NODEPTR VolPex_send_buffer_insert(NODEPTR, int[], int[], void *);
-NODEPTR VolPex_send_buffer_search(NODEPTR, int [], int *);
+//NODEPTR VolPex_send_buffer_insert(NODEPTR, int[], int[], void *);
+//NODEPTR VolPex_send_buffer_search(NODEPTR, int [], int *);
+
+NODEPTR VolPex_send_buffer_insert(NODEPTR, VolPex_msg_header*, int[], void *);
+NODEPTR VolPex_send_buffer_search(NODEPTR, VolPex_msg_header*, int *);
+
 void VolPex_send_buffer_delete(void);
 void VolPex_send_buffer_print(NODEPTR);
 int  VolPex_get_len(int, MPI_Datatype);
+
+
+VolPex_msg_header* VolPex_get_msg_header(int len, int dest, int tag, int comm, int reuse);
+VolPex_msg_header* VolPex_init_msg_header();
+int VolPex_compare_msg_header(VolPex_msg_header* header1, VolPex_msg_header* header2);
 
 #endif	/* MPI_H_INCLUDED */

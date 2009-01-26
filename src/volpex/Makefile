@@ -21,7 +21,8 @@ OBJ = 	volpex_API.o		\
 	volpex_collective.o	\
 	volpex_comm.o		\
 	volpex_global.o		\
-	volpex_p2p.o
+	volpex_p2p.o		\
+	volpex_header.o
 
 .SUFFIXES: .o.c
 

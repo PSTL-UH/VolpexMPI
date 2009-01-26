@@ -1,4 +1,5 @@
 #include "mpi.h"
+//#include "../../include/SL_proc.h"
 
 extern int SL_this_procid;
 extern Global_Map GM[TOTAL_NODES][TOTAL_COMMS];
@@ -27,6 +28,7 @@ int mpi_init(int *ierr)
     next_avail_comm = 3;
     for(i = 0; i < REQLISTSIZE; i++)
 	reqlist[i].in_use = 0;
+//	reqlist[i].returnheader = (VolPex_msg_header*) malloc(sizeof(VolPex_msg_header));
     for(i = 0; i < TAGLISTSIZE; i++){
 	sendtagreuse[i].tag = -1;
 	recvtagreuse[i].tag = -1;

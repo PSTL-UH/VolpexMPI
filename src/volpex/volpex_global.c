@@ -185,11 +185,13 @@ NODEPTR VolPex_send_buffer_init()
 	for (i = 1; i <= SENDBUFSIZE; i++){
 		newnode= (NODE *)malloc(sizeof(NODE));
 		newnode->counter = i;
-		newnode->header[0] = -1;
+
+		newnode->header    = VolPex_init_msg_header();
+/*		newnode->header[0] = -1;
 		newnode->header[1] = -1;
 		newnode->header[2] = -1;
 		newnode->header[3] = -1;
-		newnode->header[4] = -1;
+		newnode->header[4] = -1;*/
 		newnode->reqnumbers[0] = -1;
 		newnode->reqnumbers[1] = -1;
 		newnode->reqnumbers[2] = -1;
@@ -235,17 +237,20 @@ void VolPex_send_buffer_delete()
       PRINTF(("Buffer deleted\n"));
 }
 
-NODEPTR VolPex_send_buffer_insert(NODEPTR currinsertpt, int header[5], int new_reqs[3], void *buf)
+NODEPTR VolPex_send_buffer_insert(NODEPTR currinsertpt, VolPex_msg_header *header, int new_reqs[3], void *buf)
+//NODEPTR VolPex_send_buffer_insert(NODEPTR currinsertpt, int header[5], int new_reqs[3], void *buf)
 {
 	char *tmpbuf=NULL;
 	
 	PRINTF(("currinsertpt->counter = %d\n", currinsertpt->counter));
 	
-	currinsertpt->header[0] = header[0];
+/*	currinsertpt->header[0] = header[0];
 	currinsertpt->header[1] = header[1];
 	currinsertpt->header[2] = header[2];
 	currinsertpt->header[3] = header[3];
-	currinsertpt->header[4] = header[4];
+	currinsertpt->header[4] = header[4];*/
+
+	currinsertpt->header = VolPex_get_msg_header(header->len,header->dest,header->tag,header->comm,header->reuse);
 	
 	VolPEx_Cancel_byReqnumber(currinsertpt->reqnumbers[0]);
 	currinsertpt->reqnumbers[0] = new_reqs[0];
@@ -254,24 +259,33 @@ NODEPTR VolPex_send_buffer_insert(NODEPTR currinsertpt, int header[5], int new_r
 	VolPEx_Cancel_byReqnumber(currinsertpt->reqnumbers[2]);
 	currinsertpt->reqnumbers[2] = new_reqs[2];
 		
-	if ( header[0] > 0 ) {
+/*	if ( header[0] > 0 ) {
 		tmpbuf  = (char *) malloc ( header[0]);
 		memcpy ( tmpbuf, buf, header[0]);
-	}
+	}*/
+
+	if ( header->len > 0 ) {
+                tmpbuf  = (char *) malloc ( header->len);
+                memcpy ( tmpbuf, buf, header->len);
+        }
 	currinsertpt->buffer = tmpbuf;
 
 	return currinsertpt->fwd;
 }
 
-NODEPTR VolPex_send_buffer_search(NODEPTR currpt, int header[5], int *answer)
+NODEPTR VolPex_send_buffer_search(NODEPTR currpt, VolPex_msg_header *header, int *answer)
+//NODEPTR VolPex_send_buffer_search(NODEPTR currpt, int header[5], int *answer)
+
 {
 	int search_count = 1;
 	NODEPTR curr=currpt;
 //	while(search_count <= SENDBUFSIZE && currpt != NULL){
 	do {
-		if(curr->header[0] <= header[0] && curr->header[1] == header[1] && 
+/*		if(curr->header[0] <= header[0] && curr->header[1] == header[1] && 
 		   curr->header[2] == header[2] && curr->header[3] == header[3] && 
-		   curr->header[4] == header[4]){
+		   curr->header[4] == header[4]){*/
+
+		if( VolPex_compare_msg_header(curr->header, header)){
 			*answer = 1; /*yes*/
 			PRINTF(("Found msg at curr->counter = %d\n", curr->counter));
 			return curr;
@@ -292,8 +306,8 @@ void VolPex_send_buffer_print(NODEPTR head)
 
    	while(printPtr != NULL){
 		printf("%d ", printPtr->counter);
-        printf("currpt->header = %d,%d,%d,%d,%d\n", printPtr->header[0], printPtr->header[1], 
-	       printPtr->header[2], printPtr->header[3], printPtr->header[4]);
+        printf("currpt->header = %d,%d,%d,%d,%d\n", printPtr->header->len, printPtr->header->dest, 
+	       printPtr->header->tag, printPtr->header->comm, printPtr->header->reuse);
         printPtr = printPtr->fwd;
 		if(printPtr == head){
 			break;
