@@ -34,7 +34,7 @@ bt:
 	$(FC) $(FFLAGS) -c ./TestData/BT/verify.f  
 	$(FC) $(FFLAGS) -c ./TestData/BT/setup_mpi.f  
 	$(FC) $(FFLAGS) -o bt bt.o make_set.o initialize.o exact_solution.o exact_rhs.o set_constants.o adi.o define.o copy_faces.o  rhs.o lhsx.o lhsy.o lhsz.o x_solve.o y_solve.o z_solve.o add.o error.o verify.o setup_mpi.o print_results.o timers.o $(LDFLAGS)
-	make clean
+	make cleanish
 
 cg:
 	$(FC) $(FFLAGS) -c ./TestData/common/timers.f  
@@ -42,6 +42,7 @@ cg:
 	$(FC) $(FFLAGS) -c ./TestData/common/print_results.f  
 	$(FC) $(FFLAGS) -c ./TestData/CG/cg.f  
 	$(FC) $(FFLAGS) -o cg cg.o timers.o randi8.o print_results.o $(LDFLAGS)
+	make cleanish
 
 ep:
 	$(FC) $(FFLAGS) -c ./TestData/common/timers.f  
@@ -49,6 +50,7 @@ ep:
 	$(FC) $(FFLAGS) -c ./TestData/common/print_results.f  
 	$(FC) $(FFLAGS) -c ./TestData/EP/ep.f  
 	$(FC) $(FFLAGS) -o ep ep.o timers.o randdp.o print_results.o $(LDFLAGS)
+	make cleanish
 
 ft:
 	$(FC) $(FFLAGS) -c ./TestData/common/timers.f  
@@ -56,14 +58,14 @@ ft:
 	$(FC) $(FFLAGS) -c ./TestData/common/print_results.f  
 	$(FC) $(FFLAGS) -c ./TestData/FT/ft.f  	
 	$(FC) $(FFLAGS)  -o ft ft.o timers.o randi8.o print_results.o $(LDFLAGS)
-	make clean
+	make cleanish
 
 is:	
 	$(CC) $(CFLAGS) -c ./TestData/common/c_timers.c 
 	$(CC) $(CFLAGS) -c ./TestData/common/c_print_results.c 
 	$(CC) $(CFLAGS) -c ./TestData/IS/is.c 
 	$(CC) $(CFLAGS) -o is is.o c_timers.o c_print_results.o $(LDFLAGS)
-	make clean
+	make cleanish
 
 lu:
 	$(FC) $(FFLAGS) -c ./TestData/common/timers.f  
@@ -98,7 +100,7 @@ lu:
 	$(FC) $(FFLAGS) -c ./TestData/LU/pintgr.f  
 	$(FC) $(FFLAGS) -c ./TestData/LU/verify.f  
 	$(FC) $(FFLAGS) -o lu lu.o timers.o print_results.o init_comm.o read_input.o bcast_inputs.o proc_grid.o neighbors.o nodedim.o subdomain.o setcoeff.o sethyper.o setbv.o exact.o setiv.o erhs.o ssor.o exchange_1.o exchange_3.o exchange_4.o exchange_5.o exchange_6.o rhs.o l2norm.o jacld.o blts.o jacu.o buts.o error.o pintgr.o verify.o $(LDFLAGS)
-	make clean 
+	make cleanish
 
 mg:
 	$(FC) $(FFLAGS) -c ./TestData/common/timers.f  
@@ -106,7 +108,7 @@ mg:
 	$(FC) $(FFLAGS) -c ./TestData/common/print_results.f  
 	$(FC) $(FFLAGS) -c ./TestData/MG/mg.f  
 	$(FC) $(FFLAGS) -o mg mg.o timers.o randi8.o print_results.o $(LDFLAGS)
-	make clean 
+	make cleanish
 
 sp:
 	$(FC) $(FFLAGS) -c ./TestData/common/timers.f  
@@ -136,8 +138,11 @@ sp:
 	$(FC) $(FFLAGS) -c ./TestData/SP/verify.f  
 	$(FC) $(FFLAGS) -c ./TestData/SP/setup_mpi.f  
 	$(FC) $(FFLAGS) -o sp sp.o timers.o print_results.o make_set.o initialize.o exact_solution.o exact_rhs.o set_constants.o adi.o define.o copy_faces.o rhs.o lhsx.o lhsy.o lhsz.o x_solve.o ninvr.o y_solve.o pinvr.o z_solve.o tzetar.o add.o txinvr.o error.o verify.o setup_mpi.o $(LDFLAGS)
+	make cleanish
 
+cleanish:
+	$(RM) $(RMFLAGS) *.o *~ *.out
 
 clean:
 	$(RM) $(RMFLAGS) *.o *~ *.out
-	$(RM) temp
+	$(RM) -f bt sp mg ft lu is ep cg temp
