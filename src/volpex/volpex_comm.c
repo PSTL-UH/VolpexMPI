@@ -78,56 +78,55 @@ int  VolPEx_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm)
 
 int VolPEx_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm)
 {
-	int p[3], *procs;
-	int i, k, nextcomm = 0;
-	int numeric, newsize, newrank;
-	char level, myredrank[16];
-	int localrank = 0;
-
-	PRINTF(("Into VolPEx_Comm_split with color %d and key %d\n", color, key));
-
-	VolPEx_Allreduce(&next_avail_comm, &nextcomm, 1, MPI_INT, MPI_MAX, comm);
-	// printf("Past Allreduce and using nextcomm %d\n", nextcomm);
-	next_avail_comm = nextcomm + 1;
-	*newcomm = nextcomm;
-	
-	/* create an array of process information for doing the split */
-	procs = (int *) malloc(3 * hdata[comm].mysize * sizeof(int));
-	
-	/* gather all process information at all processes */
-	p[0] = color;
-	p[1] = key;
-	p[2] = hdata[comm].myrank; /* this is rank from original comm */
-	
-	VolPEx_Allgather(p, 3, MPI_INT, procs, 3, MPI_INT, comm);
-	// printf("Past Allgather and using newcomm %d\n", *newcomm);
-	/* locate and count the # of processes having my color */
-	
-	for ( i=0; i<hdata[comm].mysize; i++ ) {
-	  PRINTF(("%d: i=%d color=%d key=%d rank=%d\n", hdata[comm].myrank, 
-		  i, procs[3*i], procs[3*i+1], procs[3*i+2] ));
-	}
-
-	qsort ( (int *)procs, hdata[comm].mysize, sizeof(int)*3, 
-		rankkeycompare );
-
-
-	for (i = 0; i < hdata[comm].mysize; i++){
-	    if(procs[i*3] == color){
-		for (k = 0; k < GM_numprocs; k++){
-		    sscanf(GM[k][comm].rank, "%d,%c", &numeric, &level);
-		    if(numeric == procs[i*3+2] && ){
-			GM[k][*newcomm].id = GM[k][comm].id;
-			strcpy(GM[k][*newcomm].host, GM[k][comm].host);
-			GM[k][*newcomm].port = GM[k][comm].port;
-			
-			sprintf(myredrank, "%d,%c", localrank, level);
-			PRINTF(("For new comm %d my redrank is %s, id=%d\n", *newcomm, myredrank, GM[k][*newcomm].id ));
-			strcpy(GM[k][*newcomm].rank, myredrank);
-		    }
+    int p[3], *procs;
+    int i, k, nextcomm = 0;
+    int numeric, newsize, newrank;
+    char level, myredrank[16];
+    int localrank = 0;
+    
+    PRINTF(("Into VolPEx_Comm_split with color %d and key %d\n", color, key));
+    
+    VolPEx_Allreduce(&next_avail_comm, &nextcomm, 1, MPI_INT, MPI_MAX, comm);
+    // printf("Past Allreduce and using nextcomm %d\n", nextcomm);
+    next_avail_comm = nextcomm + 1;
+    *newcomm = nextcomm;
+    
+    /* create an array of process information for doing the split */
+    procs = (int *) malloc(3 * hdata[comm].mysize * sizeof(int));
+    
+    /* gather all process information at all processes */
+    p[0] = color;
+    p[1] = key;
+    p[2] = hdata[comm].myrank; /* this is rank from original comm */
+    
+    VolPEx_Allgather(p, 3, MPI_INT, procs, 3, MPI_INT, comm);
+    // printf("Past Allgather and using newcomm %d\n", *newcomm);
+    /* locate and count the # of processes having my color */
+    
+    for ( i=0; i<hdata[comm].mysize; i++ ) {
+	PRINTF(("%d: i=%d color=%d key=%d rank=%d\n", hdata[comm].myrank, 
+		i, procs[3*i], procs[3*i+1], procs[3*i+2] ));
+    }
+    
+    qsort ( (int *)procs, hdata[comm].mysize, sizeof(int)*3, 
+	    rankkeycompare );
+    
+    
+    for (i = 0; i < hdata[comm].mysize; i++){
+	if(procs[i*3] == color){
+	    for (k = 0; k < GM_numprocs; k++){
+		sscanf(GM[k][comm].rank, "%d,%c", &numeric, &level);
+		if(numeric == procs[i*3+2]){
+		    GM[k][*newcomm].id = GM[k][comm].id;
+		    strcpy(GM[k][*newcomm].host, GM[k][comm].host);
+		    GM[k][*newcomm].port = GM[k][comm].port;
+		    
+		    sprintf(myredrank, "%d,%c", localrank, level);
+		    PRINTF(("For new comm %d my redrank is %s, id=%d\n", *newcomm, myredrank, GM[k][*newcomm].id ));
+		    strcpy(GM[k][*newcomm].rank, myredrank);
 		}
-		localrank++;
 	    }
+	    localrank++;
 	}
     }
     
