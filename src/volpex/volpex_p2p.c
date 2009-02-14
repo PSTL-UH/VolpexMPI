@@ -2,17 +2,19 @@
 #include "SL_msg.h"
 
 extern int SL_this_procid;
-extern Global_Map GM[TOTAL_NODES][TOTAL_COMMS];
-extern Tag_Reuse sendtagreuse[TAGLISTSIZE];
-extern Tag_Reuse recvtagreuse[TAGLISTSIZE];
+extern Global_Map **GM;
+extern Tag_Reuse *sendtagreuse;
+extern Tag_Reuse *recvtagreuse;
+extern Hidden_Data *hdata;
+extern Request_List *reqlist;
+
+
 extern NODEPTR head, insertpt, curr;
-extern Request_List reqlist[REQLISTSIZE];
 extern int GM_numprocs;
 extern int redundancy;
 extern char fullrank[16];
-extern char hostip[32];
-extern char hostname[512];
-extern Hidden_Data hdata[TOTAL_COMMS];
+extern char *hostip;
+extern char *hostname;
 extern int GM_numprocs;
 extern int next_avail_comm;
 extern int request_counter;
@@ -62,16 +64,10 @@ int  VolPEx_progress()
 		    curr = VolPex_send_buffer_search(head, reqlist[i].header, &answer);
 		    if(answer && reqlist[i].cktag == CK_TAG){
 			answer = 0;
-/*			PRINTF(("  VProgress: send req %d: Into SL_Send with %d,%d,%d,%d\n", i,
-                                reqlist[i].header[0], reqlist[i].target, reqlist[i].header[2],
-                                reqlist[i].header[3]));*/
 			PRINTF(("  VProgress: send req %d: Into SL_Send with %d,%d,%d,%d\n", i,			   
 				reqlist[i].header->len, reqlist[i].target, reqlist[i].header->tag, 
 				reqlist[i].header->comm));
 
-/*			ret = SL_Isend(curr->buffer, reqlist[i].header[0],
-                                       reqlist[i].target, reqlist[i].header[2],
-                                       reqlist[i].header[3], &reqlist[i].request);*/
 			ret = SL_Isend(curr->buffer, reqlist[i].header->len, 
 				       reqlist[i].target, reqlist[i].header->tag, 
 				       reqlist[i].header->comm, &reqlist[i].request);
@@ -85,10 +81,6 @@ int  VolPEx_progress()
 			flag=0;
 		    }
 		    else {
-
-/*			printf("  VProgress: send req. %d: Could not find entry in the send-buffer "
-                               "to match %d %d %d %d\n", i, reqlist[i].header[0], reqlist[i].target,
-                               reqlist[i].header[2], reqlist[i].header[3]);*/
 
 			printf("  VProgress: send req. %d: Could not find entry in the send-buffer "
 			       "to match %d %d %d %d\n", i, reqlist[i].header->len, reqlist[i].target, 
@@ -114,11 +106,6 @@ int  VolPEx_progress()
 		reqlist[i].target    = -1;
 		reqlist[i].flag      = 0;
 		reqlist[i].header    = VolPex_init_msg_header();
-/*		reqlist[i].header[0] = -1;
-		reqlist[i].header[1] = -1;
-		reqlist[i].header[2] = -1;
-		reqlist[i].header[3] = -1;
-		reqlist[i].header[4] = -1;*/
 		reqlist[i].recv_status = -1;
 		reqlist[i].send_status = -1;
 		reqlist[i].reqnumber = -1;
@@ -133,10 +120,6 @@ int  VolPEx_progress()
 	    
 	    if(flag == 1 && reqlist[i].recv_status == 0 ) {
 		if ( ret == SL_SUCCESS){
-/*		    ret = SL_Irecv(reqlist[i].buffer, reqlist[i].header[0], 
-				   reqlist[i].target, reqlist[i].header[2], 
-				   reqlist[i].header[3], &reqlist[i].request);*/
-
 		    ret = SL_Irecv(reqlist[i].buffer, reqlist[i].header->len,
                                    reqlist[i].target, reqlist[i].header->tag,
                                    reqlist[i].header->comm, &reqlist[i].request);
@@ -148,18 +131,10 @@ int  VolPEx_progress()
 		
 		if ( ret != SL_SUCCESS ) {
 		    MPI_Request tmprequest = i;
-//		    GM_set_state_not_connected(reqlist[i].header[1]);
 		    GM_set_state_not_connected(reqlist[i].header->dest);
-/*		    PRINTF(("  VProgress: recv request:%d reposting Irecv to %d, since prev. op. failed \n",
-			    i, reqlist[i].header[i] ));*/
-
 		    PRINTF(("  VProgress: recv request:%d reposting Irecv to %d, since prev. op. failed \n",
                             i, reqlist[i].header->dest ));
 		    
-/*		    ret = VolPEx_Irecv_ll ( reqlist[i].buffer, reqlist[i].header[0], 
-					    reqlist[i].header[1], reqlist[i].header[2], 
-					    reqlist[i].header[3], &tmprequest, i );*/
-
 		    ret = VolPEx_Irecv_ll ( reqlist[i].buffer, reqlist[i].header->len,
                                             reqlist[i].header->dest, reqlist[i].header->tag,
                                             reqlist[i].header->comm, &tmprequest, i );
@@ -167,9 +142,6 @@ int  VolPEx_progress()
 			/* mark the request as done but set the error code. This 
 			   operation can not finish, because there are not targets
 			   left which are alive. */
-/*			PRINTF(("  VProgress: recv request:%d  all targets for proc. %d dead. ret=%d\n",
-				i, reqlist[i].header[i], ret ));*/
-
 			PRINTF(("  VProgress: recv request:%d  all targets for proc. %d dead. ret=%d\n",
                                 i, reqlist[i].header->dest, ret ));
 		    }
@@ -182,14 +154,7 @@ int  VolPEx_progress()
 		}
 		else {
 		    MPI_Request tmprequest = i;
-/*		    GM_set_state_not_connected(reqlist[i].header[1]);
-		    ret = VolPEx_Irecv_ll ( reqlist[i].buffer, reqlist[i].header[0], 
-					    reqlist[i].header[1], reqlist[i].header[2], 
-					    reqlist[i].header[3], &tmprequest, i );
-
-
-		   GM_set_state_not_connected(reqlist[i].header[1]);*/
-		   GM_set_state_not_connected(reqlist[i].header->dest);
+		    GM_set_state_not_connected(reqlist[i].header->dest);
                     ret = VolPEx_Irecv_ll ( reqlist[i].buffer, reqlist[i].header->len,
                                             reqlist[i].header->dest, reqlist[i].header->tag,
                                             reqlist[i].header->comm, &tmprequest, i );
@@ -197,8 +162,6 @@ int  VolPEx_progress()
 			/* mark the request as done but the error code. This 
 			   operation can not finish, because there are not targets
 			   left which are alive. */
-/*			PRINTF(("  VProgress: recv request:%d  all targets for proc. %d dead. ret=%d\n",
-				i, reqlist[i].header[i], ret ));*/
 
 			PRINTF(("  VProgress: recv request:%d  all targets for proc. %d dead. ret=%d\n",
                                 i, reqlist[i].header->dest, ret ));
@@ -234,14 +197,7 @@ int  VolPEx_Wait(MPI_Request *request, MPI_Status *status)
     
     i = *request;
     PRINTF(("VolPEx_Wait is working on reqnumber %d\n", i));
-/*    PRINTF(("reqnumber %d\n len%d\n source%d\n tag%d\n comm%d\n reuse%d\n "
-	    "in_use%d\n req_type%d\n target%d\n flag%d\n", 
-	    i, reqlist[i].header[0], reqlist[i].header[1], reqlist[i].header[2], 
-	    reqlist[i].header[3], reqlist[i].header[4],
-	    reqlist[i].in_use, reqlist[i].req_type, reqlist[i].target, reqlist[i].flag));*/
-
-
-      PRINTF(("reqnumber %d\n len%d\n source%d\n tag%d\n comm%d\n reuse%d\n "
+    PRINTF(("reqnumber %d\n len%d\n source%d\n tag%d\n comm%d\n reuse%d\n "
             "in_use%d\n req_type%d\n target%d\n flag%d\n",
             i, reqlist[i].header->len, reqlist[i].header->dest, reqlist[i].header->tag,
             reqlist[i].header->comm, reqlist[i].header->reuse,
@@ -261,22 +217,10 @@ int  VolPEx_Wait(MPI_Request *request, MPI_Status *status)
 	    reqlist[i].target    = -1;
 	    reqlist[i].flag      = 0;
 	    reqlist[i].header    = VolPex_init_msg_header();
-/*	    reqlist[i].header[0] = -1;
-	    reqlist[i].header[1] = -1;
-	    reqlist[i].header[2] = -1;
-	    reqlist[i].header[3] = -1;
-	    reqlist[i].header[4] = -1; */
 	    reqlist[i].recv_status = -1;
 	    reqlist[i].send_status = -1;
 	    reqlist[i].reqnumber = -1;
 	    
-/*	    if ( NULL != status && SL_STATUS_IGNORE != status ) {
-		status->SL_SOURCE  = reqlist[i].returnheader[1];
-		status->SL_TAG     = reqlist[i].returnheader[2];
-		status->SL_ERROR   = SL_SUCCESS; 
-		status->SL_CONTEXT = reqlist[i].returnheader[3];
-		status->SL_LEN     = reqlist[i].returnheader[0];
-	    }*/
 
 	   if ( NULL != status && SL_STATUS_IGNORE != status ) {
                 status->SL_SOURCE  = reqlist[i].returnheader.dest;
@@ -297,7 +241,6 @@ int  VolPEx_Isend(void *buf, int count, MPI_Datatype datatype, int dest, int tag
     int i, j, len;
     int reuse, ret;
     int targets[3] = {-1,-1,-1};
-//    int header[5];
     VolPex_msg_header *header;
     void *buffer;
     
@@ -316,11 +259,6 @@ int  VolPEx_Isend(void *buf, int count, MPI_Datatype datatype, int dest, int tag
     reuse = VolPex_tag_reuse_check(tag, 0);
 
     header = VolPex_get_msg_header(len, dest, tag, comm, reuse);
-/*    header[0] = len;
-    header[1] = dest;
-    header[2] = tag;
-    header[3] = comm;
-    header[4] = reuse;*/
     PRINTF(("VIsend: To Send Buffer: %d,%d,%d,%d,%d\n", len, dest, tag, comm, reuse));
     GM_dest_src_locator(dest, comm, fullrank, targets);
     PRINTF(("VIsend: Targets are %d %d %d\n", targets[0], targets[1], targets[2]));
@@ -334,20 +272,12 @@ int  VolPEx_Isend(void *buf, int count, MPI_Datatype datatype, int dest, int tag
 	    reqlist[i].in_use = 1;
 	    reqlist[i].flag = 0;
 	    reqlist[i].header = VolPex_get_msg_header(len, dest, tag, comm, reuse);
-/*	    reqlist[i].header[0] = len;
-	    reqlist[i].header[1] = dest;
-	    reqlist[i].header[2] = tag;
-	    reqlist[i].header[3] = comm;
-	    reqlist[i].header[4] = reuse;*/
 	    reqlist[i].send_status = 0;
 	    reqlist[i].reqnumber = i;
 	    assoc_reqs[j] = i;
 	    buffer = (VolPex_msg_header*) malloc(sizeof(VolPex_msg_header));
 	    PRINTF(("VIsend: Setting Irecv to %d %d %d %d for reqnumber %d\n", 
 		    CK_LEN, targets[j], reqlist[i].cktag, comm, i));
-/*	    ret = SL_recv_post(reqlist[i].returnheader, CK_LEN, targets[j], 
-			       reqlist[i].cktag, comm, 
-			       SL_ACCEPT_INFINITE_TIME, &reqlist[i].request);*/
 
 	    ret = SL_recv_post(&reqlist[i].returnheader, sizeof(VolPex_msg_header), targets[j],
                                reqlist[i].cktag, comm,
@@ -380,8 +310,6 @@ int  VolPEx_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int t
 		  MPI_Comm comm, MPI_Request *request)
 {
     int reuse, len;
-//    int header[5];
-  
     VolPex_msg_header *header;  
     PRINTF(("VIrecv: count %d, from %d, tag %d, comm %d\n", count, source, tag, comm));
     
@@ -389,11 +317,6 @@ int  VolPEx_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int t
     PRINTF(("Reuse************** %d\n\n",reuse));
     len = VolPex_get_len(count, datatype);
 
-/*    header[0] = len;
-    header[1] = hdata[comm].myrank;
-    header[2] = tag;
-    header[3] = comm;
-    header[4] = reuse;*/
 
     header = VolPex_get_msg_header(len, hdata[comm].myrank, tag, comm, reuse);
     
@@ -411,7 +334,6 @@ int  VolPEx_Irecv_ll(void *buf, int len, int source, int tag,
     int i, j, ret;
     int reuse;
     int targets[3] = {-1,-1,-1};
-   // int header[5];
     VolPex_msg_header *header;
     int num_errors = 0;
     
@@ -432,11 +354,6 @@ int  VolPEx_Irecv_ll(void *buf, int len, int source, int tag,
 	reqlist[i].buffer = buf;
 	reuse = VolPex_tag_reuse_check(tag, 1);
 	reqlist[i].header = VolPex_get_msg_header(len, source, tag, comm, reuse);
-/*	reqlist[i].header[0] = len;
-	reqlist[i].header[1] = source;
-	reqlist[i].header[2] = tag;
-	reqlist[i].header[3] = comm;
-	reqlist[i].header[4] = reuse;*/
 	reqlist[i].reqnumber = i;
 	reqlist[i].recv_status = 1; /* no need to post a follow up operation */
 	SL_Irecv(buf, len, source, tag, comm, &reqlist[i].request);
@@ -445,11 +362,6 @@ int  VolPEx_Irecv_ll(void *buf, int len, int source, int tag,
     
     reuse = VolPex_tag_reuse_check(tag, 1);
     header = VolPex_get_msg_header(len, hdata[comm].myrank, tag, comm, reuse);
-/*    header[0] = len;
-    header[1] = hdata[comm].myrank;
-    header[2] = tag;
-    header[3] = comm;
-    header[4] = reuse;*/
     
     GM_dest_src_locator(source, comm, fullrank, targets);
     PRINTF(("VIrecv: Targets are %d %d %d\n", targets[0], targets[1], targets[2]));
@@ -471,23 +383,17 @@ int  VolPEx_Irecv_ll(void *buf, int len, int source, int tag,
 	    reqlist[i].flag = 0;
 	    reqlist[i].buffer = buf;
 	    reqlist[i].header = VolPex_get_msg_header(len, source, tag, comm, reuse);
-/*	    reqlist[i].header[0] = len;
-	    reqlist[i].header[1] = source;
-	    reqlist[i].header[2] = tag;
-	    reqlist[i].header[3] = comm;
-	    reqlist[i].header[4] = reuse;*/
 	    reqlist[i].reqnumber = i;
 	    reqlist[i].recv_status = 0;
-/*	    ret = SL_Isend(header, CK_LEN, targets[j], CK_TAG, comm, &reqlist[i].request);*/
 	    ret = SL_Isend(header, sizeof(VolPex_msg_header), targets[j], CK_TAG, comm, &reqlist[i].request);
 	    if(ret != SL_SUCCESS){
 		PRINTF(("VIrecv Error: After SL_Test in VolPEx_Irecv, setting "
 			"VOLPEX_PROC_STATE_NOT_CONNECTED\n"));
-		GM_set_state_not_connected(targets[i]);
+		GM_set_state_not_connected(targets[j]);
 		PRINTF(("VIrecv: GM[%d][%d]: id %d host %s port %d rank %s state %d\n", 
-			targets[i], comm, GM[targets[i]][comm].id, GM[targets[i]][comm].host, 
-			GM[targets[i]][comm].port, GM[targets[i]][comm].rank, 
-			GM[targets[i]][comm].state));
+			targets[j], comm, GM[targets[j]][comm].id, GM[targets[j]][comm].host, 
+			GM[targets[j]][comm].port, GM[targets[j]][comm].rank, 
+			GM[targets[j]][comm].state));
 	    }
 	    if(ret == SL_SUCCESS){
 		*request = i;
@@ -521,11 +427,6 @@ int VolPEx_Cancel_byReqnumber(int reqnumber)
 	    reqlist[j].target   = -1;
 	    reqlist[j].flag     = 0;
 	    reqlist[j].header = VolPex_init_msg_header();
-/*	    reqlist[j].header[0] = -1;
-	    reqlist[j].header[1] = -1;
-	    reqlist[j].header[2] = -1;
-	    reqlist[j].header[3] = -1;
-	    reqlist[j].header[4] = -1;*/
 	    reqlist[j].recv_status = -1;
 	    SL_Cancel(&reqlist[j].request, &flag);
 	    PRINTF(("SL_Cancel executed for request number %d\n", reqlist[j].reqnumber));

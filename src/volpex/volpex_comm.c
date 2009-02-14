@@ -2,17 +2,19 @@
 #include "SL_msg.h"
 
 extern int SL_this_procid;
-extern Global_Map GM[TOTAL_NODES][TOTAL_COMMS];
-extern Tag_Reuse sendtagreuse[TAGLISTSIZE];
-extern Tag_Reuse recvtagreuse[TAGLISTSIZE];
 extern NODEPTR head, insertpt, curr;
-extern Request_List reqlist[REQLISTSIZE];
+
+extern Global_Map **GM;
+extern Tag_Reuse *sendtagreuse;
+extern Tag_Reuse *recvtagreuse;
+extern Hidden_Data *hdata;
+extern Request_List *reqlist;
+
 extern int GM_numprocs;
 extern int redundancy;
 extern char fullrank[16];
-extern char hostip[32];
-extern char hostname[512];
-extern Hidden_Data hdata[TOTAL_COMMS];
+extern char *hostip;
+extern char *hostname;
 extern int GM_numprocs;
 extern int next_avail_comm;
 extern int request_counter;
@@ -80,7 +82,7 @@ int VolPEx_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm)
 {
     int p[3], *procs;
     int i, k, nextcomm = 0;
-    int numeric, newsize, newrank;
+    int numeric, newsize, newrank=0;
     char level, myredrank[16];
     int localrank = 0;
     
@@ -122,7 +124,8 @@ int VolPEx_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm)
 		    GM[k][*newcomm].port = GM[k][comm].port;
 		    
 		    sprintf(myredrank, "%d,%c", localrank, level);
-		    PRINTF(("For new comm %d my redrank is %s, id=%d\n", *newcomm, myredrank, GM[k][*newcomm].id ));
+		    PRINTF(("For new comm %d my redrank is %s, id=%d\n", 
+			    *newcomm, myredrank, GM[k][*newcomm].id ));
 		    strcpy(GM[k][*newcomm].rank, myredrank);
 		}
 	    }

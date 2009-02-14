@@ -6,18 +6,18 @@
 #
 # $HEADER$
 #
-VOLPEX_DIR      = /home/rakhi/VolpexMPI
+VOLPEX_DIR      = /home/gabriel/VolpexMPI
 VOLPEX_LIB_DIR  = $(VOLPEX_DIR)/lib
 VOLPEX_INC_DIR  = $(VOLPEX_DIR)/include
 
 VOLPEX_LIB      = libvolpex.a
 
 CC	    = cc
-CFLAGS      = -g -O0 -Wall -I$(VOLPEX_INC_DIR) -I.
+CFLAGS      = -O3 -Wall -I$(VOLPEX_INC_DIR) -I.
 #CFLAGS      = -DDEBUG -g -O0 -Wall -I$(VOLPEX_INC_DIR)  
 LDFLAGS     =  $(VOLPEX_LIB_DIR)/$(VOLPEX_LIB) 
 FC	    = gfortran
-FFLAGS      = -free-form -g -O0 -Wall -I$(VOLPEX_INC_DIR) -I.
+FFLAGS      = -g -O0 -Wall -I$(VOLPEX_INC_DIR) -I.
 
 
 #Set some Flags

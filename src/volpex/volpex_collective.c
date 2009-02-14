@@ -1,18 +1,18 @@
 #include "mpi.h"
 #include "SL_msg.h"
 
-extern int SL_this_procid;
-extern Global_Map GM[TOTAL_NODES][TOTAL_COMMS];
-extern Tag_Reuse sendtagreuse[TAGLISTSIZE];
-extern Tag_Reuse recvtagreuse[TAGLISTSIZE];
+extern Global_Map **GM;
+extern Tag_Reuse *sendtagreuse;
+extern Tag_Reuse *recvtagreuse;
+extern Hidden_Data *hdata;
+extern Request_List *reqlist;
+
 extern NODEPTR head, insertpt, curr;
-extern Request_List reqlist[REQLISTSIZE];
 extern int GM_numprocs;
 extern int redundancy;
 extern char fullrank[16];
-extern char hostip[32];
-extern char hostname[512];
-extern Hidden_Data hdata[TOTAL_COMMS];
+extern char *hostip;
+extern char *hostname;
 extern int GM_numprocs;
 extern int next_avail_comm;
 extern int request_counter;
@@ -28,6 +28,8 @@ int  VolPEx_Finalize()
     WSACleanup();
 #endif
     VolPex_send_buffer_delete();
+    GM_free_global_data ();
+    
     return MPI_SUCCESS;
 }
 

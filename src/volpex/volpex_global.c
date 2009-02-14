@@ -1,25 +1,82 @@
 #include "mpi.h"
 
 extern int SL_this_procid;
-Global_Map GM[TOTAL_NODES][TOTAL_COMMS];
-Tag_Reuse sendtagreuse[TAGLISTSIZE];
-Tag_Reuse recvtagreuse[TAGLISTSIZE];
+Global_Map **GM=NULL;
+Tag_Reuse *sendtagreuse=NULL;
+Tag_Reuse *recvtagreuse=NULL;
+Hidden_Data *hdata=NULL;
+Request_List *reqlist=NULL;
+
 NODEPTR head, insertpt, curr;
-Request_List reqlist[REQLISTSIZE];
+
 int GM_numprocs;
 int redundancy;
 char fullrank[16];
-char hostip[32];
-char hostname[512];
-Hidden_Data hdata[TOTAL_COMMS];
+char *hostip=NULL;
+char *hostname;
 int GM_numprocs;
 int next_avail_comm;
 int request_counter = 0;
 
-void GM_host_ip()
+void GM_allocate_global_data ( void ) 
 {
-	struct hostent *host;
+    int i;
+
+    sendtagreuse = (Tag_Reuse *) malloc ( sizeof(Tag_Reuse) * TAGLISTSIZE );
+    recvtagreuse = (Tag_Reuse *) malloc ( sizeof(Tag_Reuse) * TAGLISTSIZE );
+    reqlist      = (Request_List *) malloc ( sizeof(Request_List) * REQLISTSIZE );
+    hdata        = (Hidden_Data *) malloc ( sizeof(Hidden_Data ) * TOTAL_COMMS);
+    GM           = (Global_Map **) malloc ( sizeof (Global_Map *) * TOTAL_NODES);
+    if ( NULL == sendtagreuse || NULL == recvtagreuse ||
+	 NULL == reqlist      || NULL == hdata        ||
+	 NULL == GM ) {
+	printf("could not allocate global arrays\n");
+	return;
+    }
+ 
+    for ( i=0; i<TOTAL_NODES; i++ ) {
+	GM[i] = (Global_Map *) malloc ( sizeof (Global_Map) * TOTAL_COMMS );
+	if ( NULL == GM[i] ) {
+	    printf("Could not allocate global array GM[%d}\n", i );
+	    return;
+	}
+    }
+
+    return;
+}
+
+void GM_free_global_data ( void )
+{
+    int i;
+    
+    for ( i=0; i<TOTAL_NODES; i++ ) {
+	if ( NULL != GM[i] ) {
+	    free ( GM[i] );
+	}
+    }
+
+    if ( NULL != sendtagreuse ) {
+	free ( sendtagreuse );
+    }
+    if ( NULL != recvtagreuse ) {
+	free ( recvtagreuse );
+    }
+    if ( NULL != reqlist ) {
+	free ( reqlist );
+    }
+    if ( NULL != hdata ) {
+	free ( hdata );
+    }
+
+    return;
+}
+
+void GM_host_ip(void)
+{
+	struct hostent *host=NULL;
 	struct in_addr h_addr;
+	char *tmp=NULL;
+	char thostname[512];
 
 #ifdef MINGW
   	WORD wVersionRequested;
@@ -30,10 +87,20 @@ void GM_host_ip()
      		exit(1);
   	}
 #endif
-  	gethostname(hostname, 512);
-	host = gethostbyname(hostname);
-	h_addr.s_addr = *((unsigned long *) host->h_addr_list[0]);
-	sprintf(hostip, "%s", inet_ntoa(h_addr));
+
+  	gethostname(thostname, 512);
+	host = gethostbyname(thostname);
+	if ( NULL == host ) {
+	    printf("failed to get host structure\n");
+	    return;
+	}
+	memset ( &h_addr, '\0', sizeof ( struct in_addr));
+	memcpy ( &h_addr, host->h_addr, host->h_length);
+
+	tmp = inet_ntoa ( h_addr );
+	hostip = strdup (tmp);
+	hostname = strdup ( thostname );
+	return;
 }
 
 int GM_print(int comm)
@@ -61,44 +128,44 @@ int GM_proc_read_and_set (void)
 
   	fp = fopen ("SL.config", "r");
   	if ( NULL == fp ) {
-    	printf ("Could not open configuration file SL.config\n");
-    	exit ( -1 );
+	    printf ("Could not open configuration file SL.config\n");
+	    exit ( -1 );
   	}
   	fscanf (fp, "%d", &GM_numprocs);
   	PRINTF(("Total number of processes: %d\n", GM_numprocs ));
 	fscanf (fp, "%d", &redundancy);
 	if(GM_numprocs % redundancy != 0){
-		printf("Total node vs. redundancy is not correct!\n");
-		exit(0);
+	    printf("Total node vs. redundancy is not correct!\n");
+	    exit(0);
   	}
   	for(i=0; i< GM_numprocs; i++) {
-		for(j = 0; j < TOTAL_COMMS; j++){
-			GM[i][j].id = -1;
-		}
-      	ret = fscanf ( fp, "%d %s %d", &id, host, &port );
-      	if ( EOF == ret ) {
-	  		printf("Configuration file does not have the requested number of entries\n");
-	  		exit (0);
-      	}
-		GM[i][comm].id = id;
-		strcpy(GM[i][comm].host,host);
-		GM[i][comm].port = port;
-      	if(id < GM_numprocs/redundancy)
-			sprintf(redrank, "%d,A", i);
-		else if(GM_numprocs/redundancy <= id && id < GM_numprocs/redundancy*2)
-			sprintf(redrank, "%d,B", i-GM_numprocs/redundancy);
-		else
-			sprintf(redrank, "%d,C", i-GM_numprocs/redundancy*2);
-		strcpy(GM[i][comm].rank,redrank);
-		GM[i][comm].state = VOLPEX_PROC_CONNECTED;
-		for(j = 0; j < TOTAL_COMMS; j++){
-			GM[i][j].state = VOLPEX_PROC_CONNECTED;
-		}
-		PRINTF(("GM[%d][%d]: id %d host %s port %d rank %s state %d\n", i, comm, GM[i][comm].id, 
-			GM[i][comm].host, GM[i][comm].port, GM[i][comm].rank, GM[i][comm].state));
+	    for(j = 0; j < TOTAL_COMMS; j++){
+		GM[i][j].id = -1;
+	    }
+	    ret = fscanf ( fp, "%d %s %d", &id, host, &port );
+	    if ( EOF == ret ) {
+		printf("Configuration file does not have the requested number of entries\n");
+		exit (0);
+	    }
+	    GM[i][comm].id = id;
+	    strncpy(GM[i][comm].host, host, 32);
+	    GM[i][comm].port = port;
+	    if(id < GM_numprocs/redundancy)
+		sprintf(redrank, "%d,A", i);
+	    else if(GM_numprocs/redundancy <= id && id < GM_numprocs/redundancy*2)
+		sprintf(redrank, "%d,B", i-GM_numprocs/redundancy);
+	    else
+		sprintf(redrank, "%d,C", i-GM_numprocs/redundancy*2);
+	    strncpy(GM[i][comm].rank,redrank,16);
+	    GM[i][comm].state = VOLPEX_PROC_CONNECTED;
+	    for(j = 0; j < TOTAL_COMMS; j++){
+		GM[i][j].state = VOLPEX_PROC_CONNECTED;
+	    }
+	    PRINTF(("GM[%d][%d]: id %d host %s port %d rank %s state %d\n", i, comm, GM[i][comm].id, 
+		    GM[i][comm].host, GM[i][comm].port, GM[i][comm].rank, GM[i][comm].state));
   	}
   	fclose(fp);
-  
+	
   	return 0;
 }
 

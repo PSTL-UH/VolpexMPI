@@ -2,17 +2,18 @@
 //#include "../../include/SL_proc.h"
 
 extern int SL_this_procid;
-extern Global_Map GM[TOTAL_NODES][TOTAL_COMMS];
-extern Tag_Reuse sendtagreuse[TAGLISTSIZE];
-extern Tag_Reuse recvtagreuse[TAGLISTSIZE];
+extern Global_Map **GM;
+extern Tag_Reuse *sendtagreuse;
+extern Tag_Reuse *recvtagreuse;
+extern Hidden_Data *hdata;
+extern Request_List *reqlist;
+
 extern NODEPTR head, insertpt, curr;
-extern Request_List reqlist[REQLISTSIZE];
 extern int GM_numprocs;
 extern int redundancy;
 extern char fullrank[16];
-extern char hostip[32];
-extern char hostname[512];
-extern Hidden_Data hdata[TOTAL_COMMS];
+extern char *hostip;
+extern char *hostname;
 extern int GM_numprocs;
 extern int next_avail_comm;
 extern int request_counter;
@@ -26,6 +27,18 @@ int mpi_init(int *ierr)
 {
     int i;
     next_avail_comm = 3;
+
+    GM_allocate_global_data ();
+
+    GM_host_ip();
+    PRINTF(("Hostname: %s\n", hostname));
+    PRINTF(("HostIP: %s\n", hostip));
+
+
+    GM_proc_read_and_set();
+    SL_this_procid = GM_get_procid_fullrank(fullrank);
+    PRINTF(("My full rank is %s\n", fullrank));
+
     for(i = 0; i < REQLISTSIZE; i++)
 	reqlist[i].in_use = 0;
 //	reqlist[i].returnheader = (VolPex_msg_header*) malloc(sizeof(VolPex_msg_header));
@@ -33,12 +46,7 @@ int mpi_init(int *ierr)
 	sendtagreuse[i].tag = -1;
 	recvtagreuse[i].tag = -1;
     }
-    GM_host_ip();
-    PRINTF(("Hostname: %s\n", hostname));
-    PRINTF(("HostIP: %s\n", hostip));
-    GM_proc_read_and_set();
-    SL_this_procid = GM_get_procid_fullrank(fullrank);
-    PRINTF(("My full rank is %s\n", fullrank));
+
     
     head = insertpt = curr = VolPex_send_buffer_init();
     hdata[1].mybarrier = 0;
@@ -63,25 +71,35 @@ int  MPI_Init( int *argc, char ***argv )
     int i;
     
     next_avail_comm = 3;
+
+
+    if ( *argc > 1 ) {
+	SL_this_procid = atoi ( (*argv)[1] );
+    }
+    else
+	SL_this_procid = GM_get_procid_fullrank(fullrank);
+
+
+    GM_allocate_global_data ();
+
+    GM_host_ip();
+    PRINTF(("Hostname: %s\n", hostname));
+    PRINTF(("HostIP: %s\n", hostip));
+
+    GM_proc_read_and_set();
+    GM_get_fullrank(fullrank);
+
     for(i = 0; i < REQLISTSIZE; i++)
 	reqlist[i].in_use = 0;
     for(i = 0; i < TAGLISTSIZE; i++){
 	sendtagreuse[i].tag = -1;
 	recvtagreuse[i].tag = -1;
     }
-    GM_host_ip();
-    PRINTF(("Hostname: %s\n", hostname));
-    PRINTF(("HostIP: %s\n", hostip));
-    GM_proc_read_and_set();
-    if ( *argc > 1 ) {
-	SL_this_procid = atoi ( (*argv)[1] );
-	GM_get_fullrank(fullrank);
-    }
-    else
-	SL_this_procid = GM_get_procid_fullrank(fullrank);
+
     PRINTF(("My full rank is %s\n", fullrank));
     head = insertpt = curr = VolPex_send_buffer_init();
     hdata[1].mybarrier = 0;
+
     SL_Init();
     PRINTF(("Initializing MPI Program\n"));
     int mynumeric;

@@ -34,7 +34,7 @@ $(VOLPEX_LIB): $(HEADER) $(OBJ)
 
 $(OBJ): $(HEADER)
 .c.o:   $(HEADER)
-	$(CC) $(CFLAGS) -DPRINTF -DVOLPEXFORTRAN -c $<
+	$(CC) $(CFLAGS) -DVOLPEXFORTRAN -c $<
 
 #winclib:
 #	mingw32-make winclean

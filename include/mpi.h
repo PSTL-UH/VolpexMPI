@@ -334,10 +334,12 @@ int  VolPEx_Gather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MP
 int  VolPEx_Allgather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, MPI_Comm);
 int  VolPEx_Comm_dup(MPI_Comm, MPI_Comm *);
 int  VolPEx_Comm_split(MPI_Comm, int, int, MPI_Comm *);
+
+
 int  VolPEx_Cancel_byReqnumber(int);
 int  VolPex_tag_reuse_check(int, int);
 void VolPEx_reduce_ll(void *, void *, int, MPI_Datatype, MPI_Op, int, MPI_Comm, int);
-void GM_host_ip();
+void   GM_host_ip(void);
 int  GM_print(int);
 int  GM_proc_read_and_set (void);
 int  GM_get_fullrank(char *);
@@ -345,6 +347,9 @@ int  GM_get_procid_fullrank(char *);
 int  GM_dest_src_locator(int, int, char *, int[]);
 int  GM_set_state_not_connected(int);
 NODEPTR VolPex_send_buffer_init(void);
+void GM_allocate_global_data ( void ); 
+void GM_free_global_data (void);
+
 //NODEPTR VolPex_send_buffer_insert(NODEPTR, int[], int[], void *);
 //NODEPTR VolPex_send_buffer_search(NODEPTR, int [], int *);
 
