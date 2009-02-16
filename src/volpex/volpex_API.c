@@ -37,17 +37,20 @@ int mpi_init(int *ierr)
 
     GM_proc_read_and_set();
     SL_this_procid = GM_get_procid_fullrank(fullrank);
+    if ( -1 == SL_this_procid ) {
+	printf("Could not find entry for host %s in SL.config\n", hostip);
+	exit (-1);
+    }
+
     PRINTF(("My full rank is %s\n", fullrank));
 
     for(i = 0; i < REQLISTSIZE; i++)
 	reqlist[i].in_use = 0;
-//	reqlist[i].returnheader = (VolPex_msg_header*) malloc(sizeof(VolPex_msg_header));
     for(i = 0; i < TAGLISTSIZE; i++){
 	sendtagreuse[i].tag = -1;
 	recvtagreuse[i].tag = -1;
     }
 
-    
     head = insertpt = curr = VolPex_send_buffer_init();
     hdata[1].mybarrier = 0;
     
@@ -69,24 +72,32 @@ int mpi_init(int *ierr)
 int  MPI_Init( int *argc, char ***argv )
 {
     int i;
+    int rank=-1;
     
     next_avail_comm = 3;
-
+    GM_allocate_global_data ();
 
     if ( *argc > 1 ) {
-	SL_this_procid = atoi ( (*argv)[1] );
+	rank = atoi ((*argv)[1]);
     }
-    else
-	SL_this_procid = GM_get_procid_fullrank(fullrank);
-
-
-    GM_allocate_global_data ();
 
     GM_host_ip();
     PRINTF(("Hostname: %s\n", hostname));
     PRINTF(("HostIP: %s\n", hostip));
 
     GM_proc_read_and_set();
+
+    if ( rank != -1  ) {
+	SL_this_procid = rank;
+    }
+    else {
+	SL_this_procid = GM_get_procid_fullrank(fullrank);
+	if ( -1 == SL_this_procid ) {
+	    printf("Could not find entry for host %s in SL.config\n", hostip);
+	    exit (-1);
+	}
+    }
+
     GM_get_fullrank(fullrank);
 
     for(i = 0; i < REQLISTSIZE; i++)
@@ -110,6 +121,7 @@ int  MPI_Init( int *argc, char ***argv )
 	    hdata[MPI_COMM_WORLD].myrank = mynumeric;
 	}
     }
+
     VolPEx_Redundancy_Barrier ( MPI_COMM_WORLD, hdata[MPI_COMM_WORLD].myrank ) ;
     return MPI_SUCCESS;
 }
