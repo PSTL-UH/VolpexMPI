@@ -1,6 +1,8 @@
 #include "mpi.h"
 #include "SL_msg.h"
 
+extern int SL_this_procid;
+
 VolPex_msg_header* VolPex_get_msg_header(int len, int dest, int tag, int comm, int reuse)
 {
 	VolPex_msg_header *header;
@@ -50,4 +52,13 @@ int VolPex_compare_msg_header(VolPex_msg_header* header1, VolPex_msg_header* hea
 		flag =  0;
 
 	return flag;		
+}
+
+void VolPex_print_msg_header ( VolPex_msg_header *header )
+{
+    PRINTF(("%d: header: len=%d dest=%d tag=%d comm=%d reuse=%d\n", 
+	    SL_this_procid, header->len, header->dest, 
+	    header->tag, header->comm, header->reuse ));
+
+    return;
 }

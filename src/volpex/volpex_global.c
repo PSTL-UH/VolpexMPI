@@ -256,20 +256,17 @@ NODEPTR VolPex_send_buffer_init()
 		newnode= (NODE *)malloc(sizeof(NODE));
 		newnode->counter = i;
 
-		newnode->header    = VolPex_init_msg_header();
-/*		newnode->header[0] = -1;
-		newnode->header[1] = -1;
-		newnode->header[2] = -1;
-		newnode->header[3] = -1;
-		newnode->header[4] = -1;*/
+//		newnode->header    = VolPex_init_msg_header();
+		newnode->header    = NULL;
 		newnode->reqnumbers[0] = -1;
 		newnode->reqnumbers[1] = -1;
 		newnode->reqnumbers[2] = -1;
 		newnode->buffer = NULL;
-		if(i == 1)
-			head = curr = newnode;
-			newnode->back = NULL;
+		if(i == 1) {
+		        head = curr = newnode;
+		        newnode->back = NULL;
 			newnode->fwd = NULL;
+		}
 		if(i > 1 && i < SENDBUFSIZE){
 			curr->fwd = newnode;
 			newnode->back = curr;
@@ -307,35 +304,44 @@ void VolPex_send_buffer_delete()
       PRINTF(("Buffer deleted\n"));
 }
 
-NODEPTR VolPex_send_buffer_insert(NODEPTR currinsertpt, VolPex_msg_header *header, int new_reqs[3], void *buf)
-//NODEPTR VolPex_send_buffer_insert(NODEPTR currinsertpt, int header[5], int new_reqs[3], void *buf)
+NODEPTR VolPex_send_buffer_insert(NODEPTR currinsertpt, VolPex_msg_header *header, 
+				  int new_reqs[3], void *buf)
 {
 	char *tmpbuf=NULL;
 	
 	PRINTF(("currinsertpt->counter = %d\n", currinsertpt->counter));
-	
-/*	currinsertpt->header[0] = header[0];
-	currinsertpt->header[1] = header[1];
-	currinsertpt->header[2] = header[2];
-	currinsertpt->header[3] = header[3];
-	currinsertpt->header[4] = header[4];*/
 
-	currinsertpt->header = VolPex_get_msg_header(header->len,header->dest,header->tag,header->comm,header->reuse);
+
+	if ( NULL != currinsertpt->header ) {
+	    /* This element is already in use, free it. */
+	    PRINTF(("send_buffer_insert: Overwriting data in buffer %d\n", 
+		    currinsertpt->counter ));
+	    VolPex_print_msg_header ( currinsertpt->header );
+
+	    VolPEx_Cancel_byReqnumber(currinsertpt->reqnumbers[0]);
+	    VolPEx_Cancel_byReqnumber(currinsertpt->reqnumbers[1]);
+	    VolPEx_Cancel_byReqnumber(currinsertpt->reqnumbers[2]);
+		    
+	    free ( currinsertpt->header );
+	    if ( NULL != currinsertpt->buffer ) {
+		free ( currinsertpt->buffer );
+	    }
+	}
+
+	currinsertpt->header = VolPex_get_msg_header(header->len, header->dest,
+						     header->tag, header->comm,
+						     header->reuse);
 	
-	VolPEx_Cancel_byReqnumber(currinsertpt->reqnumbers[0]);
 	currinsertpt->reqnumbers[0] = new_reqs[0];
-	VolPEx_Cancel_byReqnumber(currinsertpt->reqnumbers[1]);
 	currinsertpt->reqnumbers[1] = new_reqs[1];
-	VolPEx_Cancel_byReqnumber(currinsertpt->reqnumbers[2]);
 	currinsertpt->reqnumbers[2] = new_reqs[2];
 		
-/*	if ( header[0] > 0 ) {
-		tmpbuf  = (char *) malloc ( header[0]);
-		memcpy ( tmpbuf, buf, header[0]);
-	}*/
-
 	if ( header->len > 0 ) {
                 tmpbuf  = (char *) malloc ( header->len);
+		if ( NULL == tmpbuf ) {
+		    printf("send_buffer_insert: Could not allocate memory of size %d\n", 
+			   header->len );
+		}
                 memcpy ( tmpbuf, buf, header->len);
         }
 	currinsertpt->buffer = tmpbuf;
@@ -344,24 +350,20 @@ NODEPTR VolPex_send_buffer_insert(NODEPTR currinsertpt, VolPex_msg_header *heade
 }
 
 NODEPTR VolPex_send_buffer_search(NODEPTR currpt, VolPex_msg_header *header, int *answer)
-//NODEPTR VolPex_send_buffer_search(NODEPTR currpt, int header[5], int *answer)
 
 {
 	int search_count = 1;
 	NODEPTR curr=currpt;
-//	while(search_count <= SENDBUFSIZE && currpt != NULL){
 	do {
-/*		if(curr->header[0] <= header[0] && curr->header[1] == header[1] && 
-		   curr->header[2] == header[2] && curr->header[3] == header[3] && 
-		   curr->header[4] == header[4]){*/
-
+	    if ( NULL != curr->header ) {
 		if( VolPex_compare_msg_header(curr->header, header)){
-			*answer = 1; /*yes*/
-			PRINTF(("Found msg at curr->counter = %d\n", curr->counter));
-			return curr;
+		    *answer = 1; /*yes*/
+		    PRINTF(("Found msg at curr->counter = %d\n", curr->counter));
+		    return curr;
 		}
-		curr = curr->back; /*search backwards since loaded forward*/
-		search_count++;
+	    }
+	    curr = curr->back; /*search backwards since loaded forward*/
+	    search_count++;
 	} while ( curr != currpt );
 	
 	*answer = 0; /*no*/

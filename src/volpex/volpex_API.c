@@ -44,8 +44,10 @@ int mpi_init(int *ierr)
 
     PRINTF(("My full rank is %s\n", fullrank));
 
-    for(i = 0; i < REQLISTSIZE; i++)
+    for(i = 0; i < REQLISTSIZE; i++) {
 	reqlist[i].in_use = 0;
+	reqlist[i].insrtbuf = NULL;
+    }
     for(i = 0; i < TAGLISTSIZE; i++){
 	sendtagreuse[i].tag = -1;
 	recvtagreuse[i].tag = -1;
@@ -100,8 +102,11 @@ int  MPI_Init( int *argc, char ***argv )
 
     GM_get_fullrank(fullrank);
 
-    for(i = 0; i < REQLISTSIZE; i++)
+    for(i = 0; i < REQLISTSIZE; i++) {
 	reqlist[i].in_use = 0;
+	reqlist[i].insrtbuf = NULL;
+    }
+
     for(i = 0; i < TAGLISTSIZE; i++){
 	sendtagreuse[i].tag = -1;
 	recvtagreuse[i].tag = -1;

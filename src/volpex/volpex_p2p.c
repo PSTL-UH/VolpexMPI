@@ -22,7 +22,8 @@ extern int request_counter;
 
 static int not_found=0;
 
-int  VolPEx_Send(void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm)
+int  VolPEx_Send(void *buf, int count, MPI_Datatype datatype, int dest, int tag, 
+		 MPI_Comm comm)
 {
     MPI_Status mystatus;
     MPI_Request myrequest;
@@ -52,7 +53,7 @@ int  VolPEx_progress()
     int flag = 0;
     int answer = 0;
     
-    for(i = 0; i < request_counter; i++){
+    for(i = 0; i < REQLISTSIZE; i++){
 	/* handles progress on sends and isends from buffer */
 	if(reqlist[i].in_use == 1 && reqlist[i].req_type == 0){  
 	    flag = 0;
@@ -64,7 +65,7 @@ int  VolPEx_progress()
 		    curr = VolPex_send_buffer_search(head, reqlist[i].header, &answer);
 		    if(answer && reqlist[i].cktag == CK_TAG){
 			answer = 0;
-			PRINTF(("  VProgress: send req %d: Into SL_Send with %d,%d,%d,%d\n", i,			   
+			PRINTF(("  VProgress: send req %d: Into SL_Send with %d,%d,%d,%d\n", i,	   
 				reqlist[i].header->len, reqlist[i].target, reqlist[i].header->tag, 
 				reqlist[i].header->comm));
 
@@ -92,7 +93,6 @@ int  VolPEx_progress()
 		    PRINTF(("  VProgress: send req. %d: target died, ret = %d. Freeing request.\n", 
 			    i, ret));
 		    /* TBD: free the request */
-		    
 		}
 	    }
 	    
@@ -105,10 +105,13 @@ int  VolPEx_progress()
 		reqlist[i].req_type  = -1;
 		reqlist[i].target    = -1;
 		reqlist[i].flag      = 0;
-		reqlist[i].header    = VolPex_init_msg_header();
+		free ( reqlist[i].header );
+		reqlist[i].header = NULL;
 		reqlist[i].recv_status = -1;
 		reqlist[i].send_status = -1;
+		Volpex_buffer_remove_ref ( reqlist[i].insrtbuf, reqlist[i].reqnumber );
 		reqlist[i].reqnumber = -1;
+		reqlist[i].insrtbuf  = NULL;
 	    }
 	}
 	
@@ -155,6 +158,7 @@ int  VolPEx_progress()
 		else {
 		    MPI_Request tmprequest = i;
 		    GM_set_state_not_connected(reqlist[i].header->dest);
+
                     ret = VolPEx_Irecv_ll ( reqlist[i].buffer, reqlist[i].header->len,
                                             reqlist[i].header->dest, reqlist[i].header->tag,
                                             reqlist[i].header->comm, &tmprequest, i );
@@ -216,7 +220,8 @@ int  VolPEx_Wait(MPI_Request *request, MPI_Status *status)
 	    reqlist[i].req_type  = -1;
 	    reqlist[i].target    = -1;
 	    reqlist[i].flag      = 0;
-	    reqlist[i].header    = VolPex_init_msg_header();
+	    free ( reqlist[i].header );
+	    reqlist[i].header = NULL;
 	    reqlist[i].recv_status = -1;
 	    reqlist[i].send_status = -1;
 	    reqlist[i].reqnumber = -1;
@@ -238,7 +243,7 @@ int  VolPEx_Wait(MPI_Request *request, MPI_Status *status)
 int  VolPEx_Isend(void *buf, int count, MPI_Datatype datatype, int dest, int tag, 
 		  MPI_Comm comm, MPI_Request *request)
 {
-    int i, j, len;
+    int i, istart, j, len;
     int reuse, ret;
     int targets[3] = {-1,-1,-1};
     VolPex_msg_header *header;
@@ -262,9 +267,12 @@ int  VolPEx_Isend(void *buf, int count, MPI_Datatype datatype, int dest, int tag
     PRINTF(("VIsend: To Send Buffer: %d,%d,%d,%d,%d\n", len, dest, tag, comm, reuse));
     GM_dest_src_locator(dest, comm, fullrank, targets);
     PRINTF(("VIsend: Targets are %d %d %d\n", targets[0], targets[1], targets[2]));
+
+    istart  = Volpex_request_get_counter ( redundancy );
+    Volpex_request_clean ( istart, redundancy );
     PRINTF(("VIsend: request_counter = %d\n", request_counter));
     
-    for(j = 0, i = request_counter; i < request_counter+redundancy; j++, i++){
+    for(j = 0, i=istart ; i < istart+redundancy; j++, i++){
 	if(targets[j] != -1){
 	    reqlist[i].target = targets[j];
 	    reqlist[i].cktag = CK_TAG; /*for regular buffer check*/
@@ -297,8 +305,15 @@ int  VolPEx_Isend(void *buf, int count, MPI_Datatype datatype, int dest, int tag
 	    }
 	}
     }
-    request_counter = request_counter + redundancy;
+//    Volpex_update_request_counter ( redundancy );
+//    request_counter = request_counter + redundancy;
     insertpt = VolPex_send_buffer_insert(insertpt, header, assoc_reqs, buf);
+    for ( i=0; i<redundancy; i++ ) {
+	if ( assoc_reqs[i] != -1 ) {
+	    reqlist[assoc_reqs[i]].insrtbuf = insertpt; 
+	}
+    }
+
     *request = MPI_REQUEST_NULL;
     PRINTF(("Moving into VolPEx_progress from VIsend\n"));
     VolPEx_progress();
@@ -369,8 +384,11 @@ int  VolPEx_Irecv_ll(void *buf, int len, int source, int tag,
     for(j = 0; j < redundancy; j++){
 	if(targets[j] != -1){
 	    if ( new_req == -1 ) {
-		i = request_counter;
-		request_counter++;		    
+		i = Volpex_request_get_counter ( 1 );
+		Volpex_request_clean ( i, 1 );
+		Volpex_request_update_counter ( 1 );
+//		i = request_counter;
+//		request_counter++;		    
 	    }
 	    else {
 		i = new_req;
@@ -426,13 +444,78 @@ int VolPEx_Cancel_byReqnumber(int reqnumber)
 	    reqlist[j].req_type = -1;
 	    reqlist[j].target   = -1;
 	    reqlist[j].flag     = 0;
-	    reqlist[j].header = VolPex_init_msg_header();
+	    free ( reqlist[j].header );
 	    reqlist[j].recv_status = -1;
 	    SL_Cancel(&reqlist[j].request, &flag);
-	    PRINTF(("SL_Cancel executed for request number %d\n", reqlist[j].reqnumber));
+	    PRINTF(("SL_Cancel executed for request number %d\n", 
+		    reqlist[j].reqnumber));
 	    reqlist[j].reqnumber = -1;
+	    reqlist[j].insrtbuf = NULL;
 	}
     }
     return 0;
 }
 
+int Volpex_request_get_counter ( int red )
+{
+    int ret;
+
+    if ( (request_counter + red) >= REQLISTSIZE ) {
+	/* need to reset the request counter to 0 and
+	   start over */
+	ret = 0;
+    }
+    else {
+	ret = request_counter;
+    }
+    request_counter = ret+ red;
+
+    return ret;
+}
+
+int Volpex_request_clean ( int start, int red )
+{
+    int i;
+
+    for ( i=start; i<start+red; i++ ) {
+	if ( reqlist[i].in_use == 1 ) {
+	    /* this request is currently utilized and we need to 
+	       free it */
+	    PRINTF(("request_clean: removing entry %d from the reqlist\n", i ));
+	    reqlist[i].in_use    = 0;
+	    reqlist[i].req_type  = -1;
+	    reqlist[i].target    = -1;
+	    reqlist[i].flag      = 0;
+	    free ( reqlist[i].header );
+	    reqlist[i].header = NULL;
+	    reqlist[i].recv_status = -1;
+	    reqlist[i].send_status = -1;
+	    if ( NULL != reqlist[i].insrtbuf ) {
+		Volpex_buffer_remove_ref ( reqlist[i].insrtbuf, reqlist[i].reqnumber );
+	    }
+	    reqlist[i].reqnumber = -1;
+	    reqlist[i].insrtbuf  = NULL;
+	}
+    }
+
+    return 0;
+}
+
+int Volpex_buffer_remove_ref  ( NODEPTR elem,  int reqid ) 
+{
+    int i;
+
+    for ( i=0; i<redundancy; i++ ) {
+	if ( elem->reqnumbers[i] == reqid ) {
+	    elem->reqnumbers[i] = -1;
+	}
+    }
+    
+    return 0;
+}
+
+void Volpex_request_update_counter ( int num )
+{
+    request_counter += num;
+    return;
+}
