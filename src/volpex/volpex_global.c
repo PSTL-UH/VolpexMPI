@@ -73,10 +73,12 @@ void GM_free_global_data ( void )
 
 void GM_host_ip(void)
 {
-	struct hostent *host=NULL;
-	struct in_addr h_addr;
-	char *tmp=NULL;
 	char thostname[512];
+	const char *tmp=NULL;
+	char **pptr;
+
+	char str[INET_ADDRSTRLEN];
+	struct hostent *hptr;
 
 #ifdef MINGW
   	WORD wVersionRequested;
@@ -87,19 +89,20 @@ void GM_host_ip(void)
      		exit(1);
   	}
 #endif
-
-  	gethostname(thostname, 512);
-	host = gethostbyname(thostname);
-	if ( NULL == host ) {
+	
+	gethostname(thostname, 512);
+	hptr = gethostbyname(thostname);
+	if ( NULL == hptr ) {
 	    printf("failed to get host structure\n");
 	    return;
 	}
-	memset ( &h_addr, '\0', sizeof ( struct in_addr));
-	memcpy ( &h_addr, host->h_addr, host->h_length);
 
-	tmp = inet_ntoa ( h_addr );
-	hostip = strdup (tmp);
-	hostname = strdup ( thostname );
+	pptr = hptr->h_addr_list;
+	tmp = inet_ntop ( hptr->h_addrtype, *pptr, str,  sizeof(str));
+
+	hostname = strdup (thostname );
+	hostip   = strdup ( str );
+
 	return;
 }
 
