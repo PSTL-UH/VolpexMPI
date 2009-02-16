@@ -88,6 +88,21 @@ struct VolPex_msg_header{
 };
 typedef struct VolPex_msg_header VolPex_msg_header;
 
+
+struct mpi_msg{
+	struct mpi_msg *back;
+	int counter;
+	VolPex_msg_header *header;
+//	int header[5];
+	void *buffer;
+	int reqnumbers[3];
+   	struct mpi_msg *fwd;
+};
+typedef struct mpi_msg NODE;
+typedef NODE *NODEPTR;
+
+
+
 struct request_list{
     int reqnumber;
 	SL_Request request;
@@ -102,21 +117,10 @@ struct request_list{
 	int flag;
 	int recv_status;
 	int send_status;
-	void *buffer;
+        void *buffer;
+        NODEPTR insrtbuf;
 };
 typedef struct request_list Request_List;
-
-struct mpi_msg{
-	struct mpi_msg *back;
-	int counter;
-	VolPex_msg_header *header;
-//	int header[5];
-	void *buffer;
-	int reqnumbers[3];
-   	struct mpi_msg *fwd;
-};
-typedef struct mpi_msg NODE;
-typedef NODE *NODEPTR;
 
 
 
@@ -364,5 +368,11 @@ int  VolPex_get_len(int, MPI_Datatype);
 VolPex_msg_header* VolPex_get_msg_header(int len, int dest, int tag, int comm, int reuse);
 VolPex_msg_header* VolPex_init_msg_header();
 int VolPex_compare_msg_header(VolPex_msg_header* header1, VolPex_msg_header* header2);
+void VolPex_print_msg_header ( VolPex_msg_header *header );
+
+int Volpex_buffer_remove_ref  ( NODEPTR elem,  int reqid );
+void Volpex_request_update_counter ( int num );
+int Volpex_request_clean ( int start, int red );
+int Volpex_request_get_counter ( int red );
 
 #endif	/* MPI_H_INCLUDED */
