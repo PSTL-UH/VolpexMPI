@@ -1,13 +1,6 @@
 #include "mpi.h"
 //#include "../../include/SL_proc.h"
 
-extern int SL_this_procid;
-extern Global_Map **GM;
-extern Tag_Reuse *sendtagreuse;
-extern Tag_Reuse *recvtagreuse;
-extern Hidden_Data *hdata;
-extern Request_List *reqlist;
-
 extern NODEPTR head, insertpt, curr;
 extern int GM_numprocs;
 extern int redundancy;
@@ -18,6 +11,7 @@ extern int GM_numprocs;
 extern int next_avail_comm;
 extern int request_counter;
 
+extern int SL_this_procid;
 
 #pragma weak mpi_init_   = mpi_init
 #pragma weak mpi_init__  = mpi_init
@@ -48,11 +42,13 @@ int mpi_init(int *ierr)
 	reqlist[i].in_use = 0;
 	reqlist[i].insrtbuf = NULL;
     }
-    for(i = 0; i < TAGLISTSIZE; i++){
+
+    GM_tagreuse_init ();
+/*    for(i = 0; i < TAGLISTSIZE; i++){
 	sendtagreuse[i].tag = -1;
 	recvtagreuse[i].tag = -1;
     }
-
+*/
     head = insertpt = curr = VolPex_send_buffer_init();
     hdata[1].mybarrier = 0;
     
@@ -107,10 +103,13 @@ int  MPI_Init( int *argc, char ***argv )
 	reqlist[i].insrtbuf = NULL;
     }
 
+    GM_tagreuse_init();
+/* 
     for(i = 0; i < TAGLISTSIZE; i++){
 	sendtagreuse[i].tag = -1;
 	recvtagreuse[i].tag = -1;
     }
+*/
 
     PRINTF(("My full rank is %s\n", fullrank));
     head = insertpt = curr = VolPex_send_buffer_init();

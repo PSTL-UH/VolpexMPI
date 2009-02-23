@@ -4,12 +4,6 @@
 extern int SL_this_procid;
 extern NODEPTR head, insertpt, curr;
 
-extern Global_Map **GM;
-extern Tag_Reuse *sendtagreuse;
-extern Tag_Reuse *recvtagreuse;
-extern Hidden_Data *hdata;
-extern Request_List *reqlist;
-
 extern int GM_numprocs;
 extern int redundancy;
 extern char fullrank[16];

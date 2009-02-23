@@ -1,14 +1,6 @@
 #include "mpi.h"
 #include "SL_msg.h"
 
-extern int SL_this_procid;
-extern Global_Map **GM;
-extern Tag_Reuse *sendtagreuse;
-extern Tag_Reuse *recvtagreuse;
-extern Hidden_Data *hdata;
-extern Request_List *reqlist;
-
-
 extern NODEPTR head, insertpt, curr;
 extern int GM_numprocs;
 extern int redundancy;
@@ -19,6 +11,7 @@ extern int GM_numprocs;
 extern int next_avail_comm;
 extern int request_counter;
 
+extern int SL_this_procid;
 
 static int not_found=0;
 
@@ -54,6 +47,7 @@ int  VolPEx_progress()
     int answer = 0;
     
     for(i = 0; i < REQLISTSIZE; i++){
+
 	/* handles progress on sends and isends from buffer */
 	if(reqlist[i].in_use == 1 && reqlist[i].req_type == 0){  
 	    flag = 0;
@@ -109,6 +103,7 @@ int  VolPEx_progress()
 		reqlist[i].header = NULL;
 		reqlist[i].recv_status = -1;
 		reqlist[i].send_status = -1;
+
 		Volpex_buffer_remove_ref ( reqlist[i].insrtbuf, reqlist[i].reqnumber );
 		reqlist[i].reqnumber = -1;
 		reqlist[i].insrtbuf  = NULL;
@@ -254,17 +249,32 @@ int  VolPEx_Isend(void *buf, int count, MPI_Datatype datatype, int dest, int tag
     
     PRINTF(("Into VolPEx_Isend\n"));
     len = VolPex_get_len(count, datatype);
+    reuse = VolPex_tag_reuse_check(dest,tag, 0);
+
     if(dest == hdata[comm].myrank){
-	SL_Request req;
-	PRINTF(("Calling send-to-self from volpex!\n"));
-	SL_Isend(buf, len, dest, tag, comm, &req);
+	i = Volpex_request_get_counter ( 1 );
+	Volpex_request_clean ( i, 1 );
+	Volpex_request_update_counter ( 1 );
+	reqlist[i].target = hdata[comm].myrank ;
+	reqlist[i].req_type = 0;  /*1 = irecv*/
+	reqlist[i].in_use = 1;
+	reqlist[i].flag = 0;
+	reqlist[i].buffer = buf;
+	reqlist[i].header = VolPex_get_msg_header(len, dest, tag, comm, reuse);
+	reqlist[i].reqnumber = i;
+	reqlist[i].send_status = 1; /* no need to post a follow up operation */
+
+	SL_Isend(buf, len, SL_this_procid, tag, comm, &reqlist[i].request);
+
+	PRINTF(("VIsend: send-to-self from volpex tag=%d reuse=%d SL-request=%d\n", tag, reuse, 
+		reqlist[i].request->id));
+	*request = MPI_REQUEST_NULL;
 	return MPI_SUCCESS;
     }
     
-    reuse = VolPex_tag_reuse_check(tag, 0);
 
     header = VolPex_get_msg_header(len, dest, tag, comm, reuse);
-    PRINTF(("VIsend: To Send Buffer: %d,%d,%d,%d,%d\n", len, dest, tag, comm, reuse));
+    PRINTF(("VIsend: To Send Buffer: dest %d, len %d, tag %d, comm %d, reuse%d\n", dest, len, tag, comm, reuse));
     GM_dest_src_locator(dest, comm, fullrank, targets);
     PRINTF(("VIsend: Targets are %d %d %d\n", targets[0], targets[1], targets[2]));
 
@@ -290,7 +300,6 @@ int  VolPEx_Isend(void *buf, int count, MPI_Datatype datatype, int dest, int tag
 	    ret = SL_recv_post(&reqlist[i].returnheader, sizeof(VolPex_msg_header), targets[j],
                                reqlist[i].cktag, comm,
                                SL_ACCEPT_INFINITE_TIME, &reqlist[i].request);
-//	     reqlist[i].returnheader =  buffer;
 
 
 	    if(ret != SL_SUCCESS){
@@ -305,8 +314,7 @@ int  VolPEx_Isend(void *buf, int count, MPI_Datatype datatype, int dest, int tag
 	    }
 	}
     }
-//    Volpex_update_request_counter ( redundancy );
-//    request_counter = request_counter + redundancy;
+    Volpex_request_update_counter ( redundancy );
     insertpt = VolPex_send_buffer_insert(insertpt, header, assoc_reqs, buf);
     for ( i=0; i<redundancy; i++ ) {
 	if ( assoc_reqs[i] != -1 ) {
@@ -324,16 +332,10 @@ int  VolPEx_Isend(void *buf, int count, MPI_Datatype datatype, int dest, int tag
 int  VolPEx_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag, 
 		  MPI_Comm comm, MPI_Request *request)
 {
-    int reuse, len;
-    VolPex_msg_header *header;  
-    PRINTF(("VIrecv: count %d, from %d, tag %d, comm %d\n", count, source, tag, comm));
-    
-    reuse = VolPex_tag_reuse_check(tag, 1);
-    PRINTF(("Reuse************** %d\n\n",reuse));
+    int len;
     len = VolPex_get_len(count, datatype);
-
-
-    header = VolPex_get_msg_header(len, hdata[comm].myrank, tag, comm, reuse);
+    
+    PRINTF(("VIrecv: count %d, from %d, tag %d, comm %d\n", count, source, tag, comm));
     
     if(source == MPI_ANY_SOURCE){
 	printf("VIrecv from any_source\n");
@@ -349,50 +351,43 @@ int  VolPEx_Irecv_ll(void *buf, int len, int source, int tag,
     int i, j, ret;
     int reuse;
     int targets[3] = {-1,-1,-1};
-    VolPex_msg_header *header;
     int num_errors = 0;
     
     PRINTF(("Into VolPEx_Irecv\n"));
+    if ( new_req == -1 ) {
+	reuse = VolPex_tag_reuse_check(source,tag, 1);
+	i = Volpex_request_get_counter ( 1 );
+	Volpex_request_clean ( i, 1 );
+	Volpex_request_update_counter ( 1 );
+    }
+    else {
+	reuse = reqlist[new_req].header->reuse;
+	i = new_req;
+//	free ( reqlist[new_req].header );
+    }
+
     if(source == hdata[comm].myrank){
-	PRINTF(("VIrecv: Recv from self\n"));
-	if ( new_req == -1 ) {
-	    i = request_counter;
-	    request_counter++;
-	}
-	else {
-	    i = new_req;
-	}
 	reqlist[i].target = hdata[comm].myrank ;
 	reqlist[i].req_type = 1;  /*1 = irecv*/
 	reqlist[i].in_use = 1;
 	reqlist[i].flag = 0;
 	reqlist[i].buffer = buf;
-	reuse = VolPex_tag_reuse_check(tag, 1);
 	reqlist[i].header = VolPex_get_msg_header(len, source, tag, comm, reuse);
 	reqlist[i].reqnumber = i;
 	reqlist[i].recv_status = 1; /* no need to post a follow up operation */
-	SL_Irecv(buf, len, source, tag, comm, &reqlist[i].request);
+	SL_Irecv(buf, len, SL_this_procid, tag, comm, &reqlist[i].request);
+
+	PRINTF(("VIrecv: Recv from self tag=%d reuse=%d SL-request %d\n", tag, reuse,
+		reqlist[i].request->id));
+	*request = i;
 	return MPI_SUCCESS;
     }
-    
-    reuse = VolPex_tag_reuse_check(tag, 1);
-    header = VolPex_get_msg_header(len, hdata[comm].myrank, tag, comm, reuse);
-    
+     
     GM_dest_src_locator(source, comm, fullrank, targets);
     PRINTF(("VIrecv: Targets are %d %d %d\n", targets[0], targets[1], targets[2]));
     
     for(j = 0; j < redundancy; j++){
 	if(targets[j] != -1){
-	    if ( new_req == -1 ) {
-		i = Volpex_request_get_counter ( 1 );
-		Volpex_request_clean ( i, 1 );
-		Volpex_request_update_counter ( 1 );
-//		i = request_counter;
-//		request_counter++;		    
-	    }
-	    else {
-		i = new_req;
-	    }
 	    PRINTF(("VIrecv: Isend to primary target %d %d %d %d for reqnumber %d\n", 
 		    CK_LEN, targets[j], CK_TAG, comm, i));
 	    reqlist[i].target = targets[j];
@@ -403,7 +398,8 @@ int  VolPEx_Irecv_ll(void *buf, int len, int source, int tag,
 	    reqlist[i].header = VolPex_get_msg_header(len, source, tag, comm, reuse);
 	    reqlist[i].reqnumber = i;
 	    reqlist[i].recv_status = 0;
-	    ret = SL_Isend(header, sizeof(VolPex_msg_header), targets[j], CK_TAG, comm, &reqlist[i].request);
+	    ret = SL_Isend(reqlist[i].header, sizeof(VolPex_msg_header), targets[j], 
+			   CK_TAG, comm, &reqlist[i].request);
 	    if(ret != SL_SUCCESS){
 		PRINTF(("VIrecv Error: After SL_Test in VolPEx_Irecv, setting "
 			"VOLPEX_PROC_STATE_NOT_CONNECTED\n"));
@@ -504,13 +500,15 @@ int Volpex_request_clean ( int start, int red )
 int Volpex_buffer_remove_ref  ( NODEPTR elem,  int reqid ) 
 {
     int i;
-
-    for ( i=0; i<redundancy; i++ ) {
-	if ( elem->reqnumbers[i] == reqid ) {
-	    elem->reqnumbers[i] = -1;
+    
+    if ( NULL != elem )  {
+	for ( i=0; i<redundancy; i++ ) {
+	    if ( elem->reqnumbers[i] == reqid ) {
+		elem->reqnumbers[i] = -1;
+	    }
 	}
     }
-    
+
     return 0;
 }
 

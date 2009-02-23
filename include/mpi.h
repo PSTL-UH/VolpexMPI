@@ -106,8 +106,6 @@ typedef NODE *NODEPTR;
 struct request_list{
     int reqnumber;
 	SL_Request request;
-//	int header[5];
-//	int returnheader[5];
 	VolPex_msg_header *header;
 	VolPex_msg_header returnheader;
 	int cktag;
@@ -341,7 +339,8 @@ int  VolPEx_Comm_split(MPI_Comm, int, int, MPI_Comm *);
 
 
 int  VolPEx_Cancel_byReqnumber(int);
-int  VolPex_tag_reuse_check(int, int);
+int  VolPex_tag_reuse_check(int, int, int);
+void GM_tagreuse_init ( void);
 void VolPEx_reduce_ll(void *, void *, int, MPI_Datatype, MPI_Op, int, MPI_Comm, int);
 void   GM_host_ip(void);
 int  GM_print(int);
@@ -353,9 +352,6 @@ int  GM_set_state_not_connected(int);
 NODEPTR VolPex_send_buffer_init(void);
 void GM_allocate_global_data ( void ); 
 void GM_free_global_data (void);
-
-//NODEPTR VolPex_send_buffer_insert(NODEPTR, int[], int[], void *);
-//NODEPTR VolPex_send_buffer_search(NODEPTR, int [], int *);
 
 NODEPTR VolPex_send_buffer_insert(NODEPTR, VolPex_msg_header*, int[], void *);
 NODEPTR VolPex_send_buffer_search(NODEPTR, VolPex_msg_header*, int *);
@@ -374,5 +370,14 @@ int Volpex_buffer_remove_ref  ( NODEPTR elem,  int reqid );
 void Volpex_request_update_counter ( int num );
 int Volpex_request_clean ( int start, int red );
 int Volpex_request_get_counter ( int red );
+
+
+
+extern Global_Map **GM;
+extern Tag_Reuse **sendtagreuse;
+extern Tag_Reuse **recvtagreuse;
+extern Hidden_Data *hdata;
+extern Request_List *reqlist;
+
 
 #endif	/* MPI_H_INCLUDED */

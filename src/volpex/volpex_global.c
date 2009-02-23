@@ -1,9 +1,10 @@
 #include "mpi.h"
 
 extern int SL_this_procid;
+
 Global_Map **GM=NULL;
-Tag_Reuse *sendtagreuse=NULL;
-Tag_Reuse *recvtagreuse=NULL;
+Tag_Reuse **sendtagreuse=NULL;
+Tag_Reuse **recvtagreuse=NULL;
 Hidden_Data *hdata=NULL;
 Request_List *reqlist=NULL;
 
@@ -18,17 +19,17 @@ int GM_numprocs;
 int next_avail_comm;
 int request_counter = 0;
 
+/* Value maintaining the size of the main memory utilized by the buffer */
+long memusage=0;
+
 void GM_allocate_global_data ( void ) 
 {
     int i;
 
-    sendtagreuse = (Tag_Reuse *) malloc ( sizeof(Tag_Reuse) * TAGLISTSIZE );
-    recvtagreuse = (Tag_Reuse *) malloc ( sizeof(Tag_Reuse) * TAGLISTSIZE );
-    reqlist      = (Request_List *) malloc ( sizeof(Request_List) * REQLISTSIZE );
-    hdata        = (Hidden_Data *) malloc ( sizeof(Hidden_Data ) * TOTAL_COMMS);
-    GM           = (Global_Map **) malloc ( sizeof (Global_Map *) * TOTAL_NODES);
-    if ( NULL == sendtagreuse || NULL == recvtagreuse ||
-	 NULL == reqlist      || NULL == hdata        ||
+    reqlist = (Request_List *) malloc ( sizeof(Request_List) * REQLISTSIZE );
+    hdata   = (Hidden_Data *) malloc ( sizeof(Hidden_Data ) * TOTAL_COMMS);
+    GM      = (Global_Map **) malloc ( sizeof (Global_Map *) * TOTAL_NODES);
+    if ( NULL == reqlist      || NULL == hdata        ||
 	 NULL == GM ) {
 	printf("could not allocate global arrays\n");
 	return;
@@ -45,6 +46,33 @@ void GM_allocate_global_data ( void )
     return;
 }
 
+void GM_tagreuse_init (void)
+{
+    int i, j;
+
+    sendtagreuse = (Tag_Reuse **) malloc ( sizeof(Tag_Reuse *) * GM_numprocs );
+    recvtagreuse = (Tag_Reuse **) malloc ( sizeof(Tag_Reuse *) * GM_numprocs );
+    if ( NULL == sendtagreuse || NULL == recvtagreuse ) {
+	printf("GM_tagreuse_init: could not allocate memory\n");
+	exit (-1);
+    }
+
+    for ( i=0; i<GM_numprocs; i++ ) {
+	sendtagreuse[i] = (Tag_Reuse *) malloc ( sizeof (Tag_Reuse) * TAGLISTSIZE );
+	recvtagreuse[i] = (Tag_Reuse *) malloc ( sizeof (Tag_Reuse) * TAGLISTSIZE );
+	if ( NULL == sendtagreuse[i] || NULL == recvtagreuse[i] ) {
+	    printf("GM_tagreuse_init: could not allocate memory\n");
+	    exit (-1);
+	}
+	for ( j=0; j<TAGLISTSIZE; j++ ) {
+	    sendtagreuse[i][j].tag = -1;
+	    recvtagreuse[i][j].tag = -1;
+	}
+    }
+
+    return;
+}
+
 void GM_free_global_data ( void )
 {
     int i;
@@ -52,6 +80,15 @@ void GM_free_global_data ( void )
     for ( i=0; i<TOTAL_NODES; i++ ) {
 	if ( NULL != GM[i] ) {
 	    free ( GM[i] );
+	}
+    }
+
+    for ( i=0; i<GM_numprocs; i++ ) {
+	if ( NULL != sendtagreuse[i] ) {
+	    free ( sendtagreuse[i] );
+	}
+	if ( NULL != recvtagreuse[i] ) {
+	    free ( recvtagreuse[i] );
 	}
     }
 
@@ -205,31 +242,37 @@ int GM_get_procid_fullrank(char *myredrank)
 
 int GM_dest_src_locator(int rank, int comm, char *myfullrank, int tar[3])
 {
-	int i, numeric, mynumeric;
-	char level, mylevel;
-
-	sscanf(myfullrank, "%d,%c", &mynumeric, &mylevel);
-	for ( i=0; i< GM_numprocs; i++ ){
-		if(GM[i][comm].state == VOLPEX_PROC_CONNECTED){
-			sscanf(GM[i][comm].rank, "%d,%c", &numeric, &level);
-			if(numeric == rank && level == mylevel){
-				tar[0] = GM[i][comm].id;
-			}
-			else if(numeric == rank && level != mylevel){
-				if(redundancy == 2){
-					if((mylevel == 'A' && level == 'B') || (mylevel == 'B' && level == 'A'))
-						tar[1] = GM[i][comm].id;
-				}
-				if(redundancy == 3){
-					if((mylevel == 'A' && level == 'B') || (mylevel == 'B' && level == 'C') || (mylevel == 'C' && level == 'A'))
-						tar[1] = GM[i][comm].id;
-					if((mylevel == 'A' && level == 'C') || (mylevel == 'B' && level == 'A') || (mylevel == 'C' && level == 'B'))
-						tar[2] = GM[i][comm].id;
-				}
-			}
+    int i, numeric, mynumeric;
+    char level, mylevel;
+    
+    sscanf(myfullrank, "%d,%c", &mynumeric, &mylevel);
+    for ( i=0; i< GM_numprocs; i++ ){
+	if ( GM[i][comm].state == VOLPEX_PROC_CONNECTED){
+	    sscanf(GM[i][comm].rank, "%d,%c", &numeric, &level);
+	    if ( numeric == rank && level == mylevel){
+		tar[0] = GM[i][comm].id;
+	    }
+	    else if(numeric == rank && level != mylevel){
+		if(redundancy == 2){
+		    if((mylevel == 'A' && level == 'B') || 
+		       (mylevel == 'B' && level == 'A'))
+			tar[1] = GM[i][comm].id;
 		}
+		if(redundancy == 3){
+		    if((mylevel == 'A' && level == 'B') || 
+		       (mylevel == 'B' && level == 'C') || 
+		       (mylevel == 'C' && level == 'A'))
+			tar[1] = GM[i][comm].id;
+		    if((mylevel == 'A' && level == 'C') || 
+		       (mylevel == 'B' && level == 'A') || 
+		       (mylevel == 'C' && level == 'B'))
+			tar[2] = GM[i][comm].id;
+		}
+	    }
 	}
-	return 0;
+    }
+
+    return 0;
 }
 
 int GM_set_state_not_connected(int target)
@@ -256,7 +299,6 @@ NODEPTR VolPex_send_buffer_init()
 		newnode= (NODE *)malloc(sizeof(NODE));
 		newnode->counter = i;
 
-//		newnode->header    = VolPex_init_msg_header();
 		newnode->header    = NULL;
 		newnode->reqnumbers[0] = -1;
 		newnode->reqnumbers[1] = -1;
@@ -321,7 +363,9 @@ NODEPTR VolPex_send_buffer_insert(NODEPTR currinsertpt, VolPex_msg_header *heade
 	    VolPEx_Cancel_byReqnumber(currinsertpt->reqnumbers[0]);
 	    VolPEx_Cancel_byReqnumber(currinsertpt->reqnumbers[1]);
 	    VolPEx_Cancel_byReqnumber(currinsertpt->reqnumbers[2]);
-		    
+
+	    memusage -= (header->len + sizeof(header));		    
+
 	    free ( currinsertpt->header );
 	    if ( NULL != currinsertpt->buffer ) {
 		free ( currinsertpt->buffer );
@@ -345,6 +389,8 @@ NODEPTR VolPex_send_buffer_insert(NODEPTR currinsertpt, VolPex_msg_header *heade
                 memcpy ( tmpbuf, buf, header->len);
         }
 	currinsertpt->buffer = tmpbuf;
+	memusage += (header->len + sizeof(header));
+	PRINTF(("send_buffer_insert: Currently used main memory: %ld\n", memusage ));
 
 	return currinsertpt->fwd;
 }
@@ -374,68 +420,71 @@ NODEPTR VolPex_send_buffer_search(NODEPTR currpt, VolPex_msg_header *header, int
 
 void VolPex_send_buffer_print(NODEPTR head)
 {
-   	NODEPTR printPtr = head;
-
-   	while(printPtr != NULL){
-		printf("%d ", printPtr->counter);
+    NODEPTR printPtr = head;
+    
+    while(printPtr != NULL){
+	printf("%d ", printPtr->counter);
         printf("currpt->header = %d,%d,%d,%d,%d\n", printPtr->header->len, printPtr->header->dest, 
 	       printPtr->header->tag, printPtr->header->comm, printPtr->header->reuse);
         printPtr = printPtr->fwd;
-		if(printPtr == head){
-			break;
-		}
+	if(printPtr == head){
+	    break;
+	}
     }
+
+    return;
 }
 
-int VolPex_tag_reuse_check(int tag, int type)
+int VolPex_tag_reuse_check(int rank, int tag, int type)
 {
-	int i;
+    int i;
+    
+    if(type == 0){    /* send tags */
+	for(i = 0; i < TAGLISTSIZE; i++){
+	    if(sendtagreuse[rank][i].tag == tag){
+		sendtagreuse[rank][i].reuse_count += 1;
+		return sendtagreuse[rank][i].reuse_count;
+	    }
+	    if(sendtagreuse[rank][i].tag == -1){
+		sendtagreuse[rank][i].tag = tag;
+		sendtagreuse[rank][i].reuse_count = 1;
+		return sendtagreuse[rank][i].reuse_count;
+	    }
+	}
+    }
+    if(type == 1){    /* recv tags */
+	for(i = 0; i < TAGLISTSIZE; i++){
+	    if(recvtagreuse[rank][i].tag == tag){
+		recvtagreuse[rank][i].reuse_count += 1;
+		return recvtagreuse[rank][i].reuse_count;
+	    }
+	    if(recvtagreuse[rank][i].tag == -1){
+		recvtagreuse[rank][i].tag = tag;
+		recvtagreuse[rank][i].reuse_count = 1;
+		return recvtagreuse[rank][i].reuse_count;
+	    }
+	}
+    }
 
-	if(type == 0){    /* send tags */
-		for(i = 0; i < TAGLISTSIZE; i++){
-			if(sendtagreuse[i].tag == tag){
-				sendtagreuse[i].reuse_count += 1;
-				return sendtagreuse[i].reuse_count;
-			}
-			if(sendtagreuse[i].tag == -1){
-				sendtagreuse[i].tag = tag;
-				sendtagreuse[i].reuse_count = 1;
-				return sendtagreuse[i].reuse_count;
-			}
-		}
-	}
-	if(type == 1){    /* recv tags */
-		for(i = 0; i < TAGLISTSIZE; i++){
-			if(recvtagreuse[i].tag == tag){
-				recvtagreuse[i].reuse_count += 1;
-				return recvtagreuse[i].reuse_count;
-			}
-			if(recvtagreuse[i].tag == -1){
-				recvtagreuse[i].tag = tag;
-				recvtagreuse[i].reuse_count = 1;
-				return recvtagreuse[i].reuse_count;
-			}
-		}
-	}
-	return -1;
+    return -1;
 }
 
 int VolPex_get_len(int count, MPI_Datatype datatype)
 {
-	int len = 0;
-	
-	if(datatype == MPI_BYTE)
-	    len = count;
-	else if(datatype == MPI_INT || datatype == MPI_INTEGER)
-	    len = count*sizeof(int);
+    int len = 0;
+    
+    if(datatype == MPI_BYTE)
+	len = count;
+    else if(datatype == MPI_INT || datatype == MPI_INTEGER)
+	len = count*sizeof(int);
     else if(datatype == MPI_FLOAT || datatype == MPI_REAL)
         len = count*sizeof(float);
     else if(datatype == MPI_DOUBLE || datatype == MPI_DOUBLE_PRECISION)
-	    len = count*sizeof(double);
-	else if(datatype == MPI_DOUBLE_COMPLEX)
-		len = count*sizeof(double _Complex);
-	else
-		printf("MPI_Datatype possibly incorrect.\n");
-	return len;
+	len = count*sizeof(double);
+    else if(datatype == MPI_DOUBLE_COMPLEX)
+	len = count*sizeof(double _Complex);
+    else
+	printf("MPI_Datatype possibly incorrect.\n");
+    return len;
 }
 

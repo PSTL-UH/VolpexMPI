@@ -1,12 +1,6 @@
 #include "mpi.h"
 #include "SL_msg.h"
 
-extern Global_Map **GM;
-extern Tag_Reuse *sendtagreuse;
-extern Tag_Reuse *recvtagreuse;
-extern Hidden_Data *hdata;
-extern Request_List *reqlist;
-
 extern NODEPTR head, insertpt, curr;
 extern int GM_numprocs;
 extern int redundancy;
