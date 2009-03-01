@@ -475,7 +475,7 @@ int SL_msg_connect_newconn ( SL_proc *dproc, int fd )
 	int ret=SL_SUCCESS;
 	int tmp=0;
 	int terr=0;
-	socklen_t len=0;
+	socklen_t len=sizeof(int);
 	
 #ifdef MINGW
 	char *winflag;
@@ -496,6 +496,7 @@ int SL_msg_connect_newconn ( SL_proc *dproc, int fd )
 	    
 	    PRINTF (("SL_msg_connect_newconn: reconnecting %d %s \n", terr, 
 		     strerror ( terr ) ));
+	    dproc->state = SL_PROC_NOT_CONNECTED;
 	    SL_socket_close ( dproc->sock );
 	    ret = SL_proc_init_conn_nb ( dproc, dproc->timeout );
 	    return ret;
@@ -512,6 +513,7 @@ int SL_msg_connect_newconn ( SL_proc *dproc, int fd )
 		
 		PRINTF (("SL_msg_connect_newconn: connection timed out %d %lf \n", ret, 
 			 dproc->timeout));
+		dproc->state = SL_PROC_NOT_CONNECTED;
 		SL_socket_close ( dproc->sock );
 		return ret;
 	    }		
@@ -521,6 +523,7 @@ int SL_msg_connect_newconn ( SL_proc *dproc, int fd )
 		
 		PRINTF (("SL_msg_connect_newconn: reconnecting %d %s \n", ret, 
 			 strerror ( ret ) ));
+		dproc->state = SL_PROC_NOT_CONNECTED;
 		SL_socket_close ( dproc->sock );
 		ret = SL_proc_init_conn_nb ( dproc, dproc->timeout );
 		return ret;
