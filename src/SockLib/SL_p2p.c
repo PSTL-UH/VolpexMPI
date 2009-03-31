@@ -1,4 +1,4 @@
-
+\
 
 #include "SL.h"
 #include "SL_array.h"
@@ -378,11 +378,18 @@ int SL_test_nopg ( SL_msg_request **req, int *flag, SL_Status *status )
 	return SL_SUCCESS;
     }
 
+    if ( SL_REQUEST_NULL == *req ) {
+        *flag = 1;
+        SL_msg_set_nullstatus ( status );
+        return SL_SUCCESS;
+    }
+
+
     q = treq->cqueue;
 
     found = SL_msgq_find ( q, treq->id ); 
     if ( NULL != found ){
-	PRINTF(("SL_test: found message %d in completion queue\n", treq->id));
+	PRINTF(("SL_test_nopg: found message %d in completion queue\n", treq->id));
 	ret = found->error;
 	*flag = 1;
 
