@@ -46,13 +46,15 @@ int  VolPEx_progress()
     int flag = 0;
     int answer = 0;
     
+
+    SL_msg_progress ();
     for(i = 0; i < REQLISTSIZE; i++){
 
 	/* handles progress on sends and isends from buffer */
 	if(reqlist[i].in_use == 1 && reqlist[i].req_type == 0){  
 	    flag = 0;
 	    ret = SL_ERR_PROC_UNREACHABLE;
-	    ret = SL_Test(&reqlist[i].request, &flag, &mystatus);
+	    ret = SL_test_nopg(&reqlist[i].request, &flag, &mystatus);
 	    
 	    if(flag == 1 && reqlist[i].send_status == 0){
 		if ( ret == SL_SUCCESS ) {
@@ -114,7 +116,7 @@ int  VolPEx_progress()
 	if(reqlist[i].in_use == 1 && reqlist[i].req_type == 1){  
 	    flag = 0;
 	    ret = SL_ERR_PROC_UNREACHABLE;
-	    ret = SL_Test(&reqlist[i].request, &flag, &mystatus);
+	    ret = SL_test_nopg(&reqlist[i].request, &flag, &mystatus);
 	    
 	    if(flag == 1 && reqlist[i].recv_status == 0 ) {
 		if ( ret == SL_SUCCESS){

@@ -367,6 +367,52 @@ int SL_test ( SL_msg_request **req, int *flag, SL_Status *status )
     return ret;
 }
 
+int SL_test_nopg ( SL_msg_request **req, int *flag, SL_Status *status )
+{
+    SL_qitem *found=NULL;
+    SL_msgq_head *q=NULL;
+    SL_msg_request *treq = *req;
+    int ret=SL_SUCCESS;
+
+    if ( treq == NULL ) {
+	return SL_SUCCESS;
+    }
+
+    q = treq->cqueue;
+
+    found = SL_msgq_find ( q, treq->id ); 
+    if ( NULL != found ){
+	PRINTF(("SL_test: found message %d in completion queue\n", treq->id));
+	ret = found->error;
+	*flag = 1;
+
+	if ( NULL != status && SL_STATUS_IGNORE != status ) {
+	    status->SL_SOURCE  = ((SL_msg_header *)found->iov[0].iov_base )->from;
+	    status->SL_TAG     = ((SL_msg_header *)found->iov[0].iov_base )->tag;
+	    status->SL_ERROR   = found->error;
+	    status->SL_CONTEXT = ((SL_msg_header *)found->iov[0].iov_base )->context;
+	    status->SL_LEN     = ((SL_msg_header *)found->iov[0].iov_base )->len;
+	}
+
+	/* Remove message from completion queue */
+	SL_msgq_remove ( q, found );
+	free ( found->iov[0].iov_base );
+	free ( found);
+	free ( treq );
+#ifdef MINGW
+      *req = (SL_msg_request *)SL_REQUEST_NULL;
+#else
+	*req = SL_REQUEST_NULL;
+#endif
+    }
+    else {
+	*flag = 0;
+    }
+
+    return ret;
+}
+
+
 /*********************************************************************************/
 /*********************************************************************************/
 /*********************************************************************************/

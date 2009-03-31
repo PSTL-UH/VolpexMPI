@@ -22,6 +22,7 @@ int SL_send_post_self(SL_proc *dproc, SL_msg_header *header, char *buf ,int len)
 int SL_recv_post_self(SL_proc *dproc, SL_msg_header *header, char *buf,int len);
 int SL_wait ( SL_msg_request **req, SL_Status *status );
 int SL_test ( SL_msg_request **req, int *flag, SL_Status *status );
+int SL_test_nopg ( SL_msg_request **req, int *flag, SL_Status *status );
 int SL_cancel ( SL_msg_request **req, int *flag );
 SL_qitem* SL_msgq_head_check ( SL_msgq_head *head, SL_msg_header *header );
 int SL_msg_recv_knownmsg ( SL_proc *dproc, int fd );
