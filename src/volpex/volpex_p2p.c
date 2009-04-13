@@ -131,7 +131,7 @@ int  VolPEx_progress()
 		
 		if ( ret != SL_SUCCESS ) {
 		    MPI_Request tmprequest = i;
-		    GM_set_state_not_connected(reqlist[i].header->dest);
+		    GM_set_state_not_connected(reqlist[i].target);
 		    PRINTF(("  VProgress: recv request:%d reposting Irecv to %d, since prev. op. failed \n",
                             i, reqlist[i].header->dest ));
 		    
