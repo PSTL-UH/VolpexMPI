@@ -154,7 +154,7 @@ int  VolPEx_progress()
 		}
 		else {
 		    MPI_Request tmprequest = i;
-		    GM_set_state_not_connected(reqlist[i].header->dest);
+		    GM_set_state_not_connected(reqlist[i].target );
 
                     ret = VolPEx_Irecv_ll ( reqlist[i].buffer, reqlist[i].header->len,
                                             reqlist[i].header->dest, reqlist[i].header->tag,
