@@ -675,8 +675,8 @@ int  Volpex_Irecv_ll(void *buf, int len, int source, int tag,
 	    reqlist[i].recv_status = 0;
 	    reqlist[i].time = SL_papi_time();
 	    reqlist[i].numtargets = numoftargets;
-            printf("[%d]:VIrecv: Isend for len %d to primary target %d %d %d  for reqnumber %d reuse %d numofmsg:%d\n", SL_this_procid,
-                    reqlist[i].header->len, targets[j], CK_TAG, comm, i, reqlist[i].header->reuse,Volpex_targets[source].numofmsg );
+            PRINTF(("[%d]:VIrecv: Isend for len %d to primary target %d %d %d  for reqnumber %d reuse %d numofmsg:%d\n", SL_this_procid,
+                    reqlist[i].header->len, targets[j], CK_TAG, comm, i, reqlist[i].header->reuse,Volpex_targets[source].numofmsg ));
 
 	
 	    ret = SL_Isend(reqlist[i].header, sizeof(Volpex_msg_header), targets[j], 
