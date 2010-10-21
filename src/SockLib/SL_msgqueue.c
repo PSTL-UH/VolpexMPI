@@ -27,7 +27,7 @@ SL_qitem* SL_msgq_insert ( SL_msgq_head *head, SL_msg_header *header, void *buf,
 {
     SL_qitem *elem=NULL;
 
-    if ( NULL == head || NULL == buf ) {
+    if ( NULL == head ) {
 	return NULL;
     }
 
@@ -41,19 +41,15 @@ SL_qitem* SL_msgq_insert ( SL_msgq_head *head, SL_msg_header *header, void *buf,
     elem->iovpos     = 0;
     elem->lenpos     = 0;
     elem->error      = SL_SUCCESS;
-#ifdef MINGW
     elem->iov[0].iov_base = (char *)header;
     elem->iov[0].iov_len  = sizeof ( SL_msg_header );
     elem->iov[1].iov_base = (char *)buf;
-#else
-    elem->iov[0].iov_base = header;
-    elem->iov[0].iov_len  = sizeof ( SL_msg_header );
-    elem->iov[1].iov_base = buf;
-#endif
     elem->iov[1].iov_len  = header->len;
     elem->move_to    = moveto;
     elem->next       = NULL;
     elem->prev       = NULL;
+    elem->starttime  = SL_Wtime();
+    elem->endtime    = -1;
     SL_msgq_append ( head, elem );
     return elem;
 }
@@ -74,7 +70,6 @@ int SL_msgq_append ( SL_msgq_head *head, SL_qitem *elem )
 	elem->prev = NULL;
     }
     elem->next = NULL;
-
 
     head->last = elem;
     head->count++;
@@ -101,19 +96,17 @@ int SL_msgq_remove (SL_msgq_head *head, SL_qitem *elem )
     if ( NULL != prev ) {
 	prev->next = next;
     }
-
     if ( head->first == elem ) {
 	head->first = next;
     }
-
     if ( head->last == elem ) {
-      head->last = prev;
+	head->last = prev;
     }
-
 
     elem->next = NULL;
     elem->prev = NULL;
     elem->head = NULL;
+
     head->count--;
     return SL_SUCCESS;
 }
@@ -154,9 +147,10 @@ SL_qitem* SL_msgq_find (SL_msgq_head *head, int id )
 
 int SL_msgq_move ( SL_msgq_head *head1, SL_msgq_head *head2, SL_qitem *elem )
 {
-    PRINTF(("SL_msgq_move: moving elem %p from %s to %s \n", elem, 
-	 head1->name, head2->name ));
+/*    PRINTF(("[%d]:SL_msgq_move: moving elem %d from %s to %s len %d time %f\n", SL_this_procid,elem->id, 
+	 head1->name, head2->name , elem->iov[1].iov_len, elem->endtime-elem->starttime));*/
     SL_msgq_remove ( head1, elem );
+    
     return SL_msgq_append ( head2, elem );
 }
 
@@ -164,7 +158,7 @@ int SL_msgq_move_tohead ( SL_msgq_head *head1, SL_msgq_head *head2, SL_qitem *el
 {
     SL_qitem *tfirst=NULL;
 
-    PRINTF(("SL_msgq_move_tohead: moving elem %p from %s to %s \n", elem, 
+    PRINTF(("[%d]:SL_msgq_move: moving elem %p from %s to %s \n", SL_this_procid,elem, 
 	 head1->name, head2->name ));
     SL_msgq_remove ( head1, elem );
 
@@ -177,10 +171,10 @@ int SL_msgq_move_tohead ( SL_msgq_head *head1, SL_msgq_head *head2, SL_qitem *el
 	tfirst->prev = elem;
     }
 
-    if ( head2->last == NULL ) {
-      head2->last = elem;
+    if ( NULL == head2->last ) {
+	head2->last = elem;
     }
-    
+
     return SL_SUCCESS;
 }
 
@@ -274,12 +268,20 @@ SL_qitem* SL_msgq_head_check ( SL_msgq_head *head, SL_msg_header *header )
 {
     int i;
 
-    printf("   id=%d address=%p head=%p next=%p prev=%p iovpos=%d lenpos=%d iov=%p \n", 
+    PRINTF(("   id=%d addr=%p head=%p next=%p prev=%p iovpos=%d lenpos=%d iov=%p \n", 
 	   elem->id, elem, elem->head, elem->next, elem->prev, 
-	   elem->iovpos, elem->lenpos, elem->iov );
+	   elem->iovpos, elem->lenpos, elem->iov ));
     for ( i=0; i< 2; i++ ) {
-	printf("     iov[%d].iov_base %p iov[%d].iov_len = %d\n", 
-	       i, elem->iov[i].iov_base, i, (int) elem->iov[i].iov_len );
+	PRINTF(("     iov[%d].iov_base %p iov[%d].iov_len = %d\n", 
+	       i, elem->iov[i].iov_base, i, (int) elem->iov[i].iov_len ));
     }
     
 }
+   
+void SL_msgq_move_tolast(SL_msgq_head *head, SL_qitem *elem)
+{
+        SL_msgq_remove(head,elem);
+        SL_msgq_append(head,elem);
+}
+
+

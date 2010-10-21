@@ -66,21 +66,21 @@ void SL_print_socket_options ( int fd )
     
     flag=1; 
     len=sizeof(flag);
-    
+
 #ifdef MINGW
     char *winflag;
     sprintf(winflag, "%d", flag);
     if(getsockopt(fd, IPPROTO_TCP, TCP_MAXSEG, winflag, &len)<0) {
-#else
+#else    
     if(getsockopt(fd, IPPROTO_TCP, TCP_MAXSEG, &flag, &len)<0) {
 #endif
-	PRINTF(("SL_print_socket_options: could not get configuration for TCP_MAXSEG\n"));
+	PRINTF(("[%d]:SL_print_socket_options: could not get configuration for TCP_MAXSEG\n",SL_this_procid));
     } else {
-	PRINTF(("SL_print_socket_options: TCP_MAXSEG = %d\n",flag));
+	PRINTF(("[%d]:SL_print_socket_options: TCP_MAXSEG = %d\n",SL_this_procid,flag));
     }
     
     for (ptr = sock_opts; ptr->opt_str != NULL; ptr++) {
-	PRINTF(("%s: ", ptr->opt_str));
+	PRINTF(("[%d]:%s: ", SL_this_procid,ptr->opt_str));
 	if (ptr->opt_val_str == NULL)
 	    PRINTF(("(undefined)\n"));
 	else {
@@ -151,68 +151,38 @@ static char* sock_str_timeval(union val *ptr, int len)
 
 void SL_configure_socket ( int sd ) 
 {
-#ifdef MINGW
+    
     int flag;
     struct linger ling;
 
     flag=1;
     if(setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof(flag))<0) {
-        PRINTF(("SL_configure_socket: could not configure socket\n"));
+        PRINTF(("[%d]:SL_configure_socket: could not configure socket\n",SL_this_procid));
     }
-
+    
     flag=SL_TCP_BUFFER_SIZE;
     if(setsockopt(sd, SOL_SOCKET, SO_SNDBUF, (char*)&flag, sizeof(flag))<0) {
-	PRINTF(("SL_configure_socket: could not configure socket\n"));
+	PRINTF(("[%d]:SL_configure_socket: could not configure socket\n",SL_this_procid));
     }
-
+   
     flag=SL_TCP_BUFFER_SIZE;
     if(setsockopt(sd, SOL_SOCKET, SO_RCVBUF, (char*)&flag, sizeof(flag))<0) {
-	PRINTF(("SL_configure_socket: could not configure socket\n"));
+	PRINTF(("[%d]:SL_configure_socket: could not configure socket\n",SL_this_procid));
     }
 
     flag=1;
     if(setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, (char*)&flag, sizeof(flag))<0) {
-        PRINTF(("SL_configure_socket: Could not set SO_REUSEADDR\n"));
-    }
-
-    ling.l_onoff  = 1;
-    ling.l_linger = 0;
-    if(setsockopt(sd, SOL_SOCKET, SO_LINGER, (char *)&ling, sizeof(struct linger))<0) {
-	PRINTF(("SL_configure_socket: Could not set SO_LINGER\n"));
-    }
-    
-    return;
-#else
-    int flag;
-    struct linger ling;
-
-    flag=1;
-    if(setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag))<0) {
-        PRINTF(("SL_configure_socket: could not configure socket\n"));
-    }
-    
-    flag=SL_TCP_BUFFER_SIZE;
-    if(setsockopt(sd, SOL_SOCKET, SO_SNDBUF, &flag, sizeof(flag))<0) {
-	PRINTF(("SL_configure_socket: could not configure socket\n"));
-    }
-    flag=SL_TCP_BUFFER_SIZE;
-    if(setsockopt(sd, SOL_SOCKET, SO_RCVBUF, &flag, sizeof(flag))<0) {
-	PRINTF(("SL_configure_socket: could not configure socket\n"));
-    }
-
-    flag=1;
-    if(setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag))<0) {
-        PRINTF(("SL_configure_socket: Could not set SO_REUSEADDR\n"));
+        PRINTF(("[%d]:SL_configure_socket: Could not set SO_REUSEADDR\n",SL_this_procid));
     }
 
     ling.l_onoff  = 1;
     ling.l_linger = 0;
     if(setsockopt(sd, SOL_SOCKET, SO_LINGER, &ling, sizeof(struct linger))<0) {
-	PRINTF(("SL_configure_socket: Could not set SO_LINGER\n"));
+	PRINTF(("[%d]:SL_configure_socket: Could not set SO_LINGER\n",SL_this_procid));
     }
 
+
     return;
-#endif
 }
 
 void SL_configure_socket_nb ( int sd ) 
@@ -227,6 +197,5 @@ void SL_configure_socket_nb ( int sd )
     flag = fcntl ( sd, F_GETFL, 0 );
     fcntl ( sd, F_SETFL, flag | O_NONBLOCK );
 #endif
-
     return;
 }

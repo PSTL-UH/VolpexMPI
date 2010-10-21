@@ -9,6 +9,11 @@
 #define SL_PROC_ACCEPT        2002
 #define SL_PROC_NOT_CONNECTED 2003
 #define SL_PROC_UNREACHABLE   2004
+#define SL_PROC_CONNECT_STAGE2 2005
+#define SL_PROC_ACCEPT_STAGE2 2006
+
+#define TRUE                    1
+#define FALSE			0 
 
 extern SL_array_t *SL_proc_array;
 extern int SL_this_procid;
@@ -20,6 +25,7 @@ extern fd_set SL_recv_fdset;
 extern int SL_fdset_lastused;
 
 int SL_proc_init ( int proc_id, char *hostname, int port );
+int SL_proc_finalize(SL_proc *proc);
 SL_proc*  SL_proc_get_byfd ( int fd );
 int SL_proc_init_conn    ( SL_proc * proc ); 
 int SL_proc_init_conn_nb ( SL_proc * proc, double timeout ); 
@@ -28,7 +34,20 @@ void SL_proc_closeall ( void );
 void SL_proc_close ( SL_proc *proc );
 void SL_proc_set_connection ( SL_proc *dproc, int sd );
 void SL_proc_dumpall ( void );
-void SL_proc_handle_error ( SL_proc *proc, int err );
+void SL_proc_handle_error ( SL_proc *proc, int err, int flag );
+int SL_init_eventq();
+int SL_finalize_eventq();
+
+int SL_proc_id_generate(int flag);
+int SL_proc_port_generate();
+SL_msg_perf* SL_msg_performance_init();
+void SL_msg_performance_insert(int msglen, double time, int msgtype, int elemid, SL_proc *proc);
+void SL_print_msg_performance(SL_msg_perf* insertpt);
+
+
+SL_network_perf* SL_network_performance_init();
+void SL_network_performance_insert(double latency, double bandwidth, SL_proc *proc);
+void SL_print_net_performance(SL_network_perf *insertpt);
 #endif
 
 

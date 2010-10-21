@@ -3,6 +3,7 @@
 #include "SL_proc.h"
 #include "SL_msg.h"
 #include "SL_msgqueue.h"
+#include "SL_event_handling.h"
 
 static int SL_msg_counter=0;
 
@@ -15,6 +16,10 @@ extern int SL_proc_establishing_connection;
 extern SL_array_t *SL_proc_array;
 
 int SL_magic=12345;
+int SL_event_handle_counter = 0;
+
+fd_set send_fdset;
+fd_set recv_fdset;
 
 void SL_msg_progress ( void )
 {
@@ -23,8 +28,9 @@ void SL_msg_progress ( void )
     int i, ret, nd=0;
     struct timeval tout;
 
-    fd_set send_fdset;
-    fd_set recv_fdset;
+    static int SL_event_handle_counter = 0;
+    static int event_msg_counter = 0;  
+ 
 
     send_fdset=SL_send_fdset;
     recv_fdset=SL_recv_fdset;
@@ -45,21 +51,13 @@ void SL_msg_progress ( void )
 		if ( NULL == dproc ) {
 		    continue;
 		}
+
 		ret = dproc->recvfunc ( dproc, i );
-		// FD_CLR ( dproc->sock, &recv_fdset );
-		if ( ret == SL_MSG_DONE ) {
-		    dproc->recvfunc = SL_msg_recv_newmsg;
-		}
-		else if ( ret == SL_MSG_STARTED ) {
-		    dproc->recvfunc = SL_msg_recv_knownmsg;
-		}
-		else if ( ret == SL_MSG_CLOSED ) {
-		    dproc->recvfunc = SL_msg_closed;
-		    dproc->sendfunc = SL_msg_closed;
-		}
-		else if ( ret != SL_SUCCESS ) {
+		if ( ret != SL_SUCCESS ) {
 		    /* Handle the error code */ 
-		    SL_proc_handle_error ( dproc, ret );
+		    printf("[%d]Error handling for recvfdset dproc=%d ret=%d\n",SL_this_procid,dproc->id, ret);
+		    if (dproc->id != SL_this_procid)
+		    	SL_proc_handle_error ( dproc, ret,TRUE );
 		}
 	    }
 	}
@@ -74,16 +72,11 @@ void SL_msg_progress ( void )
 		elem = dproc->squeue->first;
 		if ( NULL != elem ) {
 		    ret = dproc->sendfunc ( dproc, i );
-		    FD_CLR ( dproc->sock, &send_fdset );
-		    if ( ret == SL_MSG_DONE ) {
-			dproc->sendfunc = SL_msg_send_newmsg;
-		    }
-		    else if ( ret == SL_MSG_STARTED ) {
-			dproc->sendfunc = SL_msg_send_knownmsg;
-		    }
-		    else if ( ret != SL_SUCCESS ) {
+		    if ( ret != SL_SUCCESS ) {
 			/* Handle the error code */
-			SL_proc_handle_error ( dproc, ret );
+			printf("[%d]Error handling for sendfdset dproc=%d\n",SL_this_procid,dproc->id);
+			if (dproc->id != SL_this_procid)
+				SL_proc_handle_error ( dproc, ret,TRUE );
 		    }
 		}
 	    }
@@ -97,36 +90,55 @@ void SL_msg_progress ( void )
 	int listsize = SL_array_get_last ( SL_proc_array ) + 1;
 	double current_tstamp = SL_Wtime();
 	for ( i=0; i<listsize; i++ ) {
-#ifdef MINGW
-		dproc = (SL_proc*)SL_array_get_ptr_by_pos ( SL_proc_array, i );
-#else
-	     	dproc = (SL_proc*)SL_array_get_ptr_by_pos ( SL_proc_array, i );
-#endif
-	   
+	    dproc = (SL_proc*)SL_array_get_ptr_by_pos ( SL_proc_array, i );
 	    if ( NULL == dproc || dproc->timeout == SL_ACCEPT_INFINITE_TIME ) {
 		continue;
 	    }
 	    if ( ((SL_PROC_ACCEPT == dproc->state)    ||
 		  (SL_PROC_CONNECT == dproc->state )) &&
-		 ((current_tstamp - dproc->connect_start_tstamp) > dproc->timeout) ){
-		PRINTF(("Waiting for %lf secs for a connection from proc %d\n",
-			(current_tstamp - dproc->connect_start_tstamp), dproc->id ));
-		SL_proc_handle_error ( dproc, SL_ERR_PROC_UNREACHABLE);
+		 ((current_tstamp - dproc->connect_start_tstamp) > dproc->timeout) && dproc->id != SL_this_procid ){
+		printf("[%d]:Waiting for %lf secs for a connection from proc %d state %d\n",SL_this_procid,
+			(current_tstamp - dproc->connect_start_tstamp), dproc->id, dproc->state );
+		SL_proc_handle_error ( dproc, SL_ERR_PROC_UNREACHABLE,TRUE);
 	    }	      
 	}
     }
-
+//#if 0 
+    if(SL_this_procid != SL_EVENT_MANAGER)
+    {	
+	if(SL_event_handle_counter >= SL_MAX_EVENT_HANDLE)
+	{
+	    elem = SL_msgq_get_first(SL_event_recvq);
+	    if ((NULL!=elem) && (elem->lenpos == elem->iov[1].iov_len))
+	    {
+	    	while(NULL != elem)
+	    	{
+			event_msg_counter++;
+			PRINTF(("[%d]:Value of event counter  :%d",SL_this_procid,SL_event_handle_counter));
+			SL_event_progress(elem);
+			SL_msgq_remove(SL_event_recvq,elem);
+			elem = SL_msgq_get_first(SL_event_recvq);
+		}
+		if (2 == event_msg_counter)
+	    		SL_event_handle_counter = 0;
+	    }
+	}
+	else
+	    SL_event_handle_counter++;
+    }
+//#endif
     return;
 }
     
+
 SL_msg_header* SL_msg_get_header ( int cmd, int from, int to, int tag, int context,
-				    int len )
+                                    int len, int loglength, int temp )
 {
     SL_msg_header *header;
-    
+
     header = (SL_msg_header *) malloc ( sizeof(SL_msg_header ));
     if ( NULL == header ) {
-	return NULL;
+        return NULL;
     }
 
     header->cmd     = cmd;
@@ -136,15 +148,17 @@ SL_msg_header* SL_msg_get_header ( int cmd, int from, int to, int tag, int conte
     header->context = context;
     header->len     = len;
     header->id      = SL_msg_counter++;
+    header->loglength= loglength;
+    header->temp    = temp;
 
     return header;
 }
 
 void SL_msg_header_dump ( SL_msg_header *header )
 {
-    PRINTF(("header: cmd %d from %d to %d tag %d context %d len %d id %d\n",
+    printf("[%d]:header: cmd %d from %d to %d tag %d context %d len %d id %d loglength %d\n",SL_this_procid,
 	    header->cmd, header->from, header->to, header->tag, 
-	    header->context, header->len, header->id));
+	    header->context, header->len, header->id, header->loglength);
 
     return;
 }
@@ -158,19 +172,25 @@ int SL_msg_recv_knownmsg ( SL_proc *dproc, int fd )
     ** We know, that header has been read already, and only
     ** the second element of the iov is of interest 
     */
+
+
+    FD_CLR ( dproc->sock, &recv_fdset );
+
     ret = SL_socket_read_nb ( fd, ((char *)elem->iov[1].iov_base + elem->lenpos), 
 			      elem->iov[1].iov_len - elem->lenpos, &len );
     if ( SL_SUCCESS == ret) {
 	elem->lenpos += len ;
-	PRINTF (("SL_msg_recv_knownmsg: read %d bytes from %d\n", 
+	PRINTF( ("[%d]:SL_msg_recv_knownmsg: read %d bytes from %d\n", SL_this_procid,
 		 len, dproc->id ));
 	
 	if ( elem->lenpos == elem->iov[1].iov_len ) {
 	    if ( NULL != elem->move_to  ) {
+//		SL_msg_performance_insert(elem->iov[0].iov_len + elem->iov[1].iov_len,
+//                                        SL_Wtime()-elem->starttime, RECV, elem->id, dproc);
 		SL_msgq_move ( dproc->rqueue, elem->move_to, elem );
 	    }
 	    dproc->currecvelem = NULL;
-	    ret = SL_MSG_DONE;
+	    dproc->recvfunc = SL_msg_recv_newmsg;
 	}
     }
 
@@ -181,7 +201,9 @@ int SL_msg_recv_newmsg ( SL_proc *dproc, int fd )
 {
     SL_msg_header tmpheader, *header=NULL;
     SL_qitem *elem=NULL;
-    int len, ret = SL_MSG_STARTED;
+    int len, ret = SL_SUCCESS;
+//ret = SL_MSG_STARTED;
+    SL_msgq_head *r = NULL;
 
     /* Sequence:
     ** - read header
@@ -198,13 +220,20 @@ int SL_msg_recv_newmsg ( SL_proc *dproc, int fd )
     **   + generate unexpected message queue entry 
     **   + read the second fragment
     */
+
+    FD_CLR ( dproc->sock, &recv_fdset );
+
     ret = SL_socket_read_nb ( fd, (char *) &tmpheader, sizeof(SL_msg_header), &len);
     if ( SL_SUCCESS != ret ) {
 	return ret;
     }
 
+    PRINTF( ("[%d]:SL_msg_recv_newmsg: read header %d bytes from %d\n", SL_this_procid,
+	     len, dproc->id ));
+
     if ( 0 == len ) {
-	return SL_MSG_DONE;
+        dproc->recvfunc = SL_msg_recv_newmsg;
+	return SL_SUCCESS;
     }
     if ( len < sizeof (SL_msg_header ) ) {
 	int tlen = (sizeof(SL_msg_header) - len);
@@ -213,24 +242,26 @@ int SL_msg_recv_newmsg ( SL_proc *dproc, int fd )
 	if ( SL_SUCCESS != ret ) {
 	    return ret;
 	}
+	PRINTF(("[%d]:SL_msg_recv_newmsg: read header %d bytes from %d\n", SL_this_procid,
+                 tlen, dproc->id ));
     }
 
-
-    PRINTF (("SL_msg_recv_newmsg: read header from %d expected from %d\n", 
+    PRINTF (("[%d]:SL_msg_recv_newmsg: read header from %d expected from %d\n", SL_this_procid,
 	    tmpheader.from, dproc->id ));
 
     if ( SL_MSG_CMD_CLOSE == tmpheader.cmd) {
-	PRINTF(("Got CLOSE request from  proc %d\n", tmpheader.from ));
+	PRINTF(("[%d]:SL_msg_recv_newmsg:Got CLOSE request from  proc %d\n", 
+		SL_this_procid,tmpheader.from ));
 	if ( tmpheader.from != dproc->id ) {
-	    PRINTF((" Connection management mixed up? %d %d\n", 
+	    PRINTF((" [%d]:Connection management mixed up? %d %d\n", SL_this_procid,
 		    tmpheader.from, dproc->id ));
-	    SL_proc_dumpall ();
+//	    SL_proc_dumpall ();
 	    return SL_ERR_GENERAL;
 	}
 
 	SL_socket_write ( dproc->sock, (char *) &tmpheader, sizeof  (SL_msg_header), 
 	    dproc->timeout );
-	PRINTF(("Sending CLOSE reply to proc %d\n", dproc->id ));
+	PRINTF(("[%d]:SL_msg_recv_newmsg:Sending CLOSE reply to proc %d\n", SL_this_procid,dproc->id ));
 	SL_socket_close ( dproc->sock );
 
 	FD_CLR ( dproc->sock, &SL_send_fdset );
@@ -238,16 +269,26 @@ int SL_msg_recv_newmsg ( SL_proc *dproc, int fd )
 	dproc->state = SL_PROC_NOT_CONNECTED;
 	dproc->sock  = -1;
 
-	return SL_MSG_CLOSED;
+	dproc->recvfunc = SL_msg_closed;
+        dproc->sendfunc = SL_msg_closed;
+	return SL_SUCCESS;
+//	return SL_MSG_CLOSED;
     }
 
     if ( tmpheader.from != dproc->id ) {
-	printf("Recv_newmsg: got a message from the wrong process. Expected: %d[fd=%d]" 
-	       "is from %d[fd=%d]\n",dproc->id, dproc->sock, tmpheader.from, fd );
-	SL_proc_dumpall();
+	printf("[%d]:Recv_newmsg: got a message from the wrong process. Expected: %d[fd=%d]" 
+	       "is from %d[fd=%d]\n",SL_this_procid,dproc->id, dproc->sock, tmpheader.from, fd );
+//	SL_proc_dumpall();
 	SL_msg_header_dump(&tmpheader);
     }
 
+    if (tmpheader.cmd == SL_MSG_CMD_EVENT){
+	PRINTF(("[%d]:Got event handling request from proc %d\n",SL_this_procid,tmpheader.from));
+	r = SL_event_recvq;
+        }
+    else {
+	r = dproc->urqueue;
+    }
 
     elem = SL_msgq_head_check ( dproc->rqueue, &tmpheader );
     if ( NULL != elem ) {
@@ -259,6 +300,8 @@ int SL_msg_recv_newmsg ( SL_proc *dproc, int fd )
 	header = (SL_msg_header *) elem->iov[0].iov_base;
 	header->tag     = tmpheader.tag;
 	header->context = tmpheader.context;
+	header->loglength = tmpheader.loglength;
+	header->temp	  =tmpheader.temp;
 	if ( header->from == SL_ANY_SOURCE ) {
 	    header->from = tmpheader.from;
 	    //	SL_proc_remove_anysource ( header->id, header->from );
@@ -271,16 +314,11 @@ int SL_msg_recv_newmsg ( SL_proc *dproc, int fd )
     else {
 	char *tbuf=NULL;
 	SL_msg_header *thead=NULL;
-
-
 	thead = (SL_msg_header *) malloc ( sizeof ( SL_msg_header ) );
 	if ( NULL == thead ) {
 	    return SL_ERR_NO_MEMORY;
 	}
 	memcpy ( thead, &tmpheader, sizeof ( SL_msg_header ));
-
-	PRINTF(("SL_msg_recv_newmsg: add element to the unexpected message queue."));
-	SL_msg_header_dump ( thead );
 
 	if ( tmpheader.len > 0 ) {
 	    tbuf  = (char *) malloc ( tmpheader.len );
@@ -291,40 +329,56 @@ int SL_msg_recv_newmsg ( SL_proc *dproc, int fd )
 	else {
 	    tbuf=NULL;
 	}
-		 
-	elem = SL_msgq_insert ( dproc->urqueue, thead, tbuf, NULL );
+	PRINTF(("[%d]:SL_recv_newmsg: Inserting into msg queue\n\n\n\n",SL_this_procid));
+	 
+	elem = SL_msgq_insert ( r, thead, tbuf, NULL );
 #ifdef QPRINTF
-	SL_msgq_head_debug ( dproc->urqueue );
+	SL_msgq_head_debug ( r );
 #endif	
 	if ( tmpheader.len == 0 ) {
-	    return SL_MSG_DONE;
+	     dproc->recvfunc = SL_msg_recv_newmsg;
+	    return SL_SUCCESS;
+//	    return SL_MSG_DONE;
 	}
     }
+/*
+if (tmpheader.loglength != -1){
+            printf("[%d]:RECIEVER elemid:%d\n",SL_this_procid,elem->id);
+            SL_msg_header_dump(&tmpheader);
+}
+*/
 
     elem->lenpos = 0;
     elem->iovpos = 1;
 
     ret = SL_socket_read_nb ( fd, elem->iov[1].iov_base, elem->iov[1].iov_len, &len);
+
     if ( SL_SUCCESS == ret ) {
 	elem->lenpos += len ;
-	PRINTF (("SL_msg_recv_newmsg: read %d bytes from %d\n", 
-		 len, dproc->id ));
+	PRINTF(("[%d]:SL_msg_recv_newmsg: read %d bytes from %d elemid %d\n", SL_this_procid,
+		 len, dproc->id, elem->id ));
 
 	if ( elem->lenpos == elem->iov[1].iov_len ) {
 	    if ( NULL != elem->move_to  ) {
+//		SL_msg_performance_insert(elem->iov[0].iov_len+elem->iov[1].iov_len, 
+//					SL_Wtime()-elem->starttime, RECV, elem->id, dproc);
 		SL_msgq_move ( dproc->rqueue, elem->move_to, elem );
+
+
 	    }
 	    dproc->currecvelem = NULL;
-	    ret = SL_MSG_DONE;
+            dproc->recvfunc = SL_msg_recv_newmsg;
+            ret = SL_SUCCESS;
 	}
 	else {
 	    /* SL_msgq_move_tohead ( dproc->rqueue, elem ); */
 	    dproc->currecvelem = elem;
-	    ret = SL_MSG_STARTED;
+            dproc->recvfunc = SL_msg_recv_knownmsg;
+	    ret = SL_SUCCESS;
 	}
     }
-	
     return ret;
+
 }
 
 int SL_msg_send_knownmsg ( SL_proc *dproc, int fd )
@@ -334,12 +388,14 @@ int SL_msg_send_knownmsg ( SL_proc *dproc, int fd )
     SL_qitem *elem=dproc->cursendelem;
     int iovpos = elem->iovpos;
     int lenpos = elem->lenpos;
+    
+    FD_CLR ( dproc->sock, &send_fdset );
 
     ret = SL_socket_write_nb ( fd, ((char *)elem->iov[iovpos].iov_base + lenpos), 
 			       (elem->iov[iovpos].iov_len - lenpos), &len );
     if ( SL_SUCCESS == ret ) {
 	elem->lenpos += len;
-	PRINTF (("SL_msg_send_knownmsg: wrote %d bytes to %d\n", 
+	PRINTF (("[%d]:SL_msg_send_knownmsg: wrote %d bytes to %d\n", SL_this_procid,
 		 len, dproc->id ));
 	
 	if ( 0 == elem->iovpos  && elem->lenpos == elem->iov[0].iov_len ) {
@@ -349,13 +405,17 @@ int SL_msg_send_knownmsg ( SL_proc *dproc, int fd )
 	
 	if ( 1 == elem->iovpos && elem->iov[1].iov_len == elem->lenpos   &&
 	     NULL != elem->move_to ) {
+//	    SL_msg_performance_insert(elem->iov[0].iov_len+elem->iov[1].iov_len,
+//                                        (SL_Wtime()-elem->starttime), SEND, elem->id, dproc);
 	    SL_msgq_move ( dproc->squeue, elem->move_to, elem );
 #ifdef QPRINTF
 	    if ( NULL != elem->move_to ) {
 		SL_msgq_head_debug ( elem->move_to );
 	    }
 #endif	
-	    ret = SL_MSG_DONE;
+//	    ret = SL_MSG_DONE;
+            dproc->sendfunc = SL_msg_send_newmsg;
+	
 	}
     }
 
@@ -364,116 +424,245 @@ int SL_msg_send_knownmsg ( SL_proc *dproc, int fd )
 
 int SL_msg_send_newmsg ( SL_proc *dproc, int fd )
 {
-    int ret=SL_MSG_STARTED;
+    int ret=SL_SUCCESS;
     int len;
-    SL_qitem *elem=dproc->squeue->first;
+    SL_qitem *elem = NULL;
+    SL_msg_header *theader;
+
+    FD_CLR ( dproc->sock, &send_fdset );        
+
+    elem=dproc->squeue->first;
+
+    theader = (SL_msg_header*)elem->iov[0].iov_base;
+//    printf("[%d]:SENDER\n",SL_this_procid);
+//    SL_msg_header_dump(theader);
 
     ret = SL_socket_write ( fd, elem->iov[0].iov_base, elem->iov[0].iov_len, dproc->timeout );
     if ( ret != SL_SUCCESS ) {
 	return ret;
     }
 
-    PRINTF (("SL_msg_send_newmsg: wrote header to %d\n", 
+    PRINTF (("[%d]:SL_msg_send_newmsg: wrote header to %d\n",SL_this_procid, 
 	     dproc->id ));
     elem->iovpos = 1;
     elem->lenpos = 0;
     
     ret = SL_socket_write_nb (fd, elem->iov[1].iov_base, elem->iov[1].iov_len, &len );
     if ( SL_SUCCESS == ret) {
-	PRINTF (("SL_msg_send_newmsg: wrote %d bytes to %d\n", 
+	PRINTF (("[%d]:SL_msg_send_newmsg: wrote %d bytes to %d\n",SL_this_procid, 
 		 len, dproc->id ));
 	elem->lenpos += len;
 	dproc->cursendelem = elem;
-	ret = SL_MSG_STARTED;
-	
+	dproc->sendfunc = SL_msg_send_knownmsg;
 	if ( elem->iov[1].iov_len == elem->lenpos   &&
 	     NULL != elem->move_to ) {
+//	    SL_msg_performance_insert( elem->iov[0].iov_len+elem->iov[1].iov_len,
+//                                        SL_Wtime()-elem->starttime, SEND, elem->id, dproc);
 	    SL_msgq_move ( dproc->squeue, elem->move_to, elem );
 	    dproc->cursendelem = NULL;
-	    ret = SL_MSG_DONE;
+	    dproc->sendfunc = SL_msg_send_newmsg;
+//	    ret = SL_MSG_DONE;
 #ifdef QPRINTF
 	    if ( NULL != elem->move_to ) {
 		SL_msgq_head_debug ( elem->move_to );
 	    }
-#endif	
+#endif
 	}
+	
+	
     }
-    
+    else
+	PRINTF(("[%d]:ERROR!!in SL_socket_write_nb for proc:%d\n",SL_this_procid,dproc->id));
+
     return ret;
 }
 
 int SL_msg_accept_newconn ( SL_proc *dproc, int fd )
 {
-    	/* This function will be registered with the according send/recv function pointer
-       and is the counter part of the non-blocking connect. */
-    	int tmp=0;
-    	int sd=0;
-    	int ret=SL_SUCCESS;
+    /* This function will be registered with the according send/recv function pointer
+       and is the counter part of the non-blocking accept. */
+    int sd=0;
+    int ret=SL_SUCCESS;
 
-    	sd = accept ( dproc->sock, 0, 0 );
-    	if ( sd > 0 ) {
-		PRINTF (("SL_msg_accept_newconn: established new connection %d errno=%d %s\n", 
-		 sd, errno, strerror(errno)));
+    FD_CLR (dproc->sock, &send_fdset);
+    FD_CLR (dproc->sock, &recv_fdset);
+    
+    sd = accept ( dproc->sock, 0, 0 );
+    if ( sd > 0 ) {
+	PRINTF(("[%d]:SL_msg_accept_newconn: establishing new connection %d errno=%d %s\n", 
+		SL_this_procid, sd, errno, strerror(errno)));
+	PRINTF (("[%d]:SL_msg_accept_newconn: Trying handshake on connection %d \n",SL_this_procid, sd));
 
-		PRINTF (("SL_msg_accept_newconn: Trying handshake \n"));
-		ret = SL_socket_write ( sd, (char *) &SL_this_procid, sizeof(int), SL_ACCEPT_MAX_TIME);
-		if ( SL_SUCCESS != ret ) {
-	    		return ret;
-		}
-		ret = SL_socket_read ( sd, (char *) &tmp, sizeof(int), SL_ACCEPT_MAX_TIME );
-		if ( SL_SUCCESS != ret ) {
-	    		return ret;
-		}
-	
-		SL_configure_socket_nb ( sd );
-		if ( tmp != dproc->id ) {
-#ifdef MINGW
-			SL_proc * tproc = (SL_proc*)SL_array_get_ptr_by_id ( SL_proc_array, tmp );
-#else
-	    		SL_proc * tproc = (SL_proc*)SL_array_get_ptr_by_id ( SL_proc_array, tmp );
-#endif
-	    		if ( NULL == tproc ) {
-				PRINTF(("accept_newconn: received connection request from "
-				"unkown proc %d\n", tmp ));
-				return SL_ERR_GENERAL;
-			}
-	    		SL_proc_set_connection ( tproc, sd );
-		}
-		else {
-	    		SL_proc_set_connection ( dproc, sd );
-	    		ret = SL_MSG_DONE;
-		}
-		SL_proc_dumpall ();
-    	}
-    	else {
-#ifdef MINGW
-      if ( errno != WSAEWOULDBLOCK  ||
-	     errno != WSAECONNABORTED ||
-	     errno != WSAEINTR       ||
-	     errno != WSAEINTR ) {
-#else
-	if ( EWOULDBLOCK != errno  ||
-	     ECONNABORTED!= errno  ||
-	     EPROTO      != errno  ||
-	     EINTR       != errno ) {
-#endif
-	    ret = errno;
+
+	ret = SL_socket_write ( sd, (char *) &SL_this_procid, sizeof(int), SL_READ_MAX_TIME);
+	if ( SL_SUCCESS != ret ) {
+	    PRINTF(("[%d]: SL_accept_newconn: write in handshake on connection %d returned %d\n", 
+		    SL_this_procid, sd, ret));
+	    SL_socket_close (sd);
+	    return SL_SUCCESS;
 	}
+	
+	dproc->sock = sd;
+	dproc->state = SL_PROC_ACCEPT_STAGE2;
+	dproc->sendfunc = SL_msg_accept_stage2;
+	dproc->recvfunc = SL_msg_accept_stage2;
+
+	if ( sd > SL_fdset_lastused ) {
+	    SL_fdset_lastused = sd;
+	}
+	
+	FD_SET ( dproc->sock, &SL_send_fdset );
+	FD_SET ( dproc->sock, &SL_recv_fdset );    
     }
-
+    
+    else{
+        if ( EWOULDBLOCK != errno  ||
+             ECONNABORTED!= errno  ||
+             EPROTO      != errno  ||
+             EINTR       != errno ) {
+            ret = SL_SUCCESS;
+        }
+    }
+    
     return ret;
-
 }
 
+int SL_msg_accept_stage2(SL_proc *dproc, int fd)
+{
+    int sd = dproc->sock;
+    int tmp=0;
+    int ret=SL_SUCCESS;
+    char hostname[SL_MAXHOSTNAMELEN];
+    int newid ;
+    int port;
+    
+    ret = SL_socket_read ( sd, (char *) &tmp, sizeof(int), SL_READ_MAX_TIME );
+    if ( SL_SUCCESS != ret ) {
+	PRINTF(("[%d]: SL_accept_stage2: read in handshake on connection %d returned %d\n", SL_this_procid, sd, ret));
+	
+	dproc->sock = SL_this_listensock;
+	dproc->state = SL_PROC_ACCEPT;
+	dproc->sendfunc = SL_msg_accept_newconn;
+	dproc->recvfunc = SL_msg_accept_newconn;
+
+        FD_CLR ( sd, &SL_send_fdset);
+	FD_CLR ( sd, &SL_recv_fdset);
+	FD_CLR ( sd, &send_fdset);
+	FD_CLR ( sd, &recv_fdset);
+
+	SL_socket_close(sd);
+	return SL_SUCCESS;
+    }
+
+    if ( tmp != dproc->id ) {
+	SL_proc * tproc = (SL_proc *)SL_array_get_ptr_by_id ( SL_proc_array, tmp );
+
+//	PRINTF(("[%d]:accept_stage2: received connection request from "
+//                   "unkown proc %d Expected %d state %d socket %d\n", SL_this_procid,tmp,dproc->id,tproc->state,sd ));
+
+	if ( NULL == tproc ) {
+	    PRINTF(("[%d]:accept_stage2: received connection request from "
+		   "unkown proc %d\n", SL_this_procid,tmp ));
+	    
+	    if (tmp == SL_CONSTANT_ID || tmp == SL_PROC_ID){
+		PRINTF(("[%d]:Assining new ID to process  %d\n\n",SL_this_procid,tmp));
+		if (tmp == SL_CONSTANT_ID)
+		    newid = SL_proc_id_generate(1);
+		else
+		    newid = SL_proc_id_generate(0);
+		port = SL_proc_port_generate();
+		ret = SL_socket_read ( sd, hostname, SL_MAXHOSTNAMELEN, SL_ACCEPT_MAX_TIME );
+		if ( SL_SUCCESS != ret ) {
+		    return ret;
+		}
+		ret = SL_socket_write ( sd, (char *) &newid, sizeof(int), SL_ACCEPT_MAX_TIME);
+		if ( SL_SUCCESS != ret ) {
+		    return ret;
+		}
+		ret = SL_socket_write ( sd, (char *) &port, sizeof(int), SL_ACCEPT_MAX_TIME);
+		if ( SL_SUCCESS != ret ) {
+		    return ret;
+		}
+		SL_proc_init(newid, hostname,port );
+		tproc = SL_array_get_ptr_by_id ( SL_proc_array, newid );
+	    }
+	    else{
+		printf("ERROR!!!!!\n");
+		return SL_ERR_GENERAL;
+	    }
+	}
+	
+	/* 
+	** swap the connection information in case tproc has anything else than 
+	** NOT_CONNECTED set, such that the according information is not lost.
+	*/
+	FD_CLR ( sd, &send_fdset);
+	FD_CLR ( sd, &recv_fdset);
+
+	if ( tproc->state != SL_PROC_NOT_CONNECTED && 
+	     tproc->state != SL_PROC_UNREACHABLE ) {
+	    int tempsock, tempstate;
+	    SL_msg_comm_fnct *tempsendfnc, *temprecvfnc;
+	    
+	    tempsock    = tproc->sock;
+	    tempstate   = tproc->state;
+	    tempsendfnc = tproc->sendfunc;
+	    temprecvfnc = tproc->recvfunc;
+	    PRINTF(("[%d]: accept_stage2: swapping connection between dproc %d sd %d with tproc %d state %d sock %d\n",
+		    SL_this_procid, dproc->id, sd, tproc->id, tproc->state, tproc->sock ));
+	    
+	    if ( tproc->state == SL_PROC_CONNECTED ) {
+		printf("[%d]: accept_stage2: thats not good, process %d claims to have already a valid connection." 
+		       		       "Do not want to overwrite that.\n", SL_this_procid, tproc->id );
+	    }
+
+	    
+	    SL_proc_set_connection ( tproc, sd );
+	    
+	    dproc->sock = tempsock;
+	    dproc->state = tempstate;
+	    dproc->sendfunc = tempsendfnc;
+	    dproc->recvfunc = temprecvfnc;
+	}
+	else {
+	    SL_proc_set_connection ( tproc, sd );
+	    
+	    if ( dproc->id == SL_this_procid ) {
+		dproc->sock     = SL_this_listensock;
+		dproc->state    = SL_PROC_CONNECTED;
+		dproc->sendfunc = SL_msg_accept_newconn;
+		dproc->recvfunc = SL_msg_accept_newconn;
+	    }
+	    else {
+		dproc->sock      = -1;
+		dproc->state     = SL_PROC_NOT_CONNECTED;
+		dproc->recvfunc  = (SL_msg_comm_fnct *)SL_msg_recv_newmsg;
+		dproc->sendfunc  = (SL_msg_comm_fnct *)SL_msg_send_newmsg;
+	    }
+
+	}
+    }
+    else {
+	SL_proc_set_connection ( dproc, sd );
+//	ret = SL_MSG_DONE;
+    }
+	
+	
+	
+    return ret;
+}
+    
 
 int SL_msg_connect_newconn ( SL_proc *dproc, int fd )
 {
-  /* This function will be registered with the according send/recv function pointer
-     and is the counter part of the non-blocking connect. */
- 
+    /* This function will be registered with the according send/recv function pointer
+       and is the counter part of the non-blocking connect. */
+    int ret=SL_SUCCESS;
+    
+    FD_CLR ( dproc->sock, &send_fdset);
+    FD_CLR ( dproc->sock, &recv_fdset);
+    
     if ( dproc->state != SL_PROC_CONNECTED ) {
-	int ret=SL_SUCCESS;
-	int tmp=0;
 	int terr=0;
 	socklen_t len=sizeof(int);
 	
@@ -481,20 +670,20 @@ int SL_msg_connect_newconn ( SL_proc *dproc, int fd )
 	char *winflag;
 	sprintf(winflag, "%d", terr);
 	getsockopt (dproc->sock, SOL_SOCKET, SO_ERROR, winflag, &len);
-      if (terr == WSAEINPROGRESS || terr == WSAEWOULDBLOCK ) {
-#else
+	if (terr == WSAEINPROGRESS || terr == WSAEWOULDBLOCK ) {
+#else	
 	getsockopt (dproc->sock, SOL_SOCKET, SO_ERROR, &terr, &len);
 	if ( EINPROGRESS == terr || EWOULDBLOCK == terr) {
 #endif
-
 	    /* connection not yet established , go on */
 	    return ret;
 	}
+
 	if ( 0 != terr ) {
 	    FD_CLR ( dproc->sock, &SL_send_fdset );
 	    FD_CLR ( dproc->sock, &SL_recv_fdset );
 	    
-	    PRINTF (("SL_msg_connect_newconn: reconnecting %d %s \n", terr, 
+	    PRINTF( ("[%d]:SL_msg_connect_newconn: reconnecting %d %s \n", SL_this_procid,terr, 
 		     strerror ( terr ) ));
 	    dproc->state = SL_PROC_NOT_CONNECTED;
 	    SL_socket_close ( dproc->sock );
@@ -502,26 +691,15 @@ int SL_msg_connect_newconn ( SL_proc *dproc, int fd )
 	    return ret;
 	}
 	else if ( terr == 0 ) {
-	    PRINTF (("SL_msg_connect_newconn: terr = 0. Trying handshake \n"));
-	    dproc->state = SL_PROC_CONNECTED;
+	    PRINTF(("[%d]:SL_msg_connect_newconn: terr = 0. Trying handshake to proc %d\n",SL_this_procid, dproc->id));
 	    
-	    ret = SL_socket_read ( dproc->sock, ( char *) &tmp, sizeof(int), 
-				   dproc->timeout);
-	    if ( SL_ERR_PROC_UNREACHABLE == ret ) {
+	    ret = SL_socket_write ( dproc->sock, (char *) &SL_this_procid, sizeof(int), 
+				    dproc->timeout );
+	    if ( SL_SUCCESS != ret ) {
 		FD_CLR ( dproc->sock, &SL_send_fdset );
 		FD_CLR ( dproc->sock, &SL_recv_fdset );
 		
-		PRINTF (("SL_msg_connect_newconn: connection timed out %d %lf \n", ret, 
-			 dproc->timeout));
-		dproc->state = SL_PROC_NOT_CONNECTED;
-		SL_socket_close ( dproc->sock );
-		return ret;
-	    }		
-	    else if ( SL_SUCCESS != ret ) {
-		FD_CLR ( dproc->sock, &SL_send_fdset );
-		FD_CLR ( dproc->sock, &SL_recv_fdset );
-		
-		PRINTF (("SL_msg_connect_newconn: reconnecting %d %s \n", ret, 
+		PRINTF (("[%d]:SL_msg_connect_newconn: reconnecting %d %s \n", SL_this_procid,ret, 
 			 strerror ( ret ) ));
 		dproc->state = SL_PROC_NOT_CONNECTED;
 		SL_socket_close ( dproc->sock );
@@ -529,28 +707,60 @@ int SL_msg_connect_newconn ( SL_proc *dproc, int fd )
 		return ret;
 	    }
 	    
-	    if ( tmp != dproc->id ) {
-		PRINTF (("SL_msg_connect_newconn: error in exchanging handshake\n"));
-	    }
-	    ret = SL_socket_write ( dproc->sock, (char *) &SL_this_procid, sizeof(int), 
-				    dproc->timeout );
-	    if ( SL_SUCCESS != ret ) {
-		return ret;
-	    }
-	    
-	    SL_proc_dumpall ();
-	    return SL_MSG_DONE;
+	    dproc->state    = SL_PROC_CONNECT_STAGE2;
+	    dproc->sendfunc = SL_msg_connect_stage2;
+	    dproc->recvfunc = SL_msg_connect_stage2;
 	}
 	
-	return ret;
+    }
+
+    return ret;
+}
+
+
+int SL_msg_connect_stage2(SL_proc* dproc, int fd)
+{   
+    
+    int tmp;
+    int ret = SL_SUCCESS; 
+    ret = SL_socket_read ( dproc->sock, ( char *) &tmp, sizeof(int), 
+			   SL_READ_MAX_TIME);
+    FD_CLR ( dproc->sock, &send_fdset);
+    FD_CLR ( dproc->sock, &recv_fdset);
+
+    if ( SL_SUCCESS != ret ) {
+	PRINTF(("[%d]: SL_msg_connect_stage2: Error in SL_socket_read socket %d procid %d\n", 
+		SL_this_procid, dproc->sock, dproc->id));
+	FD_CLR ( dproc->sock, &SL_send_fdset );
+	FD_CLR ( dproc->sock, &SL_recv_fdset );
+	
+	PRINTF (("[%d]:SL_msg_connect_stage2: reconnecting %d %s \n", SL_this_procid,ret, 
+		 strerror ( ret ) ));
+	dproc->state = SL_PROC_NOT_CONNECTED;
+	SL_socket_close ( dproc->sock );
+	ret = SL_proc_init_conn_nb ( dproc, dproc->timeout );
+	return SL_SUCCESS;
     }
     
-    return SL_MSG_DONE;
+    if ( tmp != dproc->id ) {
+	printf ("[%d]:SL_msg_connect_stage2: error in exchanging handshake\n",SL_this_procid);
+	return SL_ERR_GENERAL;
+    }
+    
+    dproc->state = SL_PROC_CONNECTED;
+//    printf("[%d]:SL_msg_connect_stage2: connection established to proc %d on sock %d\n",
+//	   SL_this_procid, dproc->id, dproc->sock);
+    
+    dproc->sendfunc = SL_msg_send_newmsg;
+    dproc->recvfunc = SL_msg_recv_newmsg;
+    
+//    SL_proc_dumpall ();
+    return SL_SUCCESS;
 }
 
 int SL_msg_closed ( SL_proc *dproc, int fd )
 {
-    PRINTF(("SL_msg_closed: connection to %d is marked as closed\n", dproc->id ));
+    PRINTF(("[%d]:SL_msg_closed: connection to %d is marked as closed\n", SL_this_procid,dproc->id ));
     return SL_MSG_CLOSED;
 }
 
@@ -563,6 +773,6 @@ void SL_msg_set_nullstatus ( SL_Status *status )
 	status->SL_CONTEXT = SL_ANY_CONTEXT;
 	status->SL_LEN     = 0;
     }
-
-  return;
+    
+    return;
 }

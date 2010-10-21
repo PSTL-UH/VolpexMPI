@@ -19,7 +19,7 @@ int SL_msgq_move ( SL_msgq_head *head1, SL_msgq_head *head2, SL_qitem *elem );
 int SL_msgq_move_tohead ( SL_msgq_head *head1, SL_msgq_head *head2, SL_qitem *elem );
 void SL_msgq_set_error ( SL_qitem *elem, int error );
 void SL_msgq_debug ( SL_qitem *elem );
-   
+void SL_msgq_move_tolast(SL_msgq_head *head, SL_qitem *elem);
 #endif
 
 

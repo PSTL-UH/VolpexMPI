@@ -1,426 +1,292 @@
 #include "mpi.h"
-//#include "../../include/SL_proc.h"
+#include "SL_proc.h"
+
+extern SL_array_t *SL_proc_array;
+extern SL_array_t *Volpex_proc_array;
+extern SL_array_t *Volpex_comm_array;
+extern int SL_this_procid;
 
 extern NODEPTR head, insertpt, curr;
-extern int GM_numprocs;
+
+extern int Volpex_numprocs;
 extern int redundancy;
 extern char fullrank[16];
 extern char *hostip;
 extern char *hostname;
-extern int GM_numprocs;
 extern int next_avail_comm;
 extern int request_counter;
+extern int Volpex_numcomms;
+extern Volpex_returnheaderlist *returnheaderList;
 
-extern int SL_this_procid;
+extern Max_tag_reuse *maxtagreuse;
+Volpex_dest_source_fnct *Volpex_dest_source_select;
+Volpex_target_list *Volpex_targets;
+double init_msg_time;
+double repeat_msg_time;
 
-#pragma weak mpi_init_   = mpi_init
-#pragma weak mpi_init__  = mpi_init
-#pragma weak MPI_INIT    = mpi_init
-
-int mpi_init(int *ierr)
+static void volpex_preconnect(void)
 {
-    int i;
-    next_avail_comm = 3;
 
-    GM_allocate_global_data ();
+    int step;
+    int size = Volpex_numprocs;
+    int rank = SL_this_procid;
+    int sbuf=1, rbuf=1;
+    SL_Request reqs[2];
+    int sendto, recvfrom;
 
-    GM_host_ip();
-    PRINTF(("Hostname: %s\n", hostname));
-    PRINTF(("HostIP: %s\n", hostip));
 
+    for ( step=1; step< size+1; step++ ) {
+        sendto = (rank + step) % size;
+        recvfrom = (rank + size - step ) % size;
 
-    GM_proc_read_and_set();
-    SL_this_procid = GM_get_procid_fullrank(fullrank);
-    if ( -1 == SL_this_procid ) {
-	printf("Could not find entry for host %s in SL.config\n", hostip);
-	exit (-1);
+        SL_Isend (&sbuf, sizeof(int), sendto, 0, 0, &reqs[0]);
+        SL_Irecv (&rbuf, sizeof(int), recvfrom, 0, 0, &reqs[1]);
+        SL_Waitall ( 2, reqs, SL_STATUS_IGNORE);
     }
 
-    PRINTF(("My full rank is %s\n", fullrank));
-
-    for(i = 0; i < REQLISTSIZE; i++) {
-	reqlist[i].in_use = 0;
-	reqlist[i].insrtbuf = NULL;
-    }
-
-    GM_tagreuse_init ();
-/*    for(i = 0; i < TAGLISTSIZE; i++){
-	sendtagreuse[i].tag = -1;
-	recvtagreuse[i].tag = -1;
-    }
-*/
-    head = insertpt = curr = VolPex_send_buffer_init();
-    hdata[1].mybarrier = 0;
-    
-    SL_Init();
-    PRINTF(("Initializing MPI Program\n"));
-    *ierr = 0;
-    int mynumeric;
-    char mylevel;
-    for ( i=0; i< GM_numprocs; i++ ){
-	if(GM[i][MPI_COMM_WORLD].id == SL_this_procid){
-	    sscanf(GM[i][MPI_COMM_WORLD].rank, "%d,%c", &mynumeric, &mylevel);
-	    hdata[MPI_COMM_WORLD].myrank = mynumeric;
-	}
-    }
-    VolPEx_Redundancy_Barrier ( MPI_COMM_WORLD, hdata[MPI_COMM_WORLD].myrank );
-    return MPI_SUCCESS;
+    return;
 }
+
+int numofcores()
+{
+        system ("cat /proc/cpuinfo | grep processor > tempfile.txt");
+        FILE *fp;
+        char procnum[30];
+        int num=0;
+
+        fp = fopen("tempfile.txt","r");
+        if(fp == NULL)
+        {
+                printf("Source file not found !\n");
+                exit(-1);
+        }
+
+        while (!feof(fp))
+        {
+                 fgets(procnum,30,fp);
+                num++;
+        }
+        printf("Number of cores = %d\n",num-1);
+        return (num-1);
+
+}
+
 
 int  MPI_Init( int *argc, char ***argv )
 {
     int i;
-    int rank=-1;
-    
     next_avail_comm = 3;
-    GM_allocate_global_data ();
-
-    if ( *argc > 1 ) {
-	rank = atoi ((*argv)[1]);
-    }
-
+    PRINTF(("Moving into MCFA_Init\n"));
+    MCFA_Init();
+    GM_allocate_global_data();
     GM_host_ip();
     PRINTF(("Hostname: %s\n", hostname));
     PRINTF(("HostIP: %s\n", hostip));
+    Volpex_get_fullrank(fullrank);
+//	sleep(10);
+    // Set up MPI_COMM_WORLD and MPI_COMM_SELF
+    Volpex_init_comm_world ( Volpex_numprocs, redundancy );
+    Volpex_init_comm_self ();
 
-    GM_proc_read_and_set();
+    Volpex_init_procplist(redundancy);
+    Volpex_numcomms = 0;
+    Volpex_init_returnheader(&returnheaderList);
+    Volpex_init_maxreuse(&maxtagreuse);
+    Volpex_init_targetlist();
 
-    if ( rank != -1  ) {
-	SL_this_procid = rank;
-    }
-    else {
-	SL_this_procid = GM_get_procid_fullrank(fullrank);
-	if ( -1 == SL_this_procid ) {
-	    printf("Could not find entry for host %s in SL.config\n", hostip);
-	    exit (-1);
-	}
-    }
-
-    GM_get_fullrank(fullrank);
-
-    for(i = 0; i < REQLISTSIZE; i++) {
-	reqlist[i].in_use = 0;
-	reqlist[i].insrtbuf = NULL;
+    for(i = 0; i < REQLISTSIZE; i++){
+        reqlist[i].insrtbuf = NULL;
+	reqlist[i].returnheader.len = -1;
+	reqlist[i].returnheader.reuse = -1;
+	reqlist[i].returnheader.tag = -1;
+	reqlist[i].returnheader.dest = -1;
+	reqlist[i].returnheader.src = -1;
+	reqlist[i].numtargets = 0;
+	reqlist[i].recv_dup_status = 0;
+	reqlist[i].header = NULL;
+	reqlist[i].buffer = NULL;
+	reqlist[i].assoc_recv = NULL;
     }
 
     GM_tagreuse_init();
-/* 
-    for(i = 0; i < TAGLISTSIZE; i++){
-	sendtagreuse[i].tag = -1;
-	recvtagreuse[i].tag = -1;
-    }
-*/
 
     PRINTF(("My full rank is %s\n", fullrank));
-    head = insertpt = curr = VolPex_send_buffer_init();
-    hdata[1].mybarrier = 0;
+    head = insertpt = curr = Volpex_send_buffer_init();
+    init_msg_time = SL_papi_time();
+    repeat_msg_time = SL_papi_time();
+    Volpex_dest_source_select = Volpex_dest_src_locator;
 
-    SL_Init();
-    PRINTF(("Initializing MPI Program\n"));
-    int mynumeric;
-    char mylevel;
-    for ( i=0; i< GM_numprocs; i++ ){
-	if(GM[i][MPI_COMM_WORLD].id == SL_this_procid){
-	    sscanf(GM[i][MPI_COMM_WORLD].rank, "%d,%c", &mynumeric, &mylevel);
-	    hdata[MPI_COMM_WORLD].myrank = mynumeric;
-	}
-    }
-
-    VolPEx_Redundancy_Barrier ( MPI_COMM_WORLD, hdata[MPI_COMM_WORLD].myrank ) ;
+   volpex_preconnect();
+//   Volpex_Redundancy_Barrier ( MPI_COMM_WORLD, hdata[MPI_COMM_WORLD].myrank );
+//if(redundancy>1)
+ //  Volpex_set_target();
+    Volpex_Barrier ( MPI_COMM_WORLD);
+//	Volpex_Complete_Barrier(MPI_COMM_WORLD);	
     return MPI_SUCCESS;
 }
 
 /********************************************************************************/
 /********************************************************************************/
 /********************************************************************************/
-#pragma weak mpi_finalize_   = mpi_finalize
-#pragma weak mpi_finalize__  = mpi_finalize
-#pragma weak MPI_FINALIZE    = mpi_finalize
 
-int mpi_finalize( int *ierr)
+#pragma weak MPI_Finalize = PMPI_Finalize
+
+int  PMPI_Finalize()
 {
-    VolPEx_Finalize();
-    *ierr = 0;
-    return MPI_SUCCESS;
+    return Volpex_Finalize();
 }
 
-int  MPI_Finalize()
+/********************************************************************************/
+/********************************************************************************/
+/********************************************************************************/
+#pragma weak MPI_Comm_size = PMPI_Comm_size
+
+int PMPI_Comm_size(MPI_Comm comm, int *size)
 {
-    VolPEx_Finalize();
-    return MPI_SUCCESS;
+    return Volpex_Comm_size(comm, size);
 }
 
 /********************************************************************************/
 /********************************************************************************/
 /********************************************************************************/
-#pragma weak mpi_comm_size_   = mpi_comm_size
-#pragma weak mpi_comm_size__  = mpi_comm_size
-#pragma weak MPI_COMM_SIZE    = mpi_comm_size
+#pragma weak MPI_Comm_rank = PMPI_Comm_rank
 
-
-int mpi_comm_size(unsigned int *comm, int *size, int *ierr)
+int PMPI_Comm_rank(MPI_Comm comm, int *rank)
 {
-    VolPEx_Comm_size(*comm, size);
-    *ierr = 0;
-    return MPI_SUCCESS;
+    return Volpex_Comm_rank(comm, rank);
 }
 
-int MPI_Comm_size(MPI_Comm comm, int *size)
+/********************************************************************************/
+/********************************************************************************/
+/********************************************************************************/
+#pragma weak MPI_Send = PMPI_Send
+
+int  PMPI_Send(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+              MPI_Comm comm)
 {
-    VolPEx_Comm_size(comm, size);
-    return MPI_SUCCESS;
+    return Volpex_Send(buf, count, datatype, dest, tag, comm);
 }
 
 /********************************************************************************/
 /********************************************************************************/
 /********************************************************************************/
-#pragma weak mpi_comm_rank_   = mpi_comm_rank
-#pragma weak mpi_comm_rank__  = mpi_comm_rank
-#pragma weak MPI_COMM_RANK    = mpi_comm_rank
 
-int mpi_comm_rank(unsigned int *comm, int *rank, int *ierr)
+#pragma weak MPI_Recv = PMPI_Recv
+
+int  PMPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
+              MPI_Comm comm, MPI_Status *status)
 {
-    VolPEx_Comm_rank(*comm, rank);
-    *ierr = 0;
-    return MPI_SUCCESS;
+    return Volpex_Recv(buf, count, datatype, source, tag, comm, status);
 }
 
-int MPI_Comm_rank(MPI_Comm comm, int *rank)
+/********************************************************************************/
+/********************************************************************************/
+/********************************************************************************/
+#pragma weak MPI_Bcast = PMPI_Bcast
+
+int  PMPI_Bcast(void *buf, int count, MPI_Datatype datatype, int root,
+               MPI_Comm comm)
 {
-    VolPEx_Comm_rank(comm, rank);
-    return MPI_SUCCESS;
+    return Volpex_Bcast(buf, count, datatype, root, comm);
 }
 
 /********************************************************************************/
 /********************************************************************************/
 /********************************************************************************/
-#pragma weak mpi_send_   = mpi_send
-#pragma weak mpi_send__  = mpi_send
-#pragma weak MPI_SEND    = mpi_send
+#pragma weak MPI_Reduce = PMPI_Reduce
 
-int mpi_send(void *buf, int *count, unsigned int *datatype, int *dest, int *tag, 
-	     unsigned int *comm, int *ierr)
+int PMPI_Reduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype,
+               MPI_Op op, int root, MPI_Comm comm)
 {
-    VolPEx_Send(buf, *count, *datatype, *dest, *tag, *comm);
-    *ierr = 0;
-    return MPI_SUCCESS;
+    return Volpex_Reduce(sendbuf, recvbuf, count, datatype, op, root, comm);
 }
 
-int  MPI_Send(void *buf, int count, MPI_Datatype datatype, int dest, int tag, 
-	      MPI_Comm comm)
+/********************************************************************************/
+/********************************************************************************/
+/********************************************************************************/
+#pragma weak MPI_Allreduce = PMPI_Allreduce
+
+int PMPI_Allreduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype,
+                  MPI_Op op, MPI_Comm comm)
 {
-    VolPEx_Send(buf, count, datatype, dest, tag, comm);
-    return MPI_SUCCESS;
+    return Volpex_Allreduce(sendbuf, recvbuf, count, datatype, op, comm);
 }
 
 /********************************************************************************/
 /********************************************************************************/
 /********************************************************************************/
-#pragma weak mpi_recv_   = mpi_recv
-#pragma weak mpi_recv__  = mpi_recv
-#pragma weak MPI_RECV    = mpi_recv
+#pragma weak MPI_Isend = PMPI_Isend
 
-int mpi_recv(void *buf, int *count, unsigned int *datatype, int *source, int *tag, 
-	     unsigned int *comm, int *status, int *ierr)
+int  PMPI_Isend(void *buf, int count, MPI_Datatype datatype, int dest, int tag,
+               MPI_Comm comm, MPI_Request *request)
 {
-    VolPEx_Recv(buf, *count, *datatype, *source, *tag, *comm, status);
-    *ierr = 0;
-    return MPI_SUCCESS;
+    return Volpex_Isend(buf, count, datatype, dest, tag, comm, request);
 }
 
-int  MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag, 
-	      MPI_Comm comm, MPI_Status *status)
+/********************************************************************************/
+/********************************************************************************/
+/********************************************************************************/
+#pragma weak MPI_Irecv = PMPI_Irecv
+
+int  PMPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
+               MPI_Comm comm, MPI_Request *request)
 {
-    VolPEx_Recv(buf, count, datatype, source, tag, comm, status);
-    return MPI_SUCCESS;
+    return Volpex_Irecv(buf, count, datatype, source, tag, comm, request);
 }
 
 /********************************************************************************/
 /********************************************************************************/
 /********************************************************************************/
-#pragma weak mpi_bcast_   = mpi_bcast
-#pragma weak mpi_bcast__  = mpi_bcast
-#pragma weak MPI_BCAST    = mpi_bcast
+#pragma weak MPI_Waitall = PMPI_Waitall
 
-int mpi_bcast(void *buf, int *count, unsigned int *datatype, int *root, 
-	      unsigned int *comm, int *ierr)
+int  PMPI_Waitall(int count, MPI_Request request[], MPI_Status status[])
 {
-    VolPEx_Bcast(buf, *count, *datatype, *root, *comm);
-    *ierr = 0;
-    return MPI_SUCCESS;
+    return Volpex_Waitall(count, request, status);
 }
 
-int  MPI_Bcast(void *buf, int count, MPI_Datatype datatype, int root, 
-	       MPI_Comm comm)
+/********************************************************************************/
+/********************************************************************************/
+/********************************************************************************/
+#pragma weak MPI_Waitany = PMPI_Waitany
+
+int  PMPI_Waitany(int count, MPI_Request request[], int *index, MPI_Status status[])
 {
-    VolPEx_Bcast(buf, count, datatype, root, comm);
-    return MPI_SUCCESS;
+    return Volpex_Waitany (count, request, index, status);
 }
 
 /********************************************************************************/
 /********************************************************************************/
 /********************************************************************************/
-#pragma weak mpi_reduce_   = mpi_reduce
-#pragma weak mpi_reduce__  = mpi_reduce
-#pragma weak MPI_REDUCE    = mpi_reduce
+#pragma weak MPI_Wait = PMPI_Wait
 
-int mpi_reduce(void *sendbuf, void *recvbuf, int *count, unsigned int *datatype, 
-	       unsigned int *op, int *root, unsigned int *comm, int *ierr)
+int  PMPI_Wait(MPI_Request *request, MPI_Status *status)
 {
-    VolPEx_Reduce(sendbuf, recvbuf, *count, *datatype, *op, *root, *comm);
-    *ierr = 0;
-    return MPI_SUCCESS;
+    return Volpex_Wait(request, status);
 }
 
-int MPI_Reduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, 
-	       MPI_Op op, int root, MPI_Comm comm)
+/********************************************************************************/
+/********************************************************************************/
+/********************************************************************************/
+#pragma weak MPI_Test = PMPI_Test
+
+int  PMPI_Test(MPI_Request *request, int *flag, MPI_Status *status)
 {
-    VolPEx_Reduce(sendbuf, recvbuf, count, datatype, op, root, comm);
-    return MPI_SUCCESS;
+    return Volpex_Test(request, flag, status);
 }
 
 /********************************************************************************/
 /********************************************************************************/
 /********************************************************************************/
-#pragma weak mpi_allreduce_   = mpi_allreduce
-#pragma weak mpi_allreduce__  = mpi_allreduce
-#pragma weak MPI_ALLREDUCE    = mpi_allreduce
+#pragma weak MPI_Barrier = PMPI_Barrier
 
-int mpi_allreduce(void *sendbuf, void *recvbuf, int *count, unsigned int *datatype, 
-		  unsigned int *op, unsigned int *comm, int *ierr)
+int PMPI_Barrier(MPI_Comm comm)
 {
-    VolPEx_Allreduce(sendbuf, recvbuf, *count, *datatype, *op, *comm);
-    *ierr = 0;
-    return MPI_SUCCESS;
-}
-
-int MPI_Allreduce(void *sendbuf, void *recvbuf, int count, MPI_Datatype datatype, 
-		  MPI_Op op, MPI_Comm comm)
-{
-    VolPEx_Allreduce(sendbuf, recvbuf, count, datatype, op, comm);
-    return MPI_SUCCESS;
+    return Volpex_Barrier(comm);
 }
 
 /********************************************************************************/
 /********************************************************************************/
 /********************************************************************************/
-#pragma weak mpi_isend_   = mpi_isend
-#pragma weak mpi_isend__  = mpi_isend
-#pragma weak MPI_ISEND    = mpi_isend
-
-
-int mpi_isend(void *buf, int *count, unsigned int *datatype, int *dest, int *tag, 
-	      unsigned int *comm, int *request, int *ierr)
-{
-    VolPEx_Isend(buf, *count, *datatype, *dest, *tag, *comm, request);
-    *ierr = 0;
-    return MPI_SUCCESS;
-}
-
-int  MPI_Isend(void *buf, int count, MPI_Datatype datatype, int dest, int tag, 
-	       MPI_Comm comm, MPI_Request *request)
-{
-    VolPEx_Isend(buf, count, datatype, dest, tag, comm, request);
-    return MPI_SUCCESS;
-}
-
-/********************************************************************************/
-/********************************************************************************/
-/********************************************************************************/
-#pragma weak mpi_irecv_   = mpi_irecv
-#pragma weak mpi_irecv__  = mpi_irecv
-#pragma weak MPI_IRECV    = mpi_irecv
-
-int mpi_irecv(void *buf, int *count, unsigned int *datatype, int *source, int *tag, 
-	      unsigned int *comm, int *request, int *ierr)
-{
-    VolPEx_Irecv(buf, *count, *datatype, *source, *tag, *comm, request);
-    *ierr = 0;
-    return MPI_SUCCESS;
-}
-
-int  MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source, int tag, 
-	       MPI_Comm comm, MPI_Request *request)
-{
-    VolPEx_Irecv(buf, count, datatype, source, tag, comm, request);
-    return MPI_SUCCESS;
-}
-
-/********************************************************************************/
-/********************************************************************************/
-/********************************************************************************/
-#pragma weak mpi_waitall_   = mpi_waitall
-#pragma weak mpi_waitall__  = mpi_waitall
-#pragma weak MPI_WAITALL    = mpi_waitall
-
-int  mpi_waitall(int *count, int *request, int *status, int *ierr)
-{
-    VolPEx_Waitall(*count, request, status);
-    *ierr = 0;
-    return MPI_SUCCESS;
-}
-
-int  MPI_Waitall(int count, MPI_Request request[], MPI_Status status[])
-{
-    VolPEx_Waitall(count, request, status);
-    return MPI_SUCCESS;
-}
-
-/********************************************************************************/
-/********************************************************************************/
-/********************************************************************************/
-#pragma weak mpi_wait_   = mpi_wait
-#pragma weak mpi_wait__  = mpi_wait
-#pragma weak MPI_WAIT    = mpi_wait
-
-int mpi_wait(int *request, int *status, int *ierr)
-{
-    VolPEx_Wait(request, status);
-    *ierr = 0;
-    return MPI_SUCCESS;
-}
-
-int  MPI_Wait(MPI_Request *request, MPI_Status *status)
-{
-    VolPEx_Wait(request, status);
-    return MPI_SUCCESS;
-}
-
-/********************************************************************************/
-/********************************************************************************/
-/********************************************************************************/
-#pragma weak mpi_barrier_   = mpi_barrier
-#pragma weak mpi_barrier__  = mpi_barrier
-#pragma weak MPI_BARRIER    = mpi_barrier
-
-int mpi_barrier(unsigned int *comm, int *ierr)
-{
-    VolPEx_Barrier(*comm);
-    *ierr = 0;
-    return MPI_SUCCESS;
-}
-
-int MPI_Barrier(MPI_Comm comm)
-{
-    VolPEx_Barrier(comm);
-    return MPI_SUCCESS;
-}
-
-/********************************************************************************/
-/********************************************************************************/
-/********************************************************************************/
-#pragma weak mpi_abort_   = mpi_abort
-#pragma weak mpi_abort__  = mpi_abort
-#pragma weak MPI_ABORT    = mpi_abort
-
-int mpi_abort(unsigned int *comm, int *errorcode, int *ierr)
-{
-    printf("Error %d occured on context_id %d. Aborting.\n", *errorcode, *comm);
-    *ierr = 0;
-    exit(*errorcode);
-    return MPI_SUCCESS;
-}
-
 int MPI_Abort(MPI_Comm comm, int errorcode)
 {
     printf("Error %d occured on context_id %d. Aborting.\n", errorcode, comm);
@@ -431,21 +297,12 @@ int MPI_Abort(MPI_Comm comm, int errorcode)
 /********************************************************************************/
 /********************************************************************************/
 /********************************************************************************/
-#pragma weak mpi_wtime_   = mpi_wtime
-#pragma weak mpi_wtime__  = mpi_wtime
-#pragma weak MPI_WTIME    = mpi_wtime
-
-double mpi_wtime()
-{
-    return MPI_Wtime();
-}
-
 double MPI_Wtime()
 {
     struct timeval tp;
     double sec=0.0;
     double psec=0.0;
-    
+
     gettimeofday( &tp, NULL );
     sec = (double)tp.tv_sec;
     psec = ((double)tp.tv_usec)/((double)1000000.0);
@@ -455,133 +312,105 @@ double MPI_Wtime()
 /********************************************************************************/
 /********************************************************************************/
 /********************************************************************************/
-#pragma weak mpi_alltoall_   = mpi_alltoall
-#pragma weak mpi_alltoall__  = mpi_alltoall
-#pragma weak MPI_ALLTOALL    = mpi_alltoall
+#pragma weak MPI_Alltoall = PMPI_Alltoall
 
-int  mpi_alltoall(void *sendbuf, int *sendcount, unsigned int *sendtype, void *recvbuf, 
-		  int *recvcount, unsigned int *recvtype, unsigned int *comm, int *ierr)
+int  PMPI_Alltoall(void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf,
+                  int recvcount, MPI_Datatype recvtype, MPI_Comm comm)
 {
-    VolPEx_Alltoall(sendbuf, *sendcount, *sendtype, recvbuf, *recvcount, *recvtype, *comm);
-    *ierr = 0;
-    return MPI_SUCCESS;      
-}
-
-int  MPI_Alltoall(void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf, 
-		  int recvcount, MPI_Datatype recvtype, MPI_Comm comm)
-{
-    VolPEx_Alltoall(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm);
-    return MPI_SUCCESS;      
+    return Volpex_Alltoall(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm);
 }
 
 /********************************************************************************/
 /********************************************************************************/
 /********************************************************************************/
-#pragma weak mpi_alltoallv_   = mpi_alltoallv
-#pragma weak mpi_alltoallv__  = mpi_alltoallv
-#pragma weak MPI_ALLTOALLV    = mpi_alltoallv
+#pragma weak MPI_Alltoallv = PMPI_Alltoallv
 
-int mpi_alltoallv(void *sendbuf, int *sendcount, int *sdispls, unsigned int *sendtype, 
-		  void *recvbuf, int *recvcount, int *rdispls, unsigned int *recvtype,
-		  unsigned int *comm, int *ierr)
+int  PMPI_Alltoallv(void *sendbuf, int *sendcount, int *sdispls, MPI_Datatype sendtype,
+                   void *recvbuf, int *recvcount, int *rdispls, MPI_Datatype recvtype,
+                   MPI_Comm comm)
 {
-    VolPEx_Alltoallv(sendbuf, sendcount, sdispls, *sendtype, recvbuf, recvcount, 
-		     rdispls, *recvtype, *comm);
-    *ierr = 0;
-    return MPI_SUCCESS;      
-}
-
-int  MPI_Alltoallv(void *sendbuf, int *sendcount, int *sdispls, MPI_Datatype sendtype, 
-		   void *recvbuf, int *recvcount, int *rdispls, MPI_Datatype recvtype, 
-		   MPI_Comm comm)
-{
-    VolPEx_Alltoallv(sendbuf, sendcount, sdispls, sendtype, recvbuf, recvcount, rdispls,
-		     recvtype, comm);
-    return MPI_SUCCESS;      
+    return Volpex_Alltoallv(sendbuf, sendcount, sdispls, sendtype, recvbuf, recvcount, rdispls,
+                            recvtype, comm);
 }
 
 /********************************************************************************/
 /********************************************************************************/
 /********************************************************************************/
-#pragma weak mpi_comm_dup_   = mpi_comm_dup
-#pragma weak mpi_comm_dup__  = mpi_comm_dup
-#pragma weak MPI_COMM_DUP    = mpi_comm_dup
+#pragma weak MPI_Comm_dup = PMPI_Comm_dup
 
-int mpi_comm_dup(unsigned int *comm, unsigned int *newcomm, int *ierr)
+int PMPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm)
 {
-    VolPEx_Comm_dup(*comm, newcomm);
-    *ierr = 0;
-    return MPI_SUCCESS;
-}
-
-int MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm)
-{
-    VolPEx_Comm_dup(comm, newcomm);
-    return MPI_SUCCESS;
+    return Volpex_Comm_dup(comm, newcomm);
 }
 
 /********************************************************************************/
 /********************************************************************************/
 /********************************************************************************/
-#pragma weak mpi_comm_split_   = mpi_comm_split
-#pragma weak mpi_comm_split__  = mpi_comm_split
-#pragma weak MPI_COMM_SPLIT    = mpi_comm_split
+#pragma weak MPI_Comm_split = PMPI_Comm_split
 
-int mpi_comm_split(unsigned int *comm, int *color, int *key, unsigned int *newcomm, 
-		   int *ierr)
+int  PMPI_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm)
 {
-    VolPEx_Comm_split(*comm, *color, *key, newcomm);
-    *ierr = 0;
-    return MPI_SUCCESS;
-}
-
-int  MPI_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm)
-{
-    VolPEx_Comm_split(comm, color, key, newcomm);
-    return MPI_SUCCESS;
+    return Volpex_Comm_split(comm, color, key, newcomm);
 }
 
 /********************************************************************************/
 /********************************************************************************/
 /********************************************************************************/
-#pragma weak mpi_gather_   = mpi_gather
-#pragma weak mpi_gather__  = mpi_gather
-#pragma weak MPI_GATHER    = mpi_gather
+#pragma weak MPI_Gather = PMPI_Gather
 
-int mpi_gather(void *sendbuf, int *sendcnt, unsigned int *sendtype, void *recvbuf, 
-	       int *recvcnt, unsigned int *recvtype, int *root, unsigned int *comm, 
-	       int *ierr)
+int  PMPI_Gather(void *sendbuf, int sendcnt, MPI_Datatype sendtype, void *recvbuf,
+                int recvcnt, MPI_Datatype recvtype, int root, MPI_Comm comm)
 {
-    VolPEx_Gather(sendbuf, *sendcnt, *sendtype, recvbuf, *recvcnt, *recvtype, *root, *comm);
-    *ierr = 0;
-    return MPI_SUCCESS;
-}
-
-int  MPI_Gather(void *sendbuf, int sendcnt, MPI_Datatype sendtype, void *recvbuf, 
-		int recvcnt, MPI_Datatype recvtype, int root, MPI_Comm comm)
-{
-    VolPEx_Gather(sendbuf, sendcnt, sendtype, recvbuf, recvcnt, recvtype, root, comm);
-    return MPI_SUCCESS;
+    return Volpex_Gather(sendbuf, sendcnt, sendtype, recvbuf, recvcnt, recvtype, root, comm);
 }
 
 /********************************************************************************/
 /********************************************************************************/
 /********************************************************************************/
-#pragma weak mpi_allgather_   = mpi_allgather
-#pragma weak mpi_allgather__  = mpi_allgather
-#pragma weak MPI_ALLGATHER    = mpi_allgather
+#pragma weak MPI_Allgather = PMPI_Allgather
 
-int mpi_allgather(void *sendbuf, int *sendcount, unsigned int *sendtype, void *recvbuf, 
-		  int *recvcount, unsigned int *recvtype, unsigned int *comm, int *ierr)
+int PMPI_Allgather(void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf,
+                  int recvcount, MPI_Datatype recvtype, MPI_Comm comm)
 {
-    VolPEx_Allgather(sendbuf, *sendcount, *sendtype, recvbuf, *recvcount, *recvtype, *comm);
-    *ierr = 0;
-    return MPI_SUCCESS;
+    return Volpex_Allgather(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm);
 }
 
-int MPI_Allgather(void *sendbuf, int sendcount, MPI_Datatype sendtype, void *recvbuf,
-		  int recvcount, MPI_Datatype recvtype, MPI_Comm comm)
+/********************************************************************************/
+/********************************************************************************/
+/********************************************************************************/
+#pragma weak MPI_Pack = PMPI_Pack
+
+int PMPI_Pack(void *inbuf, int count, MPI_Datatype datatype, void *outbuf,
+                  int outsize, int* position, MPI_Comm comm)
 {
-    VolPEx_Allgather(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm);
-    return MPI_SUCCESS;
+    return Volpex_Pack(inbuf, count, datatype, outbuf, outsize, position, comm);
 }
+
+/********************************************************************************/
+/********************************************************************************/
+/********************************************************************************/
+#pragma weak MPI_Unpack = PMPI_Unpack
+
+int PMPI_Unpack(void *inbuf, int insize, int* position, void *outbuf,
+                  int outcount, MPI_Datatype datatype, MPI_Comm comm)
+{
+    return Volpex_Unpack(inbuf, insize, position, outbuf, outcount, datatype, comm);
+}
+
+/********************************************************************************/
+/********************************************************************************/
+/********************************************************************************/
+#pragma weak MPI_Type_size = PMPI_Type_size
+
+int PMPI_Type_size ( MPI_Datatype datatype, int *size )
+{
+    return Volpex_Type_size ( datatype, size );
+}
+
+int MPI_rank (int *actualrank)
+{
+        *actualrank = SL_this_procid;
+        return 1;
+}
+
+

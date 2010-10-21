@@ -17,12 +17,12 @@ typedef struct SL_status SL_Status;
 
 
 /* Constants */
-#define SL_SUCCESS				0
+#define SL_SUCCESS			0
 #define SL_ERR_GENERAL			1
 #define SL_ERR_NO_MEMORY		2
 #define SL_ERR_INTERNAL			3
 #define SL_ERR_UNDEFINED		4
-#define SL_ERR_PROC_UNREACHABLE	5
+#define SL_ERR_PROC_UNREACHABLE		5
 #define SL_UNDEFINED			6
 
 #define SL_ANY_SOURCE  -1
@@ -36,6 +36,17 @@ typedef struct SL_status SL_Status;
 #define SL_PROC_WORLD 0
 #define SL_PROC_SELF  1
 
+
+#define SL_MAXHOSTNAMELEN       256
+
+
+
+#ifdef PRINTF
+  #undef PRINTF
+  #define PRINTF(A) printf A
+#else
+  #define PRINTF(A)
+#endif
 
 /* Prototypes */
 int SL_Init     ( void );

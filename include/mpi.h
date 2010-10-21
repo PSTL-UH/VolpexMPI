@@ -28,16 +28,16 @@
 #include <sys/utsname.h>
 #include <pthread.h>
 #endif
-
 #include "SL.h"
-//#include "SL_proc.h"
+#include "MCFA.h"
+//#include "SL_array.h"
 #include "mpi_fortran.h"
 
 #define TOTAL_NODES	2000
 #define TOTAL_COMMS	20
-#define SENDBUFSIZE     500
-#define REQLISTSIZE     10000
-#define TAGLISTSIZE	10000
+#define SENDBUFSIZE     20000
+#define REQLISTSIZE     20000
+#define TAGLISTSIZE	1000
 
 #define CK_TAG        -15000
 #define BARRIER_TAG   -45000
@@ -48,6 +48,9 @@
 
 #define CK_LEN  (int)(5*sizeof(int))
 
+#define MAX_MSG	1
+#define MAX_MSG_TIME 3000000
+#define MAX_MSG_REPEAT 30000000000
 #define VOLPEX_PROC_CONNECTED     1
 #define VOLPEX_PROC_NOT_CONNECTED 0
 
@@ -60,11 +63,104 @@ struct global_map{
 };
 typedef struct global_map Global_Map;
 
+
+
+struct volpex_proc{
+      int 	      id;
+      char     *hostname;
+      int 	    port;
+      char 	rank[16];  /* fullrank of a process in MPI_COMM_WORLD */
+      int       rank_MCW;      
+      char      level; 	
+      int 	   state;
+      int 	numofmsg;
+      int 	  msgnum;
+      int 	reuseval;
+      struct volpex_proclist *plist; 	
+      int 	recvpost;
+      struct volpex_msg_perf	*msgperf;
+      struct volpex_net_perf    *netperf;
+      struct volpex_cancel_request		*purgelist;
+      struct volpex_target_info *target_info;
+};
+
+struct volpex_cancel_request{
+	int id;
+        SL_msg_header	cancel_request;
+	struct volpex_cancel_request *next;
+};
+typedef struct volpex_cancel_request Volpex_cancel_request;
+
+struct volpex_msg_perf {
+        struct volpex_msg_perf   *fwd;
+        struct volpex_msg_perf  *back;
+        int                    msglen;
+        double                   time;
+        int                       pos;
+};
+typedef struct volpex_msg_perf Volpex_msg_perf;
+
+struct volpex_net_perf {
+        struct volpex_net_perf   *fwd;
+        struct volpex_net_perf  *back;
+        double              bandwidth;
+        double                latency;
+        int                       pos;
+};
+typedef struct volpex_net_perf Volpex_net_perf;
+
+
+struct volpex_target_info {
+	struct volpex_target_info  *fwd;
+	struct volpex_target_info *back;
+	int 			   pos;
+	int 			  reuse;
+	int 			myreuse;
+	double			   time;
+};
+typedef struct volpex_target_info Volpex_target_info;
+
+
+
+
+#define MSGPERF	3	
+#define TOTALMSGCOMM	100000
+#define SEND		0
+#define RECV		1
+#define TIMEOUT		10	
+
+typedef struct volpex_proc Volpex_proc;
+
+struct volpex_proclist{
+    int 	 num;   // number of replicas for this rank
+    int  	 *ids;  // SL_id of each replica.
+    int 	*recvpost;
+};
+
+typedef struct volpex_proclist Volpex_proclist;
+
+struct volpex_communicator{
+	int 	 	     id;/* id of communicator*/
+	int 	           size;/* number of processes in communicator*/
+	int 		 myrank;/*rank of process*/
+        int 	            pos;/* position of the communicator in the comm-array */ 
+	Volpex_proclist	 *plist;/* number of replicas for each rank and their actual id */
+};
+
+typedef struct volpex_communicator Volpex_comm;
+
 struct tag_reuse{
 	int tag;
+	int comm;
 	int reuse_count;
 };
 typedef struct tag_reuse Tag_Reuse;
+
+struct max_tag_reuse{
+	struct volpex_msg_header *header;
+	struct max_tag_reuse *next;
+};
+typedef struct max_tag_reuse Max_tag_reuse;
 
 struct cktag_reuse{
 	int id;
@@ -79,35 +175,59 @@ struct hidden_data{
 };
 typedef struct hidden_data Hidden_Data;
 
-struct VolPex_msg_header{
+struct volpex_msg_header{
         int      len;
+        int      src;
         int     dest;
         int      tag;
         int     comm;
         int    reuse;
+	float timestamp;
 };
-typedef struct VolPex_msg_header VolPex_msg_header;
+typedef struct volpex_msg_header Volpex_msg_header;
+
+
+struct volpex_returnheader{
+        Volpex_msg_header header;
+        int              target;
+        int     id;
+};
+
+typedef struct volpex_returnheader Volpex_returnheader;
+
+struct volpex_returnheaderlist{
+        struct volpex_returnheaderlist *next;
+        Volpex_returnheader rheader;
+
+};
+
+typedef struct volpex_returnheaderlist Volpex_returnheaderlist;
 
 
 struct mpi_msg{
-	struct mpi_msg *back;
-	int counter;
-	VolPex_msg_header *header;
-//	int header[5];
-	void *buffer;
-	int reqnumbers[3];
-   	struct mpi_msg *fwd;
+        struct mpi_msg *back;
+        int counter;
+        Volpex_msg_header *header;
+        void *buffer;
+        int numreqs;
+        int *reqnumbers;
+        struct mpi_msg *fwd;
 };
 typedef struct mpi_msg NODE;
 typedef NODE *NODEPTR;
 
-
+struct volpex_target_list{
+	int numofmsg;
+	int volpex_id;
+	int target; 
+};
+typedef struct volpex_target_list Volpex_target_list;
 
 struct request_list{
     int reqnumber;
 	SL_Request request;
-	VolPex_msg_header *header;
-	VolPex_msg_header returnheader;
+	Volpex_msg_header *header;
+	Volpex_msg_header returnheader;
 	int cktag;
 	int target;
 	int req_type;
@@ -115,12 +235,22 @@ struct request_list{
 	int flag;
 	int recv_status;
 	int send_status;
-        void *buffer;
-        NODEPTR insrtbuf;
+	void *buffer;
+	double time;
+	int len;
+	int *assoc_recv;
+	int numtargets;
+	int recv_dup_status;
+	void *actualbuf;
+
+	NODEPTR insrtbuf;
+
 };
 typedef struct request_list Request_List;
+typedef int Volpex_dest_source_fnct ( int rank, int comm, char *myfullrank, int **target,
+                            int *numoftargets, int msglen, int msgtype );
 
-
+extern SL_array_t *Volpex_proc_array;
 
 #define MPI_VERSION	1
 #define MPI_SUBVERSION	2
@@ -305,74 +435,212 @@ int  MPI_Allreduce(void *, void *, int, MPI_Datatype, MPI_Op, MPI_Comm);
 int  MPI_Barrier(MPI_Comm);
 int  MPI_Abort(MPI_Comm, int);
 int  MPI_Waitall(int, MPI_Request *, MPI_Status *);
+int  MPI_Test(MPI_Request *, int *flag, MPI_Status *);
+int  MPI_Waitany(int, MPI_Request *, int*, MPI_Status *);
 int  MPI_Alltoall(void *, int, MPI_Datatype, void *, int, MPI_Datatype, MPI_Comm);
 int  MPI_Alltoallv(void *, int *, int *, MPI_Datatype, void *, int *, int *, MPI_Datatype, MPI_Comm);
 int  MPI_Comm_dup(MPI_Comm, MPI_Comm *);
 int  MPI_Comm_split(MPI_Comm, int, int, MPI_Comm *);
 int  MPI_Gather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Comm);
 int  MPI_Allgather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, MPI_Comm);
+int  MPI_Unpack( void* inbuf, int insize, int *position, void* outbuf, int outcount,
+                 MPI_Datatype datatype, MPI_Comm comm);
+int  MPI_Pack(void* inbuf, int count, MPI_Datatype datatype, void* outbuf,
+                int outsize, int *position, MPI_Comm comm);
 
+int  MPI_Type_size ( MPI_Datatype dat, int *size );
 double  MPI_Wtime(void);
-int  VolPEx_Finalize(void);
-int  VolPEx_Comm_size(MPI_Comm, int *);
-int  VolPEx_Comm_rank(MPI_Comm, int *);
-int  VolPEx_progress(void);
-int  VolPEx_Send(void *, int, MPI_Datatype, int, int, MPI_Comm);
-int  VolPEx_Recv(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Status *);
-int  VolPEx_Bcast(void *, int, MPI_Datatype, int, MPI_Comm);
-int  VolPEx_Reduce(void *, void *, int, MPI_Datatype, MPI_Op, int, MPI_Comm);
-int  VolPEx_Isend(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
-int  VolPEx_Irecv(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
-int  VolPEx_Irecv_ll(void *, int, int, int, MPI_Comm, MPI_Request *, int);
-int  VolPEx_Wait(MPI_Request *, MPI_Status *);
-int  VolPEx_Allreduce(void *, void *, int, MPI_Datatype, MPI_Op, MPI_Comm);
-int  VolPEx_Barrier(MPI_Comm);
-int  VolPEx_Redundancy_Barrier ( MPI_Comm, int);
-int  VolPEx_Abort(MPI_Comm, int);
-int  VolPEx_Waitall(int, MPI_Request *, MPI_Status *);
-int  VolPEx_Alltoall(void *, int, MPI_Datatype, void *, int, MPI_Datatype, MPI_Comm);
-int  VolPEx_Alltoallv(void *, int *, int *, MPI_Datatype, void *, int *, int *, MPI_Datatype, MPI_Comm);
-int  VolPEx_Gather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Comm);
-int  VolPEx_Allgather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, MPI_Comm);
-int  VolPEx_Comm_dup(MPI_Comm, MPI_Comm *);
-int  VolPEx_Comm_split(MPI_Comm, int, int, MPI_Comm *);
+int MPI_rank(int *);
 
+/* Prototypes for the Profiling Interface */
+int  PMPI_Init(int *argc, char ***argv );
+int  PMPI_Finalize(void);
+int  PMPI_Comm_size(MPI_Comm, int *);
+int  PMPI_Comm_rank(MPI_Comm, int *);
+int  PMPI_Send(void *, int, MPI_Datatype, int, int, MPI_Comm);
+int  PMPI_Recv(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Status *);
+int  PMPI_Bcast(void *, int, MPI_Datatype, int, MPI_Comm);
+int  PMPI_Reduce(void *, void *, int, MPI_Datatype, MPI_Op, int, MPI_Comm);
+int  PMPI_Isend(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
+int  PMPI_Irecv(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
+int  PMPI_Allreduce(void *, void *, int, MPI_Datatype, MPI_Op, MPI_Comm);
+int  PMPI_Barrier(MPI_Comm);
+int  PMPI_Abort(MPI_Comm, int);
+int  PMPI_Wait(MPI_Request *, MPI_Status *);
+int  PMPI_Waitall(int, MPI_Request *, MPI_Status *);
+int  PMPI_Test(MPI_Request *, int *flag, MPI_Status *);
+int  PMPI_Waitany(int, MPI_Request *, int*, MPI_Status *);
+int  PMPI_Alltoall(void *, int, MPI_Datatype, void *, int, MPI_Datatype, MPI_Comm);
+int  PMPI_Alltoallv(void *, int *, int *, MPI_Datatype, void *, int *, int *, MPI_Datatype, MPI_Comm);
+int  PMPI_Comm_dup(MPI_Comm, MPI_Comm *);
+int  PMPI_Comm_split(MPI_Comm, int, int, MPI_Comm *);
+int  PMPI_Gather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Comm);
+int  PMPI_Allgather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, MPI_Comm);
+int  PMPI_Unpack( void* inbuf, int insize, int *position, void* outbuf, int outcount,
+                 MPI_Datatype datatype, MPI_Comm comm);
+int  PMPI_Pack(void* inbuf, int count, MPI_Datatype datatype, void* outbuf,
+                int outsize, int *position, MPI_Comm comm);
+int  PMPI_Type_size ( MPI_Datatype dat, int *size );
 
-int  VolPEx_Cancel_byReqnumber(int);
-int  VolPex_tag_reuse_check(int, int, int);
+                                                                                        
+/* Prototypes of the Volpex Counterparts */
+int  Volpex_Finalize(void);
+int  Volpex_Comm_size(MPI_Comm, int *);
+int  Volpex_Comm_rank(MPI_Comm, int *);
+
+int  Volpex_progress(void);
+
+int  Volpex_Send(void *, int, MPI_Datatype, int, int, MPI_Comm);
+int  Volpex_Recv(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Status *);
+
+int  Volpex_Bcast(void *, int, MPI_Datatype, int, MPI_Comm);
+int  Volpex_Reduce(void *, void *, int, MPI_Datatype, MPI_Op, int, MPI_Comm);
+
+int  Volpex_Isend(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
+int  Volpex_Irecv(void *, int, MPI_Datatype, int, int, MPI_Comm, MPI_Request *);
+int  Volpex_Irecv_ll(void *, int, int, int, MPI_Comm, MPI_Request *, int);
+int  Volpex_Wait(MPI_Request *, MPI_Status *);
+
+int  Volpex_Allreduce(void *, void *, int, MPI_Datatype, MPI_Op, MPI_Comm);
+int  Volpex_Barrier(MPI_Comm);
+int  Volpex_Redundancy_Barrier ( MPI_Comm, int);
+int  Volpex_Abort(MPI_Comm, int);
+int  Volpex_Waitall(int, MPI_Request *, MPI_Status *);
+int  Volpex_Test(MPI_Request *, int *flag, MPI_Status *);
+int  Volpex_Waitany(int, MPI_Request *, int*, MPI_Status *);
+int  Volpex_Alltoall(void *, int, MPI_Datatype, void *, int, MPI_Datatype, MPI_Comm);
+int  Volpex_Alltoallv(void *, int *, int *, MPI_Datatype, void *, int *, int *, MPI_Datatype, MPI_Comm);
+int  Volpex_Gather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, int, MPI_Comm);
+int  Volpex_Allgather(void *, int, MPI_Datatype, void *, int, MPI_Datatype, MPI_Comm);
+int  Volpex_Unpack( void* inbuf, int insize, int *position, void* outbuf, int outcount,
+                    MPI_Datatype datatype, MPI_Comm comm);
+int  Volpex_Pack(void* inbuf, int count, MPI_Datatype datatype, void* outbuf,
+                 int outsize, int *position, MPI_Comm comm);
+int  Volpex_Type_size ( MPI_Datatype dat, int *size );
+int  Volpex_Comm_dup(MPI_Comm, MPI_Comm *);
+int  Volpex_Comm_split(MPI_Comm, int, int, MPI_Comm *);
+
+int  Volpex_Cancel_byReqnumber(int);
+int  Volpex_tag_reuse_check(int, int, int, int);
 void GM_tagreuse_init ( void);
-void VolPEx_reduce_ll(void *, void *, int, MPI_Datatype, MPI_Op, int, MPI_Comm, int);
-void   GM_host_ip(void);
+void Volpex_reduce_ll(void *, void *, int, MPI_Datatype, MPI_Op, int, MPI_Comm, int);
+void GM_host_ip(void);
 int  GM_print(int);
-int  GM_proc_read_and_set (void);
-int  GM_get_fullrank(char *);
-int  GM_get_procid_fullrank(char *);
-int  GM_dest_src_locator(int, int, char *, int[]);
-int  GM_set_state_not_connected(int);
-NODEPTR VolPex_send_buffer_init(void);
+NODEPTR Volpex_send_buffer_init(void);
+//NODEPTR Volpex_send_buffer_insert(NODEPTR, Volpex_msg_header*, int[], void *);
+NODEPTR Volpex_send_buffer_insert(NODEPTR, Volpex_msg_header*, int *, void *);
+NODEPTR Volpex_send_buffer_search(NODEPTR, Volpex_msg_header*, int *, int *, int*);
+
+void Volpex_send_buffer_delete(void);
+void Volpex_send_buffer_print(NODEPTR);
+int  Volpex_get_len(int, MPI_Datatype);
+
+
+Volpex_msg_header* Volpex_get_msg_header(int len, int src, int dest, int tag, int comm, int reuse);
+Volpex_msg_header* Volpex_init_msg_header();
+int Volpex_compare_msg_header(Volpex_msg_header* header1, Volpex_msg_header* header2, int *reuse);
+int Volpex_compare_msg_progress(Volpex_msg_header* header1, Volpex_msg_header* header2, int *msgprogress );
+void Volpex_print_msg_header ( Volpex_msg_header *header );
+
+int Volpex_init_proc(int id, char *hostname, int port, char *rank);
+int Volpex_proc_read_and_set();
+int Volpex_proc_read_and_set();
+int Volpex_get_procid_fullrank(char *fullrank);
+Volpex_proc* Volpex_get_proc_byid(int id);
+int Volpex_proc_dump();
+int Volpex_get_procrank(int id);
+int Volpex_get_fullrank(char *myredrank);
+int Volpex_get_rank();
+int Volpex_count_numoftargets(int rank, int comm, char mylevel, int *ownteam);
+int Volpex_dest_src_locator(int rank, int comm, char *myfullrank, int **target, int *numoftargets,int msglen, int msgtype);
+int Volpex_set_state_not_connected(int target);
+
+Volpex_msg_perf* Volpex_msg_performance_init();
+void Volpex_msg_performance_insert(double time, int msglen, int src);
+Volpex_net_perf* Volpex_net_performance_init();
+void Volpex_net_performance_insert(double latency, double bandwidth, Volpex_proc *proc);
+int Volpex_compare_perf(Volpex_proclist *plist,int pos);
+int Volpex_dest_src_locator1(int rank, int comm, char *myfullrank, int **target, int *numoftargets, int msglen, int msgtype);
+int Volpex_dest_src_locator2(int rank, int comm, char *myfullrank, int **target, int *numoftargets, int msglen, int msgtype);
+int Volpex_compare_loglength(Volpex_proclist *plist);
+int Volpex_insert_reuseval(int procid,int reuseval);
+
 void GM_allocate_global_data ( void ); 
 void GM_free_global_data (void);
-
-NODEPTR VolPex_send_buffer_insert(NODEPTR, VolPex_msg_header*, int[], void *);
-NODEPTR VolPex_send_buffer_search(NODEPTR, VolPex_msg_header*, int *);
-
-void VolPex_send_buffer_delete(void);
-void VolPex_send_buffer_print(NODEPTR);
-int  VolPex_get_len(int, MPI_Datatype);
-
-
-VolPex_msg_header* VolPex_get_msg_header(int len, int dest, int tag, int comm, int reuse);
-VolPex_msg_header* VolPex_init_msg_header();
-int VolPex_compare_msg_header(VolPex_msg_header* header1, VolPex_msg_header* header2);
-void VolPex_print_msg_header ( VolPex_msg_header *header );
-
 int Volpex_buffer_remove_ref  ( NODEPTR elem,  int reqid );
 void Volpex_request_update_counter ( int num );
 int Volpex_request_clean ( int start, int red );
 int Volpex_request_get_counter ( int red );
 
 
+int Volpex_init_comm(int id, int size);
+int Volpex_init_comm_world(int numprocs, int redundancy);
+int Volpex_init_comm_self(void);
+int Volpex_get_plist_byrank(int rank, Volpex_comm *oldcomm, Volpex_proclist *plist);
+int Volpex_add_proc(Volpex_proclist *proclist, int id);
+Volpex_comm* Volpex_get_comm_byid(int id);
+void Volpex_print_comm( int commid);
+int Volpex_comm_copy(Volpex_comm* comm1, Volpex_comm* comm2);
+int Volpex_proc_dumpall();
+int Volpex_searchproc_comm(int commid, int procid);
+int Volpex_init_procplist(int redcy);
 
+int Volpex_msg_performance_free(Volpex_proc *tproc);
+int Volpex_net_performance_free(Volpex_proc *tproc);
+int Volpex_free_proclist();
+int Volpex_free_comm();
+
+int Volpex_insert_purgelist(int proc, Request_List req, int id);
+int Volpex_remove_purgelist(int proc, int reqid);
+int Volpex_init_purgelist(Volpex_cancel_request **list);
+int Volpex_change_target(int rank, int comm);
+
+/*
+int Volpex_init_maxreuse(Volpex_msg_header *header);
+int Volpex_insert_maxreuse(Volpex_msg_header *header);
+int Volpex_search_maxreuse(Volpex_msg_header header);
+*/
+
+int Volpex_search_maxreuse(Max_tag_reuse *maxtagreuse,Volpex_msg_header header);
+int Volpex_insert_maxreuse(Max_tag_reuse *maxtagreuse,Volpex_msg_header *header);
+int Volpex_add_maxreuse(Max_tag_reuse **maxtagreuse, Volpex_msg_header *header);
+int Volpex_init_maxreuse(Max_tag_reuse **maxtagreuse);
+
+int Volpex_insert_returnheader(Volpex_returnheaderlist **returnheaderList, Volpex_msg_header header, int target);
+int Volpex_init_returnheader( Volpex_returnheaderlist **returnheaderList);
+Volpex_returnheaderlist* Volpex_remove_returnheader(Volpex_returnheaderlist **returnheaderList, int id);
+int Volpex_free_returnheader();
+
+
+
+void Volpex_set_recvpost(int commid,int procid);
+int Volpex_check_recvpost(int commid,int procid);
+
+int Volpex_init_targetlist();
+int Volpex_print_targetlist();
+Volpex_target_info* Volpex_target_info_init();
+int Volpex_target_info_insert(double time, int reuse, int myreuse, int src);
+int Volpex_compare_target_info(int target);
+int Volpex_target_info_free(Volpex_proc *tproc);
+void Volpex_print_target_info(int source);
+void Volpex_print_alltarget_info();
+
+
+void Volpex_free_targetlist();
+int Volpex_free_request(int i);
+int Volpex_set_newtarget(int newtarget, int rank, int comm);
+
+int Volpex_get_volpexid(int SL_id);
+
+
+void Volpex_print_procplist();
+int Volpex_numoftargets(int rank, int comm, int target);
+
+
+int Volpex_init_send(int commid);
+int Volpex_set_primarytarget(Volpex_proc *proc, int newtarget);
+int Volpex_set_target();
+int Volpex_Complete_Barrier ( MPI_Comm);
 extern Global_Map **GM;
 extern Tag_Reuse **sendtagreuse;
 extern Tag_Reuse **recvtagreuse;

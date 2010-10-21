@@ -7,7 +7,7 @@
  * $HEADER$
  */
 #include "SL.h"
-#include "SL_array.h"
+//#include "SL_array.h"
 
 
 int SL_array_init (SL_array_t **arr, const char name[64], int size )

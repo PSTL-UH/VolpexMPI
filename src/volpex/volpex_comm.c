@@ -2,17 +2,18 @@
 #include "SL_msg.h"
 
 extern int SL_this_procid;
+extern SL_array_t *Volpex_proc_array;
 extern NODEPTR head, insertpt, curr;
+extern int Volpex_numprocs;
+extern int redundancy;
+extern char fullrank[16];
+extern int next_avail_comm;
+extern int request_counter;
 
-extern int GM_numprocs;
 extern int redundancy;
 extern char fullrank[16];
 extern char *hostip;
 extern char *hostname;
-extern int GM_numprocs;
-extern int next_avail_comm;
-extern int request_counter;
-
 
 /*
 ** sort-function for MPI_Comm_split 
@@ -20,131 +21,139 @@ extern int request_counter;
 static int rankkeycompare(const void *, const void *);
 
 
-int VolPEx_Comm_size(MPI_Comm comm, int *size)
+int Volpex_Comm_size(MPI_Comm comm, int *size)
 {
-    int i, mynumeric, tempsize = 0;
-    char mylevel;
-    for ( i=0; i< GM_numprocs; i++ ){
-	sscanf(GM[i][comm].rank, "%d,%c", &mynumeric, &mylevel);
-	if(mynumeric >= tempsize && GM[i][comm].port != 0)
-	    tempsize = mynumeric + 1;
-    }
-    hdata[comm].mysize = *size = tempsize;
+    Volpex_comm *communicator=NULL;
+	
+    communicator = Volpex_get_comm_byid(comm);
+    *size = communicator->size;
+
     PRINTF(("MPI_Comm_size = %d\n", *size));
     return MPI_SUCCESS;
+
 }
 
-int VolPEx_Comm_rank(MPI_Comm comm, int *rank)
+int Volpex_Comm_rank(MPI_Comm comm, int *rank)
 {
-    int i, mynumeric;
-    char mylevel;
-    
-    /*if(SL_this_procid == 4)
-      exit(0);*/
-    
-    for ( i=0; i< GM_numprocs; i++ ){
-	if(GM[i][comm].id == SL_this_procid){
-	    sscanf(GM[i][comm].rank, "%d,%c", &mynumeric, &mylevel);
-	    hdata[comm].myrank = *rank = mynumeric;
-	    PRINTF(("MPI_Comm_rank = %d\n", *rank));
-	    return MPI_SUCCESS;
-	}
-    }
+
+    Volpex_comm *communicator=NULL;
+    communicator = Volpex_get_comm_byid(comm);
+    *rank = communicator->myrank;
+
+    PRINTF(("MPI_Comm_rank = %d\n", *rank));
     return MPI_SUCCESS;
 }
 
-int  VolPEx_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm)
+int  Volpex_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm)
 {
     int Vnextcomm = next_avail_comm;
-    int i;
+    Volpex_comm *communicator = NULL, *newcommunicator = NULL;
     
-    PRINTF(("Into VolPEx_Comm_dup\n"));
+    PRINTF(("[%d] Into Volpex_Comm_dup\n", SL_this_procid));
     
-    VolPEx_Allreduce(&next_avail_comm, &Vnextcomm, 1, MPI_INT, MPI_MAX, comm);
-    PRINTF(("Vnextcomm = %d\n", Vnextcomm));
-    //printf("next_avail_comm = %d\n", next_avail_comm);
+    // Determine the communicator id of the new communicator
+    Volpex_Allreduce(&next_avail_comm, &Vnextcomm, 1, MPI_INT, MPI_MAX, comm);
+    PRINTF(("[%d] Vnextcomm = %d\n", SL_this_procid, Vnextcomm));
     *newcomm = Vnextcomm;
-    for (i=0; i<GM_numprocs; i++) 
-	GM[i][*newcomm] = GM[i][comm];
-    hdata[*newcomm] = hdata[comm];
-    // GM_print(*newcomm);
+
+    // Allocate the basic communicator structure
+    communicator = Volpex_get_comm_byid(comm);
+    Volpex_init_comm ( *newcomm, communicator->size);
+    newcommunicator = Volpex_get_comm_byid(*newcomm);
+
+    // Copy all relevant fields from the original communicator
+    // to the new one.
+    Volpex_comm_copy(newcommunicator, communicator);	
+
+    /* Set also the hdata structure. This structure will
+    ** go away in a long term, but not before the 
+    ** EuroPVM/MPI paper 
+    */
+    hdata[*newcomm].mysize    = hdata[comm].mysize;
+    hdata[*newcomm].myrank    = hdata[comm].myrank;
+    hdata[*newcomm].mybarrier = 0;
     next_avail_comm = Vnextcomm + 1;
     return MPI_SUCCESS;       
 }
 
-int VolPEx_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm)
+int Volpex_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm)
 {
-    int p[3], *procs;
-    int i, k, nextcomm = 0;
-    int numeric, newsize, newrank=0;
-    char level, myredrank[16];
-    int localrank = 0;
+    int p[3], *procs=NULL;
+    int i, j, nextcomm = 0;
+    Volpex_comm *newcommunicator = NULL;
+    Volpex_comm *oldcommunicator = NULL;
+    Volpex_comm *tcomm;
+    int localrank=0, commsize = 0;
+
+    tcomm = Volpex_get_comm_byid ( comm );
     
-    PRINTF(("Into VolPEx_Comm_split with color %d and key %d\n", color, key));
+    PRINTF(("[%d]:Into Volpex_Comm_split with color %d and key %d comm:%d\n", SL_this_procid,color, key, tcomm->id));
+
     
-    VolPEx_Allreduce(&next_avail_comm, &nextcomm, 1, MPI_INT, MPI_MAX, comm);
+    Volpex_Allreduce(&next_avail_comm, &nextcomm, 1, MPI_INT, MPI_MAX, comm);
     // printf("Past Allreduce and using nextcomm %d\n", nextcomm);
     next_avail_comm = nextcomm + 1;
     *newcomm = nextcomm;
     
-    /* create an array of process information for doing the split */
+   PRINTF(("[%d]:Volpex_Comm_split: Volpex_Allreduce gave next_avail_comm=%d nextcomm=%d\n", 
+				SL_this_procid,next_avail_comm, nextcomm));
+   //  create an array of process information for doing the split 
     procs = (int *) malloc(3 * hdata[comm].mysize * sizeof(int));
     
-    /* gather all process information at all processes */
+    //   gather all process information at all processes 
     p[0] = color;
     p[1] = key;
-    p[2] = hdata[comm].myrank; /* this is rank from original comm */
+    p[2] = hdata[comm].myrank;  //  this is rank from original comm 
     
-    VolPEx_Allgather(p, 3, MPI_INT, procs, 3, MPI_INT, comm);
-    // printf("Past Allgather and using newcomm %d\n", *newcomm);
-    /* locate and count the # of processes having my color */
-    
-    for ( i=0; i<hdata[comm].mysize; i++ ) {
-	PRINTF(("%d: i=%d color=%d key=%d rank=%d\n", hdata[comm].myrank, 
-		i, procs[3*i], procs[3*i+1], procs[3*i+2] ));
-    }
-    
+    Volpex_Allgather(p, 3, MPI_INT, procs, 3, MPI_INT, comm);
     qsort ( (int *)procs, hdata[comm].mysize, sizeof(int)*3, 
 	    rankkeycompare );
-    
-    
-    for (i = 0; i < hdata[comm].mysize; i++){
-	if(procs[i*3] == color){
-	    for (k = 0; k < GM_numprocs; k++){
-		sscanf(GM[k][comm].rank, "%d,%c", &numeric, &level);
-		if(numeric == procs[i*3+2]){
-		    GM[k][*newcomm].id = GM[k][comm].id;
-		    strcpy(GM[k][*newcomm].host, GM[k][comm].host);
-		    GM[k][*newcomm].port = GM[k][comm].port;
-		    
-		    sprintf(myredrank, "%d,%c", localrank, level);
-		    PRINTF(("For new comm %d my redrank is %s, id=%d\n", 
-			    *newcomm, myredrank, GM[k][*newcomm].id ));
-		    strcpy(GM[k][*newcomm].rank, myredrank);
-		}
+     
+
+    // locate myself in order to determine my rank in this 
+    // new communicator and count the no. of processes having my color 
+    for ( j=0, i = 0; i < hdata[comm].mysize; i++){
+   	if(procs[i*3] == color){
+	    commsize++;
+		PRINTF(("[%d]:Into Volpex_Comm_split :%d  procs=%d i=%d commsize=%d+++++++++++++\n", 
+				SL_this_procid, tcomm->myrank,procs[i*3+2],i,commsize));
+	    if (procs[i*3+2] == hdata[comm].myrank ) {
+//	    if (procs[i*3+2] == tcomm->myrank ) {
+	    
+		localrank = j;
 	    }
-	    localrank++;
+	    j++;
 	}
     }
     
-    VolPEx_Comm_size(*newcomm, &newsize);
-    hdata[*newcomm].mysize = newsize;
-    VolPEx_Comm_rank(*newcomm, &newrank);
-    hdata[*newcomm].myrank = newrank; 
+    PRINTF(("[%d]:Size of new comm:%d = %d myrank=%d\n", 
+	    SL_this_procid, *newcomm,commsize, localrank ));	
+    Volpex_init_comm ( *newcomm, commsize );
+    newcommunicator = Volpex_get_comm_byid ( *newcomm );
+    oldcommunicator = Volpex_get_comm_byid ( comm );
+
+    newcommunicator->myrank = localrank;
+    
+    for (j=0, i = 0; i < hdata[comm].mysize; i++){
+    	if (procs[i*3] == color){
+	    Volpex_get_plist_byrank ( procs[3*i+2], oldcommunicator, 
+				      &newcommunicator->plist[j]);
+	    j++;
+	}
+    }	
+
+    hdata[*newcomm].mysize = commsize;
+    hdata[*newcomm].myrank = localrank; 
     hdata[*newcomm].mybarrier = 0;
     
-    PRINTF(("  VComm_split: rank=%d size=%d for comm_id = %d\n", 
-	    newrank, newsize, *newcomm));
-    
-    // GM_print(*newcomm);
-    
-    
-    /* create a new context ID */
+    PRINTF(("[%d] VComm_split: rank=%d size=%d for comm_id = %d\n", 
+	    SL_this_procid, localrank, commsize, *newcomm));
+
     if (color == MPI_UNDEFINED) {
-	/* free all the resources that have been allocated by this process. */
+	//  free all the resources that have been allocated by this process. 
 	*newcomm = MPI_COMM_NULL;
     }
-    
+
     free ( procs);
     return(MPI_SUCCESS);    
 }

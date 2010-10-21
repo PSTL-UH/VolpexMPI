@@ -1,6 +1,11 @@
+
 #include "mpi.h"
 
 extern int SL_this_procid;
+extern SL_array_t *Volpex_proc_array;
+SL_array_t *Volpex_maxreuse_array;
+
+
 
 Global_Map **GM=NULL;
 Tag_Reuse **sendtagreuse=NULL;
@@ -9,55 +14,138 @@ Hidden_Data *hdata=NULL;
 Request_List *reqlist=NULL;
 
 NODEPTR head, insertpt, curr;
+Max_tag_reuse *maxtagreuse=NULL;
 
-int GM_numprocs;
+int Volpex_numprocs;
 int redundancy;
 char fullrank[16];
 char *hostip=NULL;
 char *hostname;
-int GM_numprocs;
 int next_avail_comm;
 int request_counter = 0;
 
 /* Value maintaining the size of the main memory utilized by the buffer */
 long memusage=0;
 
-void GM_allocate_global_data ( void ) 
+int Volpex_init_maxreuse(Max_tag_reuse **maxtagreuse)
 {
-    int i;
+    *maxtagreuse = NULL;
+    return MPI_SUCCESS;
+}
 
-    reqlist = (Request_List *) malloc ( sizeof(Request_List) * REQLISTSIZE );
-    hdata   = (Hidden_Data *) malloc ( sizeof(Hidden_Data ) * TOTAL_COMMS);
-    GM      = (Global_Map **) malloc ( sizeof (Global_Map *) * TOTAL_NODES);
-    if ( NULL == reqlist      || NULL == hdata        ||
-	 NULL == GM ) {
-	printf("could not allocate global arrays\n");
-	return;
+int Volpex_add_maxreuse(Max_tag_reuse **maxtagreuse, Volpex_msg_header *header)
+{
+    Volpex_msg_header *theader;
+    Max_tag_reuse *next;
+    Max_tag_reuse *curr;
+    Max_tag_reuse *prev;
+    
+    theader = (Volpex_msg_header*)malloc (sizeof(Volpex_msg_header));
+    if ( NULL == theader ) {
+        return SL_ERR_NO_MEMORY;
     }
- 
-    for ( i=0; i<TOTAL_NODES; i++ ) {
-	GM[i] = (Global_Map *) malloc ( sizeof (Global_Map) * TOTAL_COMMS );
-	if ( NULL == GM[i] ) {
-	    printf("Could not allocate global array GM[%d}\n", i );
-	    return;
+    
+    theader->len = header->len;
+    theader->dest = header->dest;
+    theader->src = header->src;
+    theader->tag = header->tag;
+    theader->comm = header->comm;
+    theader->reuse = header->reuse;
+    
+    curr = (Max_tag_reuse *) malloc (sizeof (Max_tag_reuse));
+    if (NULL == curr){
+	return SL_ERR_NO_MEMORY;
+    }
+    
+    
+    curr->next=NULL;
+    curr->header = theader;
+    
+    if (*maxtagreuse == NULL)
+    {
+	*maxtagreuse=curr;
+    }
+    else
+    {
+	next=*maxtagreuse;
+	prev=NULL;
+	
+      	while(next != NULL )
+      	{
+	    prev=next;
+	    next=next->next;
+      	}
+	/* Now have a spot to insert */
+	if (prev == NULL)
+	{
+	    *maxtagreuse=curr;
+	    curr->next=next;
+	}
+	else
+	{
+	    curr->next = prev->next;
+	    prev->next=curr;
 	}
     }
+    return MPI_SUCCESS;
+}
 
-    return;
+
+int Volpex_insert_maxreuse(Max_tag_reuse *maxtagreuse,Volpex_msg_header *header)
+{
+    Max_tag_reuse *curr = maxtagreuse;
+    int flag = 0;
+    while(curr!=NULL)
+    {
+	if ((curr->header->dest == header->dest)&&
+	    (curr->header->src == header->src) &&
+	    (curr->header->tag == header->tag)&&
+	    (curr->header->comm == header->comm)){
+	    curr->header->reuse = header->reuse;
+	    flag = 1;
+	}
+        
+	curr = curr ->next;
+    }
+    
+    return flag;
+    
+}
+
+int Volpex_search_maxreuse(Max_tag_reuse *maxtagreuse,Volpex_msg_header header)
+{
+    Max_tag_reuse *curr = maxtagreuse;
+    int maxreuse=-1;
+    
+    while(curr!=NULL)
+    {
+	if ((curr->header->dest == header.dest)&&
+	    (curr->header->src == header.src) &&
+	    (curr->header->tag == header.tag)&&
+	    (curr->header->comm == header.comm)){
+	    maxreuse = curr->header->reuse ;
+	}
+	
+	curr = curr ->next;
+    }
+    
+    return maxreuse;
+    
+    
 }
 
 void GM_tagreuse_init (void)
 {
     int i, j;
 
-    sendtagreuse = (Tag_Reuse **) malloc ( sizeof(Tag_Reuse *) * GM_numprocs );
-    recvtagreuse = (Tag_Reuse **) malloc ( sizeof(Tag_Reuse *) * GM_numprocs );
+    sendtagreuse = (Tag_Reuse **) malloc ( sizeof(Tag_Reuse *) * Volpex_numprocs );
+    recvtagreuse = (Tag_Reuse **) malloc ( sizeof(Tag_Reuse *) * Volpex_numprocs );
     if ( NULL == sendtagreuse || NULL == recvtagreuse ) {
 	printf("GM_tagreuse_init: could not allocate memory\n");
 	exit (-1);
     }
-
-    for ( i=0; i<GM_numprocs; i++ ) {
+    
+    for ( i=0; i<Volpex_numprocs; i++ ) {
 	sendtagreuse[i] = (Tag_Reuse *) malloc ( sizeof (Tag_Reuse) * TAGLISTSIZE );
 	recvtagreuse[i] = (Tag_Reuse *) malloc ( sizeof (Tag_Reuse) * TAGLISTSIZE );
 	if ( NULL == sendtagreuse[i] || NULL == recvtagreuse[i] ) {
@@ -69,7 +157,7 @@ void GM_tagreuse_init (void)
 	    recvtagreuse[i][j].tag = -1;
 	}
     }
-
+	SL_array_init(&(Volpex_maxreuse_array), "Volpex_maxreuse_array",32);
     return;
 }
 
@@ -77,13 +165,22 @@ void GM_free_global_data ( void )
 {
     int i;
     
-    for ( i=0; i<TOTAL_NODES; i++ ) {
-	if ( NULL != GM[i] ) {
-	    free ( GM[i] );
-	}
-    }
 
-    for ( i=0; i<GM_numprocs; i++ ) {
+    Max_tag_reuse *curr = NULL, *currnext = NULL;
+    curr = maxtagreuse;
+    if (maxtagreuse !=NULL){
+        do{
+	    currnext = curr->next;
+	    if(NULL != curr->header)
+		free(curr->header);
+	    free(curr);
+	    curr = currnext;
+	    
+        }while(curr !=NULL);
+    }
+    
+    
+    for ( i=0; i<Volpex_numprocs; i++ ) {
 	if ( NULL != sendtagreuse[i] ) {
 	    free ( sendtagreuse[i] );
 	}
@@ -126,8 +223,7 @@ void GM_host_ip(void)
      		exit(1);
   	}
 #endif
-	
-	gethostname(thostname, 512);
+  	gethostname(thostname, 512);
 	hptr = gethostbyname(thostname);
 	if ( NULL == hptr ) {
 	    printf("failed to get host structure\n");
@@ -135,178 +231,71 @@ void GM_host_ip(void)
 	}
 
 	pptr = hptr->h_addr_list;
-	tmp = inet_ntop ( hptr->h_addrtype, *pptr, str,  sizeof(str));
+        tmp = inet_ntop ( hptr->h_addrtype, *pptr, str,  sizeof(str));
 
-	hostname = strdup (thostname );
-	hostip   = strdup ( str );
+        hostname = strdup (thostname );
+        hostip   = strdup ( str );
 
-	return;
+        return;
 }
 
-int GM_print(int comm)
+
+
+
+void GM_allocate_global_data ( void )
 {
-	int i;
 
-	for ( i=0; i< GM_numprocs; i++ ){
-		if(GM[i][comm].id != -1)
-			printf("GM[%d][%d]: id %d host %s port %d rank %s state %d\n", 
-			       i, comm, GM[i][comm].id, GM[i][comm].host, GM[i][comm].port, 
-			       GM[i][comm].rank, GM[i][comm].state);
-	}
-	return 0;
-}
-
-int GM_proc_read_and_set (void)
-{
-  	FILE *fp;
-  	int ret, i, j;
-  	char host[80];
-  	int port;
-	int comm = 1;
-  	int id;
-  	char redrank[16];
-
-  	fp = fopen ("SL.config", "r");
-  	if ( NULL == fp ) {
-	    printf ("Could not open configuration file SL.config\n");
-	    exit ( -1 );
-  	}
-  	fscanf (fp, "%d", &GM_numprocs);
-  	PRINTF(("Total number of processes: %d\n", GM_numprocs ));
-	fscanf (fp, "%d", &redundancy);
-	if(GM_numprocs % redundancy != 0){
-	    printf("Total node vs. redundancy is not correct!\n");
-	    exit(0);
-  	}
-  	for(i=0; i< GM_numprocs; i++) {
-	    for(j = 0; j < TOTAL_COMMS; j++){
-		GM[i][j].id = -1;
-	    }
-	    ret = fscanf ( fp, "%d %s %d", &id, host, &port );
-	    if ( EOF == ret ) {
-		printf("Configuration file does not have the requested number of entries\n");
-		exit (0);
-	    }
-	    GM[i][comm].id = id;
-	    strncpy(GM[i][comm].host, host, 32);
-	    GM[i][comm].port = port;
-	    if(id < GM_numprocs/redundancy)
-		sprintf(redrank, "%d,A", i);
-	    else if(GM_numprocs/redundancy <= id && id < GM_numprocs/redundancy*2)
-		sprintf(redrank, "%d,B", i-GM_numprocs/redundancy);
-	    else
-		sprintf(redrank, "%d,C", i-GM_numprocs/redundancy*2);
-	    strncpy(GM[i][comm].rank,redrank,16);
-	    GM[i][comm].state = VOLPEX_PROC_CONNECTED;
-	    for(j = 0; j < TOTAL_COMMS; j++){
-		GM[i][j].state = VOLPEX_PROC_CONNECTED;
-	    }
-	    PRINTF(("GM[%d][%d]: id %d host %s port %d rank %s state %d\n", i, comm, GM[i][comm].id, 
-		    GM[i][comm].host, GM[i][comm].port, GM[i][comm].rank, GM[i][comm].state));
-  	}
-  	fclose(fp);
-	
-  	return 0;
-}
-
-int GM_get_fullrank(char *myredrank)
-{
-	int i;
-	int comm = 1;
-
-	for ( i=0; i< GM_numprocs; i++ )
-		if(GM[i][comm].id  == SL_this_procid){
-			if(strcmp(hostip,GM[i][comm].host) == 0)
-				strcpy(myredrank, GM[i][comm].rank);
-			else {
-				printf("HostIP does not match for this proc ID - SL.config is incorrect!\n");
-				exit(-1);
-			}
-		}
-	return 0;
-}
-
-int GM_get_procid_fullrank(char *myredrank)
-{
-	int i;
-	int comm = 1;
-
-	for ( i=0; i< GM_numprocs; i++ ){
-		if(strcmp(hostip,GM[i][comm].host) == 0){
-			strcpy(myredrank, GM[i][comm].rank);
-			return GM[i][comm].id;
-		}
-	}
-	return -1;
-}
-
-int GM_dest_src_locator(int rank, int comm, char *myfullrank, int tar[3])
-{
-    int i, numeric, mynumeric;
-    char level, mylevel;
-    
-    sscanf(myfullrank, "%d,%c", &mynumeric, &mylevel);
-    for ( i=0; i< GM_numprocs; i++ ){
-	if ( GM[i][comm].state == VOLPEX_PROC_CONNECTED){
-	    sscanf(GM[i][comm].rank, "%d,%c", &numeric, &level);
-	    if ( numeric == rank && level == mylevel){
-		tar[0] = GM[i][comm].id;
-	    }
-	    else if(numeric == rank && level != mylevel){
-		if(redundancy == 2){
-		    if((mylevel == 'A' && level == 'B') || 
-		       (mylevel == 'B' && level == 'A'))
-			tar[1] = GM[i][comm].id;
-		}
-		if(redundancy == 3){
-		    if((mylevel == 'A' && level == 'B') || 
-		       (mylevel == 'B' && level == 'C') || 
-		       (mylevel == 'C' && level == 'A'))
-			tar[1] = GM[i][comm].id;
-		    if((mylevel == 'A' && level == 'C') || 
-		       (mylevel == 'B' && level == 'A') || 
-		       (mylevel == 'C' && level == 'B'))
-			tar[2] = GM[i][comm].id;
-		}
-	    }
-	}
+    reqlist = (Request_List *) malloc ( sizeof(Request_List) * REQLISTSIZE );
+    hdata   = (Hidden_Data *) malloc ( sizeof(Hidden_Data ) * TOTAL_COMMS);
+    if ( NULL == reqlist      || NULL == hdata  ) {
+        printf("could not allocate global arrays\n");
+        return;
     }
 
-    return 0;
+
+    return;
 }
 
-int GM_set_state_not_connected(int target)
-{
-	int i, j;
-	int comm = 1;
 
-	for ( i=0; i < GM_numprocs; i++ ){
-		if(GM[i][comm].id  == target){
-			for(j = 0; j < TOTAL_COMMS; j++){
-				GM[i][j].state = VOLPEX_PROC_NOT_CONNECTED;
-			}
-		}
+int Volpex_print(int comm)
+{
+	int i;
+	int size;
+	Volpex_proc *proc;
+	size = SL_array_get_last(Volpex_proc_array ) + 1;
+        for(i=0; i<size; i++){
+                proc = (Volpex_proc*) SL_array_get_ptr_by_pos (Volpex_proc_array, i);
+                if ( NULL == proc ) {
+                   continue;
+                }
+		printf("proc : id %d host %s port %d rank %s state %d\n",
+			proc->id, proc->hostname, proc->port, proc->rank, proc->state);
 	}
 	return 0;
 }
 
-NODEPTR VolPex_send_buffer_init()
+NODEPTR Volpex_send_buffer_init()
 {
 	NODEPTR newnode;
-	int i;
+	int i,j;
 	
 	for (i = 1; i <= SENDBUFSIZE; i++){
 		newnode= (NODE *)malloc(sizeof(NODE));
 		newnode->counter = i;
 
 		newnode->header    = NULL;
-		newnode->reqnumbers[0] = -1;
+
+		newnode->reqnumbers = (int*)malloc(redundancy * sizeof(int));
+		for(j=0;j<redundancy;j++)
+			newnode->reqnumbers[j] = -1;
+		
+	/*	newnode->reqnumbers[0] = -1;
 		newnode->reqnumbers[1] = -1;
-		newnode->reqnumbers[2] = -1;
+		newnode->reqnumbers[2] = -1;*/
 		newnode->buffer = NULL;
-		if(i == 1) {
-		        head = curr = newnode;
-		        newnode->back = NULL;
+		if(i == 1){
+			head = curr = newnode;
+			newnode->back = NULL;
 			newnode->fwd = NULL;
 		}
 		if(i > 1 && i < SENDBUFSIZE){
@@ -327,82 +316,138 @@ NODEPTR VolPex_send_buffer_init()
 	return head;
 }
 
-void VolPex_send_buffer_delete()
+void Volpex_send_buffer_delete()
 {
-   	NODEPTR tempPtr;
+    NODEPTR tempPtr;
+    int j;
+    
+    while(head != NULL){	
+	tempPtr = head;
 	
-	while(head != NULL){	
-        tempPtr = head;
-		VolPEx_Cancel_byReqnumber(tempPtr->reqnumbers[0]);
-		VolPEx_Cancel_byReqnumber(tempPtr->reqnumbers[1]);
-		VolPEx_Cancel_byReqnumber(tempPtr->reqnumbers[2]);
-		if(head->counter != SENDBUFSIZE){	
-         		head = head->fwd;	
-         		free(tempPtr); 
-		}
-		else
-			break;     
-   	}
-      PRINTF(("Buffer deleted\n"));
-}
-
-NODEPTR VolPex_send_buffer_insert(NODEPTR currinsertpt, VolPex_msg_header *header, 
-				  int new_reqs[3], void *buf)
-{
-	char *tmpbuf=NULL;
-	
-	PRINTF(("currinsertpt->counter = %d\n", currinsertpt->counter));
-
-
-	if ( NULL != currinsertpt->header ) {
-	    /* This element is already in use, free it. */
-	    PRINTF(("send_buffer_insert: Overwriting data in buffer %d\n", 
-		    currinsertpt->counter ));
-	    VolPex_print_msg_header ( currinsertpt->header );
-
-	    VolPEx_Cancel_byReqnumber(currinsertpt->reqnumbers[0]);
-	    VolPEx_Cancel_byReqnumber(currinsertpt->reqnumbers[1]);
-	    VolPEx_Cancel_byReqnumber(currinsertpt->reqnumbers[2]);
-
-	    memusage -= (header->len + sizeof(header));		    
-
-	    free ( currinsertpt->header );
-	    if ( NULL != currinsertpt->buffer ) {
-		free ( currinsertpt->buffer );
+	for(j=0;j<redundancy;j++) {
+	    if ( tempPtr->reqnumbers[j] > 0 ) {
+		Volpex_Cancel_byReqnumber(tempPtr->reqnumbers[j]);
 	    }
 	}
+	if(head->counter != SENDBUFSIZE){	
+	    head = head->fwd;	
+	    free(tempPtr); 
+	}
+	else
+	    break;     
+    }
 
-	currinsertpt->header = VolPex_get_msg_header(header->len, header->dest,
-						     header->tag, header->comm,
-						     header->reuse);
+    PRINTF(("Buffer deleted\n"));
+    return;
+}
+int Volpex_check_sendstatus(int reqnumber)
+{
+//	int flag;
+    int j = reqnumber;
+
+    if ( j < 0 || j >= REQLISTSIZE ) {
+        return 0;
+    }
+	if (reqlist[j].send_status == 2)
+		return -1;
+	else
+		return 1;
+}
+
+NODEPTR Volpex_send_buffer_insert(NODEPTR currinsertpt, Volpex_msg_header *header, int *new_reqs, void *buf)
+{
+	char *tmpbuf=NULL;
+	int j;
+//	int retstatus;
+
+	PRINTF(("[%d]:currinsertpt->counter = %d\n", SL_this_procid,currinsertpt->counter));
+
 	
-	currinsertpt->reqnumbers[0] = new_reqs[0];
-	currinsertpt->reqnumbers[1] = new_reqs[1];
-	currinsertpt->reqnumbers[2] = new_reqs[2];
-		
-	if ( header->len > 0 ) {
+	if ( NULL != currinsertpt->header ) {
+            /* This element is already in use, free it. */
+            PRINTF(("[%d] send_buffer_insert: Overwriting data in buffer %d\n",
+		   SL_this_procid, currinsertpt->counter ));
+
+
+
+
+//	    for(j=0;j<redundancy;j++)
+			j=0;
+                        Volpex_Cancel_byReqnumber(currinsertpt->reqnumbers[j]);
+
+            memusage -= (header->len + sizeof(header));
+
+            free ( currinsertpt->header );
+            if ( NULL != currinsertpt->buffer ) {
+                free ( currinsertpt->buffer );
+            }
+        }
+	currinsertpt->header = Volpex_get_msg_header(header->len,  header->src, 
+						     header->dest, header->tag, 
+						     header->comm, header->reuse);
+
+
+/*	for(j=0;j<redundancy;j++)
+		currinsertpt->reqnumbers[j] = new_reqs[j];
+*/
+        if ( header->len > 0 ) {
                 tmpbuf  = (char *) malloc ( header->len);
-		if ( NULL == tmpbuf ) {
-		    printf("send_buffer_insert: Could not allocate memory of size %d\n", 
-			   header->len );
-		}
+                if ( NULL == tmpbuf ) {
+                    printf("send_buffer_insert: Could not allocate memory of size %d\n",
+                           header->len );
+                }
                 memcpy ( tmpbuf, buf, header->len);
         }
-	currinsertpt->buffer = tmpbuf;
+        currinsertpt->buffer = tmpbuf;
 	memusage += (header->len + sizeof(header));
 	PRINTF(("send_buffer_insert: Currently used main memory: %ld\n", memusage ));
 
-	return currinsertpt->fwd;
+	return currinsertpt;
 }
 
-NODEPTR VolPex_send_buffer_search(NODEPTR currpt, VolPex_msg_header *header, int *answer)
+NODEPTR Volpex_send_buffer_search(NODEPTR currpt, Volpex_msg_header *header, int *answer, int *reuseval, int *minreuseval)
+//NODEPTR Volpex_send_buffer_search(NODEPTR currpt, Volpex_msg_header *header, int *answer)
 
 {
 	int search_count = 1;
 	NODEPTR curr=currpt;
+	int maxreuseval = 0;	
+	int msgprogress;
+	*answer = 0; /*no*/
+	msgprogress = -1; /*no progress*/
+
+
+
+
+//	PRINTF(("currpt->counter: %d\n", currpt->counter));
+
+
+/*	
+	do {
+            if ( NULL != curr->header ) {
+                 if( Volpex_compare_msg_progress(curr->header, header, &msgprogress))
+//                    printf("msg diff = %d\n", *msgprogress);
+			break;
+                }
+//	    Volpex_insert_reuseval(header->dest, header->comm);
+            
+            curr = curr->back; 
+            search_count++;
+        } while ( curr != currpt );
+*/
+	int flag = 0;
+	curr = currpt;
 	do {
 	    if ( NULL != curr->header ) {
-		if( VolPex_compare_msg_header(curr->header, header)){
+		flag = Volpex_compare_msg_header(curr->header, header, &maxreuseval) ;
+		if (maxreuseval > *reuseval)
+                        *reuseval = maxreuseval;
+
+		if (maxreuseval<*minreuseval)
+			*minreuseval = maxreuseval;
+//	        PRINTF(("header->reuse = %d , *reuseval = %d curr->counter = %d\n",header->reuse, *reuseval, curr->counter));
+
+		if( flag){
 		    *answer = 1; /*yes*/
 		    PRINTF(("Found msg at curr->counter = %d\n", curr->counter));
 		    return curr;
@@ -411,80 +456,128 @@ NODEPTR VolPex_send_buffer_search(NODEPTR currpt, VolPex_msg_header *header, int
 	    curr = curr->back; /*search backwards since loaded forward*/
 	    search_count++;
 	} while ( curr != currpt );
+
 	
-	*answer = 0; /*no*/
 	if(currpt == NULL)
-		return head;
+	    return head;
+	
+
 	return currpt;
 }
 
-void VolPex_send_buffer_print(NODEPTR head)
+void Volpex_send_buffer_print(NODEPTR head)
 {
     NODEPTR printPtr = head;
-    
+    int i;
+
+	FILE *fp;
+	fp = fopen("file1", "w");
+   
+
+	printf ("Printing output to file1\n");
     while(printPtr != NULL){
-	printf("%d ", printPtr->counter);
-        printf("currpt->header = %d,%d,%d,%d,%d\n", printPtr->header->len, printPtr->header->dest, 
+	fprintf(fp, "%d ", printPtr->counter);
+        fprintf(fp, "currpt->header = %d,%d,%d,%d,%d\n", printPtr->header->len, printPtr->header->dest, 
 	       printPtr->header->tag, printPtr->header->comm, printPtr->header->reuse);
+	fprintf(fp, "Reqnum:");
+	for(i=0;i<redundancy;i++)
+		fprintf(fp, " %d", printPtr->reqnumbers[i]);
+	fprintf(fp, "\n");
         printPtr = printPtr->fwd;
 	if(printPtr == head){
 	    break;
 	}
     }
-
+	fclose(fp);
     return;
 }
 
-int VolPex_tag_reuse_check(int rank, int tag, int type)
+void Volpex_sendbuffer_search_byreq(NODEPTR head, int req)
+{
+	NODEPTR printPtr = head;
+	int j, flag=0;
+
+    while(printPtr != NULL){
+	for(j=0;j<redundancy;j++){
+		if (printPtr->reqnumbers[j] == req){
+	        	printf("%d ", printPtr->counter);
+        		printf("currpt->header = %d,%d,%d,%d,%d\n", printPtr->header->len, printPtr->header->dest,
+               			printPtr->header->tag, printPtr->header->comm, printPtr->header->reuse);
+			flag = 1;
+		}
+	}
+		if (flag==1)
+			break;
+
+	        printPtr = printPtr->fwd;
+        if(printPtr == head){
+            break;
+        }
+    }
+
+    return;
+
+}
+
+int Volpex_tag_reuse_check(int rank_MCW, int tag, int comm,int type)
 {
     int i;
     
     if(type == 0){    /* send tags */
 	for(i = 0; i < TAGLISTSIZE; i++){
-	    if(sendtagreuse[rank][i].tag == tag){
-		sendtagreuse[rank][i].reuse_count += 1;
-		return sendtagreuse[rank][i].reuse_count;
+	    if((sendtagreuse[rank_MCW][i].tag == tag) && 
+              (sendtagreuse[rank_MCW][i].comm == comm )){
+		sendtagreuse[rank_MCW][i].reuse_count += 1;
+		return sendtagreuse[rank_MCW][i].reuse_count;
 	    }
-	    if(sendtagreuse[rank][i].tag == -1){
-		sendtagreuse[rank][i].tag = tag;
-		sendtagreuse[rank][i].reuse_count = 1;
-		return sendtagreuse[rank][i].reuse_count;
+	    if(sendtagreuse[rank_MCW][i].tag == -1){
+		sendtagreuse[rank_MCW][i].tag = tag;
+	        sendtagreuse[rank_MCW][i].comm = comm;
+		sendtagreuse[rank_MCW][i].reuse_count = 1;
+		return sendtagreuse[rank_MCW][i].reuse_count;
 	    }
 	}
     }
+	
     if(type == 1){    /* recv tags */
 	for(i = 0; i < TAGLISTSIZE; i++){
-	    if(recvtagreuse[rank][i].tag == tag){
-		recvtagreuse[rank][i].reuse_count += 1;
-		return recvtagreuse[rank][i].reuse_count;
+	    if((recvtagreuse[rank_MCW][i].tag == tag) &&
+	      (recvtagreuse[rank_MCW][i].comm == comm ) ){
+		recvtagreuse[rank_MCW][i].reuse_count += 1;
+		return recvtagreuse[rank_MCW][i].reuse_count;
 	    }
-	    if(recvtagreuse[rank][i].tag == -1){
-		recvtagreuse[rank][i].tag = tag;
-		recvtagreuse[rank][i].reuse_count = 1;
-		return recvtagreuse[rank][i].reuse_count;
+	    if(recvtagreuse[rank_MCW][i].tag == -1){
+		recvtagreuse[rank_MCW][i].tag = tag;
+		recvtagreuse[rank_MCW][i].comm = comm;
+		recvtagreuse[rank_MCW][i].reuse_count = 1;
+		return recvtagreuse[rank_MCW][i].reuse_count;
 	    }
 	}
     }
 
+printf("Return -1\n\n");
     return -1;
 }
 
-int VolPex_get_len(int count, MPI_Datatype datatype)
+int Volpex_get_len(int count, MPI_Datatype datatype)
 {
     int len = 0;
-    
-    if(datatype == MPI_BYTE)
-	len = count;
+
+    if( (datatype == MPI_BYTE) ||
+        (datatype == MPI_CHAR) ||
+        (datatype == MPI_CHARACTER) ||
+        (datatype == MPI_PACKED)  )
+        len = count;
     else if(datatype == MPI_INT || datatype == MPI_INTEGER)
-	len = count*sizeof(int);
+        len = count*sizeof(int);
     else if(datatype == MPI_FLOAT || datatype == MPI_REAL)
         len = count*sizeof(float);
     else if(datatype == MPI_DOUBLE || datatype == MPI_DOUBLE_PRECISION)
-	len = count*sizeof(double);
+        len = count*sizeof(double);
     else if(datatype == MPI_DOUBLE_COMPLEX)
-	len = count*sizeof(double _Complex);
+        len = count*sizeof(double _Complex);
     else
-	printf("MPI_Datatype possibly incorrect.\n");
+        printf("MPI_Datatype possibly incorrect.\n");
     return len;
 }
 

@@ -5,13 +5,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/types.h>
+//#include <gsl/gsl_fit.h>
 #include <sys/time.h>
 #include <time.h>
-#include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <math.h>
 #include <errno.h>
+#include <papi.h>
 #ifdef MINGW
 #include <windows.h>
 #include <winsock2.h>
@@ -28,6 +30,18 @@
 #include <sys/utsname.h>
 #endif
 
+
+#include "SL_array.h"
+
+extern fd_set SL_send_fdset;
+extern fd_set SL_recv_fdset;
+
+extern int SL_this_procid;
+extern int SL_this_procport;
+extern int SL_this_listensock;
+extern int SL_numprocs;
+
+
 /* Message header send before any message */
 struct SL_msg_header {
     int      cmd; /* what type of message is this */
@@ -37,6 +51,8 @@ struct SL_msg_header {
     int  context; /* context id */
     int      len; /* Message length in bytes */
     int       id; /* Id of the last fragment */
+    int loglength;
+    int     temp;
 };
 typedef struct SL_msg_header SL_msg_header;
 
@@ -66,7 +82,33 @@ struct SL_proc {
     struct SL_qitem   *cursendelem;
     SL_msg_comm_fnct     *recvfunc;
     SL_msg_comm_fnct     *sendfunc;
+    struct SL_msg_perf    *msgperf; /*to keep track of time and msglenth for each communication */
+    struct SL_msg_perf   *insertpt;
+    struct SL_network_perf *netperf;
 };
+
+struct SL_msg_perf {
+	struct SL_msg_perf  *fwd;
+	struct SL_msg_perf  *back;
+	int 		   msglen;
+	double		     time;
+	int 		      pos;
+	int 		  msgtype; /*send type(0) or recieve type(1)*/
+	int 		   elemid;
+        struct SL_proc      *proc;
+};
+typedef struct SL_msg_perf SL_msg_perf;
+
+struct SL_network_perf {
+	struct SL_network_perf	 *fwd;
+	struct SL_network_perf	*back;
+	double 	              latency;
+	double 		    bandwidth;
+	int 			  pos;
+
+};
+typedef struct SL_network_perf SL_network_perf;
+
 typedef struct SL_proc SL_proc;
 
 
@@ -95,6 +137,8 @@ struct SL_qitem {
     struct SL_msgq_head    *head;
     struct SL_qitem        *next;
     struct SL_qitem        *prev;
+    double             starttime;
+    double               endtime;
 };
 typedef struct SL_qitem SL_qitem;
 
@@ -118,23 +162,38 @@ struct SL_msg_request {
 typedef struct SL_msg_request SL_msg_request;
 
 
+struct SL_msgq_head     *SL_event_sendq;
+struct SL_msgq_head     *SL_event_recvq;
+struct SL_msgq_head     *SL_event_sendcq;
+
+
 /* MACROS */
-#ifdef PRINTF
+/*#ifdef PRINTF
   #undef PRINTF
   #define PRINTF(A) printf A 
 #else
   #define PRINTF(A)
-#endif
+#endif*/
 
 #define FALSE 0
 #define TRUE  1
 
+#define SEND 0
+#define RECV 1
+
 #define SL_RECONN_MAX      20
-#define SL_ACCEPT_MAX_TIME 10
+#define SL_ACCEPT_MAX_TIME 30
+#define SL_READ_MAX_TIME    1
 #define SL_ACCEPT_INFINITE_TIME -1
 #define SL_BIND_PORTSHIFT 200
 #define SL_SLEEP_TIME       1
 #define SL_TCP_BUFFER_SIZE  262142
+#define SL_MAX_EVENT_HANDLE     1
+#define SL_CONSTANT_ID          -32
+#define SL_EVENT_MANAGER        -1
+#define PERFBUFSIZE	20
+#define MTU		(1024L*4L)	
+#define SL_PROC_ID	-64
 
 int SL_socket ( void );
 int SL_bind_static ( int handle, int port );
@@ -154,8 +213,8 @@ int SL_socket_read_nb ( int hdl, char *buf, int num, int* numread );
 void SL_print_socket_options ( int fd );
 void SL_configure_socket ( int sd );
 void SL_configure_socket_nb ( int sd );
-
-
+int SL_init_internal();
+double SL_papi_time();
 
 /* status object t.b.d */
 

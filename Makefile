@@ -14,12 +14,14 @@ HEADER = $(VOLPEX_INC_DIR)/SL.h
 all:
 	cd src/SockLib ; make 
 	cd src/volpex ; make
+	cd src/startup; make
 
 clean:
 	cd src/SockLib ; make clean
 	cd src/volpex ; make clean
+	cd src/startup; make clean
 
-	$(RM) $(RMFLAGS) *~ $(VOLPEX_INC_DIR)/*~  
+	$(RM) $(RMFLAGS) *~ $(VOLPEX_INC_DIR)/*~ *.out 
 	$(RM) $(RMFLAGS) $(VOLPEX_LIB_DIR)/$(VOLPEX_LIB)
 	
 

@@ -22,7 +22,18 @@ OBJ = 	volpex_API.o		\
 	volpex_comm.o		\
 	volpex_global.o		\
 	volpex_p2p.o		\
-	volpex_header.o
+	volpex_header.o		\
+	volpex_proc.o		\
+	volpex_communicator.o	\
+	volpex_target_selection.o\
+	volpex_returnheader.o    \
+	volpex_progress.o	\
+	volpex_debug.o		\
+	volpex_fAPI.o		\
+	volpex_target_info.o    \
+	volpex_hybrid.o		\
+	volpex_network_target_sel.o \
+	volpex_loglength_target_sel.o
 
 .SUFFIXES: .o.c
 
@@ -34,7 +45,7 @@ $(VOLPEX_LIB): $(HEADER) $(OBJ)
 
 $(OBJ): $(HEADER)
 .c.o:   $(HEADER)
-	$(CC) $(CFLAGS) -DVOLPEXFORTRAN -c $<
+	$(CC) $(CFLAGS)  -DVOLPEXFORTRAN -c $<
 
 #winclib:
 #	mingw32-make winclean

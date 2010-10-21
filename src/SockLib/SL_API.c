@@ -15,7 +15,7 @@ extern int SL_this_listensock;
 extern int SL_numprocs;
 
 
-int SL_Init ( void )
+int SL_Init (void )
 {
 #ifdef MINGW
     char hostname[512];
@@ -31,6 +31,7 @@ int SL_Init ( void )
 #endif
     SL_array_init ( &(SL_proc_array), "SL_proc_array", 32 );
 
+
     FD_ZERO( &SL_send_fdset );
     FD_ZERO( &SL_recv_fdset );
 
@@ -42,26 +43,8 @@ int SL_Init ( void )
     **   as SL_PROC_CONNECTED
     */
 
-    SL_proc *dproc=NULL;
-
-    SL_proc_read_and_set ( "SL.config");
-#ifdef MINGW
-    dproc = (SL_proc *)SL_array_get_ptr_by_id ( SL_proc_array, SL_this_procid );
-#else
-    dproc = (SL_proc *)SL_array_get_ptr_by_id ( SL_proc_array, SL_this_procid );
-#endif
-    SL_this_procport = dproc->port;
-    dproc->state = SL_PROC_CONNECTED;
-
-    /* Open a listen socket for this process */
-    SL_open_socket_listen_nb ( &SL_this_listensock, SL_this_procport );	
-    FD_SET ( SL_this_listensock, &SL_send_fdset );
-    FD_SET ( SL_this_listensock, &SL_recv_fdset );
-    if ( SL_this_listensock > SL_fdset_lastused ) {
-	    SL_fdset_lastused = SL_this_listensock;
-    }
-    dproc->recvfunc    = (SL_msg_comm_fnct *)SL_msg_accept_newconn;
-    dproc->sendfunc    = (SL_msg_comm_fnct *)SL_msg_accept_newconn;
+        SL_proc_read_and_set ( "SL.config");
+	SL_init_internal();
 
     return SL_SUCCESS;
 }
@@ -74,6 +57,7 @@ int SL_Finalize ()
 #ifdef MINGW
     WSACleanup();
 #endif
+
     return SL_SUCCESS;
 }
 
@@ -95,21 +79,21 @@ int SL_Send ( void *buf, int len, int dest, int tag, int context_id )
     SL_msg_request *req;
     double timeout = SL_ACCEPT_MAX_TIME;
     int ret;
+    int loglength = -1;
+    int reuse = -1;
 
     if ( SL_PROC_NULL == dest ) {
       return SL_SUCCESS;
     }
 
-    ret = SL_send_post ( buf, len, dest, tag, context_id, timeout, &req );
+
+    ret = SL_send_post ( buf, len, dest, tag, context_id, timeout, loglength, reuse, &req );
     if ( SL_SUCCESS != ret ) {
 	printf("[%d]: SL_Send - error in SL_post_send %d\n", SL_this_procid, ret );
 	return ret;
     }
-#ifdef MINGW
+
     ret = SL_wait ( &req, (SL_Status *)SL_STATUS_IGNORE );
-#else
-    ret = SL_wait ( &req, (SL_Status *)SL_STATUS_IGNORE );
-#endif
     if ( SL_SUCCESS != ret ) {
 	printf("[%d]: SL_Send - error in SL_wait %d\n", SL_this_procid, ret );
 	return ret;
@@ -123,16 +107,18 @@ int SL_Isend ( void *buf, int len, int dest, int tag, int context_id, SL_Request
 {
     int ret;
     double timeout = SL_ACCEPT_MAX_TIME;
+    int loglength = -1;
+    int reuse = -1;
 
-    *req = (SL_msg_request *)SL_REQUEST_NULL;
+    *req = (SL_msg_request *) SL_REQUEST_NULL;
 
     if ( SL_PROC_NULL == dest ) {
         return SL_SUCCESS;
     }
 
-    ret = SL_send_post ( buf, len, dest, tag, context_id, timeout, req );
+    ret = SL_send_post ( buf, len, dest, tag, context_id, timeout, loglength, reuse, req );
     if ( SL_SUCCESS != ret ) {
-	printf("[%d]: SL_Isend - error in SL_post_send %d\n", SL_this_procid, ret );
+	printf("[%d]: SL_Isend - error in SL_post_send to proc %d code %d\n", SL_this_procid, dest, ret );
 	return ret;
     }
     
@@ -172,14 +158,15 @@ int SL_Irecv ( void *buf, int len, int src, int tag, int context_id,
     int ret;
     double timeout = SL_ACCEPT_MAX_TIME;
 
-    *req = (SL_msg_request *)SL_REQUEST_NULL;
+
+    *req = (SL_msg_request *) SL_REQUEST_NULL;
 
     if ( SL_PROC_NULL == src ) {
         return SL_SUCCESS;
     }
     ret = SL_recv_post ( buf, len, src, tag, context_id, timeout, req );
     if ( SL_SUCCESS != ret ) {
-	printf("[%d]: SL_Irecv - error in SL_recv_post %d\n", SL_this_procid, ret );
+	printf("[%d]: SL_Irecv - error in SL_irecv_post %d\n", SL_this_procid, ret );
 	return ret;
     }
     /* Initiate the chain of error handlers */
@@ -208,7 +195,7 @@ int SL_Wait ( SL_Request *req, SL_Status *status )
 
 int SL_Waitall ( int num, SL_Request *reqs, SL_Status *stats )
 {
-    int ret;
+    int ret = 0;
     int i;
 
     for ( i=0; i<num; i++ ) { 
@@ -217,11 +204,7 @@ int SL_Waitall ( int num, SL_Request *reqs, SL_Status *stats )
 	      ret = SL_wait ( &(reqs[i]), &(stats[i]) );
 	  }
 	  else {
-#ifdef MINGW
 	      ret = SL_wait ( &(reqs[i]), (SL_Status *)SL_STATUS_IGNORE );
-#else
-	      ret = SL_wait ( &(reqs[i]), (SL_Status *)SL_STATUS_IGNORE );
-#endif
 	  }
 	  if ( SL_SUCCESS != ret ) {
 	      printf("[%d]: SL_Waitall - error in SL_wait %d for reques %d\n", 
@@ -247,6 +230,7 @@ int SL_Test ( SL_Request *req, int *flag, SL_Status *status )
         SL_msg_set_nullstatus ( status );
         return SL_SUCCESS;
     }
+
     ret = SL_test ( req, flag, status );
     if ( SL_SUCCESS != ret ) {
 	printf("[%d]: SL_Test - error in SL_test %d\n", SL_this_procid, ret );
@@ -261,8 +245,9 @@ int SL_Cancel ( SL_Request *req, int *flag )
 {
     int ret;
     
-    if ( SL_REQUEST_NULL == *req ) {
+    if ( SL_REQUEST_NULL == *req || NULL == *req ) {
 	*flag = 1; /* true. no operations available anyway */
+	return SL_SUCCESS;
     }
     
     
@@ -280,8 +265,8 @@ int SL_Cancel ( SL_Request *req, int *flag )
 
 double SL_Wtime (void)
 {
-    struct timeval tp;
     double sec=0.0;
+    struct timeval tp;
     double psec=0.0;
     
     gettimeofday( &tp, NULL );
@@ -289,6 +274,7 @@ double SL_Wtime (void)
     psec = ((double)tp.tv_usec)/((double)1000000.0);
     
     return (sec+psec);
+
 }
 
 int SL_Abort ( int context_id, int errcode )
