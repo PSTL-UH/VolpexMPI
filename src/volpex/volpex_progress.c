@@ -334,6 +334,11 @@ int  Volpex_progress()
                 if ( ret == SL_SUCCESS){
                	reqlist[i].flag = 1;
                	reqlist[i].time = SL_papi_time() - reqlist[i].time;
+		reqlist[i].returnheader.src     = reqlist[i].header->src;
+                reqlist[i].returnheader.tag     = mystatus.SL_TAG;
+                reqlist[i].returnheader.comm    = mystatus.SL_CONTEXT;
+                reqlist[i].returnheader.len     = mystatus.SL_LEN;
+
                 PRINTF(("[%d]: Recieved message from target:%d reqlist:%d time:%f\n", 
 					SL_this_procid, reqlist[i].target,i, reqlist[i].time)); 	
 

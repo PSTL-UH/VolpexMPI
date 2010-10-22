@@ -202,28 +202,6 @@ int  Volpex_Wait(MPI_Request *request, MPI_Status *status)
 
 
 
-/*
-//		if (Volpex_targets[procid].numofmsg==MAX_MSG){
-		if (MAX_MSG_TIME < SL_papi_time() - init_msg_time && Volpex_targets[procid].numofmsg<MAX_MSG){
-//                        Volpex_targets[procid].target = reqlist[newrequest].target;
-			PRINTF(("####[%d]: Setting target:%d for source:%d\n", SL_this_procid,
-                                Volpex_targets[procid].target,procid));
-			for(i=0;i<Volpex_numprocs;i++){			
-			//	if (Volpex_targets[i % (Volpex_numprocs/redundancy)].target == -1)
-			//	printf("[%d]: BIIIG PROBLEM!!!!!!!!!!!!\n");
-                        	Volpex_set_newtarget(Volpex_targets[i % (Volpex_numprocs/redundancy)].target, i % (Volpex_numprocs/redundancy),MPI_COMM_WORLD);
-				printf("####[%d]: Setting target:%d for source:%d numofmsg:%d\n", SL_this_procid,
-                                Volpex_targets[i % (Volpex_numprocs/redundancy)].target,i% (Volpex_numprocs/redundancy),
-					Volpex_targets[i % (Volpex_numprocs/redundancy)].numofmsg);
-				
-                        	Volpex_targets[i % (Volpex_numprocs/redundancy)].numofmsg = MAX_MSG+1;
-				proc = Volpex_get_proc_byid(Volpex_targets[i % (Volpex_numprocs/redundancy)].target);
-				proc->recvpost = 1;
-			}
-
-            }
-
-*/
 
 	    for (k=0;k<numoftargets;k++){
 		if(reqlist[trequest[k]].reqnumber !=newrequest){
@@ -242,7 +220,7 @@ int  Volpex_Wait(MPI_Request *request, MPI_Status *status)
 
 
 	   if ( NULL != status && SL_STATUS_IGNORE != status ) {
-                status->SL_SOURCE  = reqlist[i].returnheader.dest;
+                status->SL_SOURCE  = reqlist[i].returnheader.src;
                 status->SL_TAG     = reqlist[i].returnheader.tag;
                 status->SL_ERROR   = SL_SUCCESS;
                 status->SL_CONTEXT = reqlist[i].returnheader.comm;
@@ -373,7 +351,7 @@ int  Volpex_Test(MPI_Request *request, int *flag, MPI_Status *status)
 
 */
         if ( NULL != status && SL_STATUS_IGNORE != status ) {
-            status->SL_SOURCE  = reqlist[i].returnheader.dest;
+            status->SL_SOURCE  = reqlist[i].returnheader.src;
             status->SL_TAG     = reqlist[i].returnheader.tag;
             status->SL_ERROR   = SL_SUCCESS;
             status->SL_CONTEXT = reqlist[i].returnheader.comm;
