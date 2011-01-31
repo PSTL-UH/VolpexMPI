@@ -25,7 +25,8 @@ OBJ =   SL_array.o		\
 	SL_msg.o		\
 	SL_p2p.o		\
 	SL_event_handling.o	\
-	SL_proc.o         
+	SL_proc.o         	\
+	SL_event_header.o
 
 .SUFFIXES: .o.c
 

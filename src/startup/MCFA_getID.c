@@ -126,3 +126,37 @@ int MCFA_get_exec_name(char *path, char *filename)
 
         return 0;
 }
+char ** MCFA_get_hostarray(struct MCFA_host_node *hostlist, char *starthost)
+{
+	int hostCount;
+	struct      MCFA_host_node *curr=NULL;
+	char **hostName;
+	int i;
+
+	hostCount = MCFA_get_total_hosts(hostlist);
+        hostName = (char**)malloc(hostCount*sizeof(char*));
+	
+	curr = hostlist;
+	while(strcmp(curr->hostdata->hostname,starthost)){
+                curr = curr->next;
+        }
+
+        for(i=0;i<hostCount;i++){
+            hostName[i] = (char *) malloc (MAXHOSTNAMELEN *sizeof(char));
+            hostName[i]= curr->hostdata->hostname;
+            if(NULL != curr->next)
+                curr = curr->next;
+            else
+                curr = hostlist;
+
+        }
+
+	return hostName;
+
+}
+
+
+
+
+
+

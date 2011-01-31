@@ -16,6 +16,7 @@ int SL_proc_establishing_connection=0;
 fd_set SL_send_fdset;
 fd_set SL_recv_fdset;
 int SL_fdset_lastused=0;
+int SL_init_numprocs = 0;
 
 int SL_proc_init ( int proc_id, char *hostname, int port ) 
 {

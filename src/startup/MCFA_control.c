@@ -36,22 +36,32 @@ int main(int argc, char *argv[])
     int port;
     SL_proc *dproc = NULL;
     int myid;
-    int next,numprocs; 
+    int next,numprocs=1; 
     char *path;
     int flag = 0, hostfileflag=0;
-    char *hostfile = NULL;
-    int jobid, procid;
+    char hostfile[256] ;
+    int jobid, procid=-1;
     int addflag = 0;   
+
+    if(!strcmp(argv[1],"-help")||!strcmp(argv[1],"--help")){
+        MCFAcontrol_print_options();
+        exit(-1);
+    }
+
  
     if ( argc < 3 ) {
         printf("./mcfaconrol <hostname> <port_number>\n");
         return MCFA_ERROR;
     }
     
-
+    strcpy(hostfile,"");
     
+    next = 3;
     hostname = strdup(argv[1]);
     port = atoi(argv[2]);
+   
+
+
     SL_array_init ( &(SL_proc_array), "SL_proc_array", 32 );
     FD_ZERO( &SL_send_fdset );
     FD_ZERO( &SL_recv_fdset );
@@ -59,7 +69,8 @@ int main(int argc, char *argv[])
     SL_proc_init ( MCFA_MASTER_ID, hostname, port );
     
     
-    myid = MCFA_connect(MCFA_CONSTANT_ID);
+    MCFA_connect(MCFA_CONSTANT_ID);
+    myid = MCFA_connect_stage2();
 
     SL_this_procid = myid;
     SL_this_procport =  port = 25001;
@@ -82,9 +93,8 @@ int main(int argc, char *argv[])
     
 // getting full path of the executable
     MCFA_get_path(argv[argc-1],&path);
-    next = 3;
 
-    next = 3;
+
 
     /* Parsing startup options */
     while(next<argc)
@@ -105,7 +115,7 @@ int main(int argc, char *argv[])
 	else if(!strcmp(argv[next],"-addhostfile")||!strcmp(argv[next],"--addhostfile"))
         {
             hostfileflag = 1;
-            hostfile = strdup(argv[next+1]);
+            strcpy(hostfile,argv[next+1]);
             addflag = 1;
             next=next+2;
 	}
@@ -134,7 +144,13 @@ int main(int argc, char *argv[])
             MCFAcontrol_print_options();
             exit(-1);
         }
-	
+	else if(!strcmp(argv[next],"-addprocid") || !strcmp(argv[next],"--addprocid"))
+	{
+		procid = atoi(argv[next+1]);
+		addflag = 1;
+		numprocs = 1;
+		next=next+2;
+	}	
 	
         else
         {
@@ -146,46 +162,53 @@ int main(int argc, char *argv[])
     }
     
     if (1 == addflag){
-	    MCFAcontrol_add(numprocs,path, flag,hostfileflag, hostfile);	
+	    MCFAcontrol_add(numprocs,path, flag,hostfileflag, hostfile,procid);	
     }
 //    free(hostname); 
     SL_Finalize();    
     return 0;
 }
-int MCFAcontrol_add(int numprocs, char *path, int flag, int hostfileflag,char *hostfile)
+int MCFAcontrol_add(int numprocs, char *path, int flag, int hostfileflag,char *hostfile, int tprocid)
 {
     
-    struct SL_event_msg_header header;
+    struct SL_event_msg_header *header;
 //    struct MCFA_header header;
+    int cmd=-1, jobid = -1, id=-1,  msglen=-1, port=-1, procid=-1;    
+    char executable[256], hostname[256];
+
+    strcpy(executable,"");
+    strcpy(hostname,"");
+
+
+    id = SL_this_procid;
+    numprocs = numprocs;
+    strcpy(executable,path); 
     
-    header.numprocs = numprocs;
-    header.id = SL_this_procid;
-    strcpy(header.executable,path); 
-    
-    if(hostfileflag == 1){
-    	strcpy(header.hostfile,hostfile);
-    }
-    else
-	strcpy(header.hostfile , "");
     if(flag == 0){
-	header.cmd = MCFA_CMD_ADD_PROCS;
-	header.jobid = MCFA_EXISTING_JOBID;
+	cmd = MCFA_CMD_ADD_PROCS;
+	jobid = MCFA_EXISTING_JOBID;
     }
     else
     {
-	header.cmd = MCFA_CMD_ADD_JOB;
+	cmd = MCFA_CMD_ADD_JOB;
     }
     
+    if (tprocid != -1){
+	cmd = MCFA_CMD_ADD_PROCID;
+    	procid = tprocid;
+    }
     
-    
-    
+    header = SL_get_msg_header(cmd, id, jobid, procid, numprocs, msglen, port, executable,
+                                hostfile, hostname);
+
     SL_msg_request *req;
-    SL_event_post(&header, sizeof(struct SL_event_msg_header),MCFA_MASTER_ID,0,0, &req);
+    SL_event_post(header, sizeof(SL_event_msg_header),MCFA_MASTER_ID,0,0, &req);
 
     SL_Wait (&req, SL_STATUS_NULL);
     printf("Message sent \n");
     return MCFA_SUCCESS;
 }
+
 
 int MCFAcontrol_print()
 {
@@ -263,6 +286,9 @@ int MCFAcontrol_print_options()
     printf("\t\t specify the job id for which processes are to be deleted\n\n");
     printf("\t -deleteproc,  --deleteproc [procid]\n");
     printf("\t\t specify the job id and process id for which process is to be deleted\n\n");
+    printf("\t -addprocid,  --addprocid [procid]\n");
+    printf("\t\t specify the process rank for which is to be added\n\n");
+
     printf("\t\t -print, --print\n");
     printf("\t\t to print all processes\n\n");
     

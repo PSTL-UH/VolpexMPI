@@ -102,11 +102,6 @@ int  Volpex_progress()
                 }
             }
             else {
-        /*      PRINTF(("[%d]  VProgress: send req.id :%d Could not find  "
-                       "len=%d dest=%d tag=%d reuse=%d target=%d found=%d\n", SL_this_procid,tcurr->rheader.id,
-                       tcurr->rheader.header.len, tcurr->rheader.header.dest,
-                       tcurr->rheader.header.tag, tcurr->rheader.header.reuse,tcurr->rheader.target,not_found));
-        */
                 not_found++;
                 tcurr = tcurr->next;
             }
@@ -134,12 +129,6 @@ int  Volpex_progress()
                     /*Check return header list */
                     temp = Volpex_send_buffer_search(insertpt, &reqlist[i].returnheader, &answer, &maxreuseval, &minreuseval);
 
-//               printf("[%d]:Reusediff %d for target:%d maxreuseval:%d returnheader.reuse:%d tag:%d\n", SL_this_procid,
-//                                reqlist[i].returnheader.reuse-MAX_REUSE, reqlist[i].target,
-//                              maxreuseval, reqlist[i].returnheader.reuse,reqlist[i].returnheader.tag);
-
-//                  printf("[%d]: into buffer_search for reqlist #%d target #%d  foundmsg #%d send_status #%d reuse #%d\n",
-//                          SL_this_procid,i,reqlist[i].target,answer, reqlist[i].send_status, reqlist[i].returnheader.reuse);
 
                 if ( answer ){
                         answer = 0;
@@ -159,7 +148,6 @@ int  Volpex_progress()
 
 
 /*mark as request is posted */
-//                      proc = Volpex_get_proc_byid(reqlist[i].target);
 
                         istart  = Volpex_request_get_counter ( 1 );
                         Volpex_request_clean ( istart, 1 );
@@ -246,46 +234,13 @@ int  Volpex_progress()
             ret = SL_ERR_PROC_UNREACHABLE;
             ret = SL_test_nopg(&reqlist[i].request, &flag, &mystatus, &loglength);
 
-
-/*check time for waiting */
-
-/*      int cancel_flag = 0, cancel_ret, reqid, numoftargets;
-        if ((reqlist[i].recv_status == 1) && ((SL_Wtime() - reqlist[i].time) > 7)&&
-                reqlist[i].request !=SL_REQUEST_NULL && reqlist[i].request->type == SL_REQ_RECV){
-
-                numoftargets = Volpex_numoftargets(reqlist[i].header->src, reqlist[i].header->comm);
-//                      printf("Num of targets %d\n",numoftargets);
-                if(numoftargets >1){
-
-                        PRINTF(("[%d]:reqlist[i].recv_status: %d  SL_Wtime() - reqlist[i].time: %f\n" ,SL_this_procid,
-                                        reqlist[i].recv_status, SL_Wtime() - reqlist[i].time));
-                        reqid = reqlist[i].request->id;
-                        Volpex_insert_purgelist(reqlist[i].target, reqlist[i], i);
-                        cancel_ret = SL_cancel(&reqlist[i].request, &cancel_flag);
-
-                        if (!cancel_flag){
-                                Volpex_remove_purgelist(reqlist[i].target, i);
-                                reqlist[i].time = SL_Wtime();
-                        }
-                        else{
-
-                                MPI_Request tmprequest = i;
-                                    printf("[%d] 1. Changing primary target %d  \n", SL_this_procid,reqlist[i].target);
-
-                            Volpex_change_target(reqlist[i].header->src, reqlist[i].header->comm);
-
-                            PRINTF(("[%d]  VProgress: recv request:%d reposting Irecv to %d, since prev. op. delayed reqid %d\n",
-                                      SL_this_procid, i, reqlist[i].header->src, reqid ));
+if ((reqlist[i].flag ==1  || reqlist[i].flag==2)&& reqlist[i].recv_dup_status == 1)
+            {
+                PRINTF(("[%d]: Freeing req:%d target:%d\n", SL_this_procid,i, reqlist[i].target));
+                Volpex_free_request(i);
+            }
 
 
-                            ret = Volpex_Irecv_ll ( reqlist[i].buffer, reqlist[i].header->len,
-                                            reqlist[i].header->src, reqlist[i].header->tag,
-                                            reqlist[i].header->comm, &tmprequest, i );
-
-                        }
-                }
-        }
-*/
 /* if long enough switch target */
             if(flag == 1 && reqlist[i].recv_status == 0 ) {
                 if ( ret == SL_SUCCESS){
@@ -325,11 +280,12 @@ int  Volpex_progress()
                     }
                 }
             }
-	    if ((reqlist[i].flag ==1  || reqlist[i].flag==2)&& reqlist[i].recv_dup_status == 1)
+/*	    if ((reqlist[i].flag ==1  || reqlist[i].flag==2)&& reqlist[i].recv_dup_status == 1)
             {
 		PRINTF(("[%d]: Freeing req:%d target:%d\n", SL_this_procid,i, reqlist[i].target));
 		Volpex_free_request(i);
 	    }
+*/
             if(flag == 1 && reqlist[i].recv_status == 1 && reqlist[i].flag ==0) {
                 if ( ret == SL_SUCCESS){
                	reqlist[i].flag = 1;
@@ -344,34 +300,8 @@ int  Volpex_progress()
 
 
 
-/*check assoc request for it and mark them as done */
-/*			int newrequest;
-			int cancel_flag = 0, cancel_ret;
-			if (reqlist[i].recv_dup_status != 1 && reqlist[i].assoc_recv !=NULL){
 
-				for(k=0;k<reqlist[i].numtargets;k++){
-					newrequest = reqlist[i].assoc_recv[k];
-					if ((newrequest != i) && (reqlist[newrequest].request !=SL_REQUEST_NULL)){
-						Volpex_insert_purgelist(reqlist[newrequest].target, reqlist[newrequest], newrequest);
-		        	                cancel_ret = SL_cancel(&reqlist[newrequest].request, &cancel_flag);
-
-                        			if (!cancel_flag){
-							printf("[%d]: Could not cancel for proc:%d reqlist:%d\n",SL_this_procid, 
-									reqlist[newrequest].target, newrequest); 
-	                                		Volpex_remove_purgelist(reqlist[newrequest].target, newrequest);
-                        			}
-						else{
-							printf("[%d]:Sucessfully cancelled request %d\n", SL_this_procid, newrequest);
-							reqlist[newrequest].flag = 2;
-						}	
-	
-					}
-						
-				}
-				
-		}
-
-*/			if(reqlist[i].numtargets>0)
+			if(reqlist[i].numtargets>0)
 			Volpex_target_info_insert(reqlist[i].time, loglength, reqlist[i].header->reuse, reqlist[i].target);
 
 
@@ -387,7 +317,7 @@ int  Volpex_progress()
                                 reuseval = loglength - reqlist[i].header->reuse;
                     Volpex_insert_reuseval(reqlist[i].target, reuseval);
 
-
+/*
 		int procid;
 		int num;
 		int newtarget;
@@ -410,7 +340,7 @@ int  Volpex_progress()
 				}
                         }
 
-
+*/
 
                 }
 

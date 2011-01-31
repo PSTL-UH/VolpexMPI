@@ -163,12 +163,10 @@ int  Volpex_Wait(MPI_Request *request, MPI_Status *status)
 
 		procid = Volpex_get_volpexid(reqlist[newrequest].target);
 
-//		Volpex_targets[procid].target = reqlist[newrequest].target;
 		PRINTF(("[%d]: proc:%d numofmsg:%d MAX_MSG:%d\n", SL_this_procid, procid,
 				Volpex_targets[procid].numofmsg, MAX_MSG));
 
                 if (Volpex_targets[procid].numofmsg==MAX_MSG){
-//                        Volpex_targets[procid].target = reqlist[newrequest].target;
 			min = reqlist[newrequest].time;
 			finaltarget = reqlist[newrequest].target;
 			for (k=0;k<numoftargets;k++){
@@ -186,7 +184,6 @@ int  Volpex_Wait(MPI_Request *request, MPI_Status *status)
                                 Volpex_targets[procid].target,procid, Volpex_targets[procid].numofmsg);
 
 
-//                                Volpex_set_newtarget(Volpex_targets[procid].target,procid, MPI_COMM_WORLD);
                                 Volpex_set_newtarget(finaltarget,procid, MPI_COMM_WORLD);
 
 
@@ -450,7 +447,7 @@ int  Volpex_Isend(void *buf, int count, MPI_Datatype datatype, int dest, int tag
     for(k=0; k<numoftargets; k++)
     	PRINTF(("[%d] VIsend: Target(%d) = %d\n", SL_this_procid, k, targets[k]));
 
-    proc  = Volpex_get_proc_byid ( targets[0] );
+    proc  = Volpex_get_proc_bySLid ( targets[0] );
     reuse = Volpex_tag_reuse_check ( proc->rank_MCW, tag, comm,0);
     len   = Volpex_get_len ( count, datatype);
     theader = Volpex_get_msg_header(len, hdata[comm].myrank, dest, tag, comm, reuse);
@@ -598,7 +595,7 @@ int  Volpex_Irecv_ll(void *buf, int len, int source, int tag,
 
 
     if ( new_req == -1 ) {
-	proc = Volpex_get_proc_byid ( targets[0] );
+	proc = Volpex_get_proc_bySLid ( targets[0] );
 	reuse = Volpex_tag_reuse_check ( proc->rank_MCW,tag,comm, 1);
 	i = Volpex_request_get_counter ( 1 );
 	Volpex_request_clean ( i, 1 );
@@ -674,15 +671,10 @@ int  Volpex_Irecv_ll(void *buf, int len, int source, int tag,
                     free ( targets );
 		    targets = NULL;
                 }
-//		Volpex_targets[procid].numofmsg++;
-//		if(Volpex_targets[procid].numofmsg == 400 ){
 		if(SL_papi_time()-repeat_msg_time > MAX_MSG_REPEAT ){
 			PRINTF(("[%d]: Repeating learning phase for procid:%d\n", SL_this_procid,procid));
 			repeat_msg_time = SL_papi_time();
-//			for(i=0;i<Volpex_numprocs;i++){
-//                                Volpex_targets[i % (Volpex_numprocs/redundancy)].numofmsg = 0;
 
-//			}
 			Volpex_targets[procid].numofmsg = 0;
 		}
 
@@ -691,7 +683,6 @@ int  Volpex_Irecv_ll(void *buf, int len, int source, int tag,
 
 	
 		assoc_recv[j]=i;
-	//	reqlist[i].numtargets = numoftargets;
 	        reqlist[i].assoc_recv = (int*) malloc (numoftargets * sizeof (int));
 		i  = Volpex_request_get_counter ( 1 );
                 Volpex_request_clean ( i, 1 );
@@ -706,11 +697,7 @@ for(p = 0; p < numoftargets; p++){
 	PRINTF(("[%d]: checking proc:%d numofmsg:%d time:%f\n", SL_this_procid, procid, Volpex_targets[procid].numofmsg, 
 				SL_papi_time()-init_msg_time));
 	if ((MAX_MSG_TIME<SL_papi_time()-init_msg_time) && (Volpex_targets[procid].numofmsg == 0  )){
-/*		for(k=0;k<Volpex_numprocs/redundancy;k++){	
-			Volpex_targets[k].numofmsg++;
-			printf("[%d]: Incrementing proc:%d numofmsg:%d\n", SL_this_procid, k, Volpex_targets[k].numofmsg);
-		}
-*/		PRINTF(("[%d]: Incrementing proc:%d numofmsg:%d\n", SL_this_procid, procid, Volpex_targets[procid].numofmsg));
+		PRINTF(("[%d]: Incrementing proc:%d numofmsg:%d\n", SL_this_procid, procid, Volpex_targets[procid].numofmsg));
 		Volpex_targets[procid].numofmsg++;
 
 	}

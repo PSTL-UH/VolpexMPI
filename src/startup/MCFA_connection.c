@@ -16,7 +16,7 @@ int MCFA_connect(int id)
     char *hostname = NULL;
     int len=256;
     SL_proc *dproc = NULL;
-    int tmp,newid,port,ret;
+    int tmp,ret;
 
     hostname = (char*)malloc(256 * (sizeof(char)));
     if(hostname == NULL){
@@ -29,7 +29,7 @@ int MCFA_connect(int id)
     }
 
 
-//    SL_this_procid = id ;//MCFA_CONSTANT_ID;
+    SL_this_procid = id ;//MCFA_CONSTANT_ID;
 
 
     dproc = SL_array_get_ptr_by_id ( SL_proc_array, MCFA_MASTER_ID );
@@ -48,7 +48,7 @@ int MCFA_connect(int id)
         return ret;
     }
 
-    ret = SL_socket_write ( dproc->sock, (char *) &id, sizeof(int),
+    ret = SL_socket_write ( dproc->sock, (char *) &SL_this_procid, sizeof(int),
                             dproc->timeout );
 
 
@@ -62,20 +62,30 @@ int MCFA_connect(int id)
     if ( SL_SUCCESS != ret ) {
         return ret;
     }
+
+    free(hostname);
+	return MCFA_SUCCESS;
+}
+
+int MCFA_connect_stage2()
+{
+	int ret, newid, port;
+	SL_proc *dproc = NULL;
+
+	dproc = SL_array_get_ptr_by_id ( SL_proc_array, MCFA_MASTER_ID );
     ret = SL_socket_read ( dproc->sock, ( char *) &newid, sizeof(int),
-                           dproc->timeout);
+                           -1);
     if ( SL_SUCCESS != ret ) {
         return ret;
     }
 
     ret = SL_socket_read ( dproc->sock, ( char *) &port, sizeof(int),
-                           dproc->timeout);
+                           -1);
     if ( SL_SUCCESS != ret ) {
         return ret;
     }
 
     SL_this_procport = port;
-    free(hostname);
     return newid;
 
 }

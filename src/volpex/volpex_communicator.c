@@ -9,12 +9,12 @@ extern int Volpex_numprocs;
 extern int redundancy;
 extern char fullrank[16];
 
-int Volpex_numcomms;
+int Volpex_numcomms = 0;
 
 int Volpex_init_comm(int id, int size)
 {
     Volpex_comm *tcomm = NULL;
-    int pos = 0;
+    int i,pos = 0;
     
     Volpex_numcomms++;
     tcomm = (Volpex_comm*) malloc (sizeof(Volpex_comm));
@@ -33,7 +33,9 @@ int Volpex_init_comm(int id, int size)
     if(NULL == tcomm->plist){
 	return SL_ERR_NO_MEMORY;
     }
-    
+   for(i=0;i<size;i++)
+        tcomm->plist[i].num = 0;
+ 
     return MPI_SUCCESS;
 }
 
@@ -55,14 +57,16 @@ int Volpex_free_comm()
 	return MPI_SUCCESS;
 }
 
-int Volpex_init_comm_world ( int numprocs, int redcy )
+int Volpex_init_comm_world1 ( int numprocs, int redcy )
 {
     Volpex_comm *comm;
     int i, j;
-    int *parray;
-    int rank;
-    char level;
-    int k,pos;
+    Volpex_proc *proc;
+    int *size;
+
+	size = (int *) malloc (numprocs/redcy*sizeof(int));
+    for(i=0;i<numprocs/redcy;i++)
+        size[i] = 0;
 
 
     Volpex_init_comm(MPI_COMM_WORLD, numprocs/redcy);
@@ -70,43 +74,103 @@ int Volpex_init_comm_world ( int numprocs, int redcy )
     for ( i=0; i< comm->size; i++ ) {
 	comm->plist[i].num = redcy;
 	comm->plist[i].ids = (int *) malloc (redcy * sizeof(int));
+	comm->plist[i].SL_ids = (int *) malloc (redcy * sizeof(int));
 	comm->plist[i].recvpost = (int *) malloc (redcy * sizeof(int));
-	if ( NULL == comm->plist[i].ids || NULL == comm->plist[i].recvpost) {
+	if ( NULL == comm->plist[i].ids || NULL == comm->plist[i].recvpost || NULL == comm->plist[i].SL_ids) {
 	    return SL_ERR_NO_MEMORY;
 	}
-	
-	parray = (int *) malloc (redcy * sizeof(int));
-        for (j=0;j<redcy; j++){
-                parray[j] = j*comm->size + i;
+     }
+	for ( i=0; i< comm->size; i++ ) {
+                for(j=0;j<comm->plist[i].num; j++)
+                comm->plist[i].recvpost[j] = 0;
+//		comm->plist[i].num = redcy;
+
         }
 
-        sscanf(fullrank, "%d,%c",&rank,&level);
-        pos = 0;
-
-        for(k = level - 'A'; k<redcy; k++){
-                comm->plist[i].ids[pos] = parray[k];
-		comm->plist[i].recvpost[pos]=0;
-                pos++;
-        }
-        for(k=0; k<level - 'A'; k++){
-                comm->plist[i].ids[pos]= parray[k];
-		comm->plist[i].recvpost[pos]=0;
-                pos++;
-        }
-/*
-	for (j=0; j<redcy; j++ ) {
-	    comm->plist[i].ids[j] = j*comm->size + i;
-	}
-*/
+	for ( i=0; i< Volpex_numprocs; i++ ) {
+	        proc = Volpex_get_proc_byid(i);
+        	comm->plist[proc->rank_MCW].ids[size[proc->rank_MCW]]=proc->id ;
+	        comm->plist[proc->rank_MCW].SL_ids[size[proc->rank_MCW]]=proc->SL_id ;
+                size[proc->rank_MCW]++;
 
     }
+
+
 
     comm->myrank = Volpex_get_rank();
     hdata[MPI_COMM_WORLD].mysize    = comm->size;
     hdata[MPI_COMM_WORLD].myrank    = comm->myrank;
     hdata[MPI_COMM_WORLD].mybarrier = 0;
+
+   free(size);
     return MPI_SUCCESS;
 }
+
+
+
+int Volpex_init_comm_world ( int maxrank )
+{
+    Volpex_comm *comm;
+    int i, j;
+    Volpex_proc *proc;
+    int *size;
+
+        size = (int *) malloc (maxrank*sizeof(int));
+    for(i=0;i<maxrank;i++)
+        size[i] = 0;
+
+
+    Volpex_init_comm(MPI_COMM_WORLD, maxrank);
+    comm = Volpex_get_comm_byid ( MPI_COMM_WORLD );
+
+//counting number of processes for each rank
+//since we can diffrent number of processes of 1 rank
+
+    for ( i=0; i< Volpex_numprocs; i++ ) {
+        proc = Volpex_get_proc_byid(i);
+        comm->plist[proc->rank_MCW].num++ ;
+    }
+
+
+
+
+    for ( i=0; i< comm->size; i++ ) {
+        comm->plist[i].ids = (int *) malloc (comm->plist->num * sizeof(int));
+        comm->plist[i].SL_ids = (int *) malloc (comm->plist->num * sizeof(int));
+        comm->plist[i].recvpost = (int *) malloc (comm->plist->num * sizeof(int));
+        if ( NULL == comm->plist[i].ids || NULL == comm->plist[i].recvpost || NULL == comm->plist[i].SL_ids) {
+            return SL_ERR_NO_MEMORY;
+        }
+     }
+        for ( i=0; i< comm->size; i++ ) {
+                for(j=0;j<comm->plist[i].num; j++)
+                comm->plist[i].recvpost[j] = 0;
+//              comm->plist[i].num = redcy;
+
+        }
+
+        for ( i=0; i< Volpex_numprocs; i++ ) {
+                proc = Volpex_get_proc_byid(i);
+                comm->plist[proc->rank_MCW].ids[size[proc->rank_MCW]]=proc->id ;
+                comm->plist[proc->rank_MCW].SL_ids[size[proc->rank_MCW]]=proc->SL_id ;
+                size[proc->rank_MCW]++;
+
+    }
+
+
+
+    comm->myrank = Volpex_get_rank();
+    hdata[MPI_COMM_WORLD].mysize    = comm->size;
+    hdata[MPI_COMM_WORLD].myrank    = comm->myrank;
+    hdata[MPI_COMM_WORLD].mybarrier = 0;
+
+   free(size);
+    return MPI_SUCCESS;
+}
+
+
+
+
 
 int Volpex_init_comm_self ( void ) 
 {
@@ -160,6 +224,7 @@ int Volpex_get_plist_byrank(int rank, Volpex_comm *oldcomm,
 
     plist->num = oldcomm->plist[rank].num;
     plist->ids = (int*) malloc (plist->num * sizeof(int));
+    plist->SL_ids = (int*) malloc (plist->num * sizeof(int));
     plist->recvpost = (int*) malloc (plist->num * sizeof(int));
     if ( NULL == plist->ids ) {
 	return SL_ERR_NO_MEMORY;
@@ -209,6 +274,11 @@ void Volpex_print_comm( int commid)
         for(k=0;k<comm->plist[j].num;k++){
             printf("%d   ", comm->plist[j].ids[k]);
         }
+	printf("SL_ids->  ");
+        for(k=0;k<comm->plist[j].num;k++){
+            printf("%d   ", comm->plist[j].SL_ids[k]);
+        }
+
 	printf("\n");
     }
 
@@ -333,5 +403,6 @@ int Volpex_searchproc_comm(int commid, int procid)
 	return -1;
 
 }
+
 
 */

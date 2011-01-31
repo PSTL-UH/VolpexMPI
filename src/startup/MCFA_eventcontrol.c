@@ -8,13 +8,8 @@ extern struct      MCFA_host_node *hostList;
 extern struct      MCFA_proc_node *procList;
 
 
-struct MCFA_proc_node* MCFA_add_procs(struct SL_event_msg_header *header)
+/*struct MCFA_proc_node* MCFA_add_procs(struct SL_event_msg_header *header)
 {
-    /*steps
-    ** Adding new processes in host list
-    ** Adding processes in process list
-    ** spawning processes on those hosts
-    **/
     
     struct      MCFA_host_node *curr = NULL, *next = NULL;
     int         hostCount = 0;
@@ -30,15 +25,13 @@ struct MCFA_proc_node* MCFA_add_procs(struct SL_event_msg_header *header)
 
     numprocs = header->numprocs;
     strcpy(path,header->executable);
-
-
-/*to add new process on the host with least number of processes and then proceed in round robin manner*/
+//to add new process on the host with least number of processes and then proceed in round robin manner
     if(strcmp(header->hostfile,"")==0){
         curr = hostList;
         while(curr != NULL){
             if(curr->next != NULL){
                 next = curr->next;
-                if (next->hostdata.numofProcs <  curr->hostdata.numofProcs){
+                if (next->hostdata->numofProcs <  curr->hostdata->numofProcs){
                     curr = next;
                     break;
                 }
@@ -49,54 +42,7 @@ struct MCFA_proc_node* MCFA_add_procs(struct SL_event_msg_header *header)
                 break;
         }
 
-        hostCount = MCFA_get_total_hosts(hostList);
-        hostName = (char**)malloc(hostCount*sizeof(char*));
-        if(NULL == hostName){
-	    printf("ERROR: in allocating memory\n");
-	    exit(-1);
-        }
-	
-        for(i=0;i<hostCount;i++)
-        {
-            hostName[i] = (char *) malloc (MAXHOSTNAMELEN *sizeof(char));
-            if (NULL == hostName[i]){
-                printf("ERROR: in allocating memory\n");
-                exit(-1);
-	    }
-	    
-            hostName[i]= curr->hostdata.hostname;
-	    if(NULL != curr->next)
-                curr = curr->next;
-            else
-                curr = hostList;
-
-	}
-    }
-    else
-    {
-        hostName = MCFA_allocate_func(header->hostfile,&hostCount);
-        hostCount = hostCount-1;
-        int num = (int)ceil((double)numprocs/(double)hostCount);
-        if(maxprocspernode<num){
-            maxprocspernode = num;
-        }
-
-        PRINTF(("MCFA_add_procs: adding new hosts to hostlist\n"));
-        for(i=0;i<hostCount;i++)
-        {
-            PRINTF(("MCFA_add_procs: adding new host : %s\n ",hostName[i]));
-            if((MCFA_search_hostname(hostList,hostName[i])) == NULL){       //for each host in hostfile creating an entry in hostList
-                newnode = MCFA_init_hostnode(hostName[i],maxprocspernode,port);
-                MCFA_add_host(&hostList, newnode);
-            }
-	    
-        }
-	
-    }
-    port = SL_this_procport;
-
-    
-    
+    hostCount = MCFA_get_total_hosts(hostList);
     if (header->jobid != MCFA_EXISTING_JOBID){
         jobID = MCFA_get_nextjobID();
     }
@@ -106,15 +52,17 @@ struct MCFA_proc_node* MCFA_add_procs(struct SL_event_msg_header *header)
     }
     
     PRINTF(("MCFA_add_procs: Spawning newly added processes\n\n"));
-    newproclist = MCFA_spawn_processes(hostName,path,port,jobID,numprocs,hostCount,redundancy, 1);
+//    newproclist = MCFA_spawn_processes(hostName,path,port,jobID,numprocs,hostCount,redundancy,0 );
     
     PRINTF(("MCFA_add_procs: EXITING !!!!!!!!\n\n"));
-    /*  for(i=0;i<hostCount;i++)
-        free(hostName[i]);
-	free(hostName);*/
+//      for(i=0;i<hostCount;i++)
+//        free(hostName[i]);
+//	free(hostName);
     return newproclist;
 }
+}
 
+*/
 
 
 struct MCFA_proc_node* MCFA_delete_proc(struct SL_event_msg_header *header)
@@ -132,14 +80,14 @@ struct MCFA_proc_node* MCFA_delete_proc(struct SL_event_msg_header *header)
     char *prochostname = NULL;
     int procid = 0;
 //    int  i = 0,j = 0;
-    struct MCFA_process proc ;
+    struct MCFA_process *proc ;
 
     currproc = procList;
     currhost = hostList;
 
     procid = header->procid;
 
-    while(currproc->procdata.id != procid)
+    while(currproc->procdata->id != procid)
     {
         currproc = currproc->next;
     }
@@ -152,13 +100,13 @@ struct MCFA_proc_node* MCFA_delete_proc(struct SL_event_msg_header *header)
     }*/
     
     
-        prochostname = strdup(currproc->procdata.hostname);
+        prochostname = strdup(currproc->procdata->hostname);
         proc = currproc->procdata;
    //     MCFA_add_proc(&list,proc->id, proc->hostname, proc->portnumber, proc->jobid, proc->sock,
 //		      proc->status,proc->executable, proc->fullrank);
 
-	MCFA_add_proc(&list,proc.id, proc.hostname, proc.portnumber, proc.jobid, proc.sock,
-                    proc.status,proc.executable, proc.fullrank);
+	MCFA_add_proc(&list,proc->id, proc->hostname, proc->portnumber, proc->jobid, proc->sock,
+                    proc->status,proc->executable, proc->fullrank);
 
         
     
@@ -222,8 +170,8 @@ struct MCFA_proc_node* MCFA_delete_job(struct SL_event_msg_header *header, int *
 
     while(currproc!=NULL)
     {
-        if(currproc->procdata.jobid == jobid){
-            *proc = currproc->procdata;
+        if(currproc->procdata->jobid == jobid){
+            proc = currproc->procdata;
             MCFA_add_proc(&list,proc->id, proc->hostname, proc->portnumber, proc->jobid,
                                 proc->sock, proc->status,proc->executable, proc->fullrank);
             MCFA_proc_close(procList,proc->id);
@@ -239,15 +187,15 @@ struct MCFA_proc_node* MCFA_delete_job(struct SL_event_msg_header *header, int *
     while(currhost!= NULL)
     {
         i = 0;
-        while(i<=currhost->hostdata.numofProcs)
+        while(i<=currhost->hostdata->numofProcs)
         {
-            if(currhost->hostdata.id[i].jobID == jobid){
-                for(j=i;j<currhost->hostdata.numofProcs;j++)
+            if(currhost->hostdata->id[i].jobID == jobid){
+                for(j=i;j<currhost->hostdata->numofProcs;j++)
                 {
-                    currhost->hostdata.id[j].procID = currhost->hostdata.id[j+1].procID;
-                    currhost->hostdata.id[j].jobID = currhost->hostdata.id[j+1].jobID;
+                    currhost->hostdata->id[j].procID = currhost->hostdata->id[j+1].procID;
+                    currhost->hostdata->id[j].jobID = currhost->hostdata->id[j+1].jobID;
                 }
-                currhost->hostdata.numofProcs--;
+                currhost->hostdata->numofProcs--;
             }
             else
                 i++;

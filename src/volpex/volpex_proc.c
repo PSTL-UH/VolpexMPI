@@ -11,8 +11,9 @@ extern char *hostname;
 extern int Volpex_numprocs;
 extern int redundancy;
 extern char fullrank[16];
+int Volpex_this_procid;
 
-int Volpex_init_proc(int id, char *hostname, int port, char *fullrank)
+int Volpex_init_proc(int id, int SL_id, char *hostname, int port, char *fullrank)
 {
 	Volpex_proc *tproc = NULL;
 	int pos;
@@ -25,6 +26,7 @@ int Volpex_init_proc(int id, char *hostname, int port, char *fullrank)
 	}
 
 	tproc->id		= id;
+	tproc->SL_id		= SL_id;
 	tproc->hostname         = strdup ( hostname );
 	tproc->port		= port;
         
@@ -47,7 +49,7 @@ int Volpex_init_proc(int id, char *hostname, int port, char *fullrank)
     	if(NULL == tproc->plist){
         	return SL_ERR_NO_MEMORY;
     	}
-
+	tproc->plist->num	= 0;
 
 	Volpex_init_purgelist(&tproc->purgelist);
 	SL_array_get_next_free_pos ( Volpex_proc_array, &pos );
@@ -71,6 +73,8 @@ int Volpex_free_proclist()
 		Volpex_target_info_free(tproc);
 		free(tproc->hostname);
 		free(tproc->plist->ids);
+		free(tproc->plist->SL_ids);
+		free(tproc->plist->recvpost);
 		free(tproc->plist);
 		free(tproc);
 		
@@ -78,6 +82,21 @@ int Volpex_free_proclist()
 	return SL_SUCCESS;
 
 }
+int Volpex_get_max_rank()
+{
+        int size,i;
+        Volpex_proc *tproc = NULL;
+        int maxrank = 0 ;
+
+        size = SL_array_get_last(Volpex_proc_array ) + 1;
+        for(i=0; i<size; i++){
+                tproc = (Volpex_proc*) SL_array_get_ptr_by_pos ( Volpex_proc_array, i );
+                if (tproc->rank_MCW > maxrank)
+                        maxrank = tproc->rank_MCW;
+        }
+        return maxrank;
+}
+
 int Volpex_get_volpexid(int SL_id)
 {
 	Volpex_proc *tproc = NULL;
@@ -121,7 +140,7 @@ int Volpex_net_performance_free(Volpex_proc *tproc)
 	return SL_SUCCESS;
 
 }
-
+/*
 int Volpex_init_procplist(int redcy)
 {
    Volpex_proc *proc, *tproc;
@@ -158,13 +177,6 @@ int Volpex_init_procplist(int redcy)
                 	proc->plist->ids[pos]= parray[k];
                	 	pos++;
         	}
-/*
-
-	for (j=0;j<redcy; j++){
-
-	        proc->plist->ids[j] = j * Volpex_numprocs/redcy + i;
-                }
-*/
 	}	
 
 	pos = 0;
@@ -173,10 +185,6 @@ int Volpex_init_procplist(int redcy)
 		tproc = Volpex_get_proc_byid(i);
                 tproc->plist->num = redcy;
                 tproc->plist->ids = (int *) malloc (redcy * sizeof(int));
-             /*   if ( NULL == tproc->plist[i]->ids ) {
-                   return SL_ERR_NO_MEMORY;
-                }
-		*/
 		i++;
 		for(j=0;j<tproc->plist->num;j++)
 		{
@@ -192,6 +200,95 @@ int Volpex_init_procplist(int redcy)
         return MPI_SUCCESS;
 
 }
+*/
+
+
+int Volpex_init_procplist1(int redcy)
+{
+   Volpex_proc *proc, *tproc;
+    int i, j;
+    int myrank;
+    char mylevel;
+    int pos=0;
+
+
+    for ( i=0; i< Volpex_numprocs; i++ ) {
+        proc = Volpex_get_proc_byid(i);
+        for(j=0;j<Volpex_numprocs;j++){
+                tproc = Volpex_get_proc_byid(j);
+                if(proc->rank_MCW == tproc->rank_MCW)
+                        proc->plist->num++ ;
+        }
+    }
+sscanf(fullrank, "%d,%c",&myrank,&mylevel);
+    for ( i=0; i< Volpex_numprocs; i++ ) {
+        proc = Volpex_get_proc_byid(i);
+        proc->plist->ids = (int *) malloc (proc->plist->num * sizeof(int));
+        proc->plist->SL_ids = (int *) malloc (proc->plist->num * sizeof(int));
+        for(j=0;j<Volpex_numprocs;j++){
+                tproc = Volpex_get_proc_byid(j);
+
+                if(proc->rank_MCW == tproc->rank_MCW){
+                        if((tproc->level-mylevel)<0)
+                                pos = tproc->level-mylevel+proc->plist->num;
+                        else
+                                pos = tproc->level-mylevel;
+                        proc->plist->ids[pos]= tproc->id;
+                        proc->plist->SL_ids[pos]= tproc->SL_id;
+                }
+    }
+}
+ return MPI_SUCCESS;
+
+}
+
+
+int Volpex_init_procplist()
+{
+    Volpex_proc *proc, *tproc;
+    int i, j;
+    int myrank;
+    char mylevel;
+    int pos=0;
+    
+    
+    for ( i=0; i< Volpex_numprocs; i++ ) {
+        proc = Volpex_get_proc_byid(i);
+        for(j=0;j<Volpex_numprocs;j++){
+	    tproc = Volpex_get_proc_byid(j);
+	    if(proc->rank_MCW == tproc->rank_MCW)
+		proc->plist->num++ ;
+        }
+    }
+    sscanf(fullrank, "%d,%c",&myrank,&mylevel);
+    for ( i=0; i< Volpex_numprocs; i++ ) {
+        proc = Volpex_get_proc_byid(i);
+        proc->plist->ids = (int *) malloc (proc->plist->num * sizeof(int));
+        proc->plist->SL_ids = (int *) malloc (proc->plist->num * sizeof(int));
+        proc->plist->recvpost = (int *) malloc (proc->plist->num * sizeof(int));
+        for(j=0;j<Volpex_numprocs;j++){
+	    tproc = Volpex_get_proc_byid(j);
+	    
+	    if(proc->rank_MCW == tproc->rank_MCW){
+		if((tproc->level-mylevel)<0)
+		    pos = tproc->level-mylevel+proc->plist->num;
+		else
+		    pos = tproc->level-mylevel;
+		proc->plist->ids[pos]= tproc->id;
+		proc->plist->SL_ids[pos]= tproc->SL_id;
+	    }
+		proc->plist->recvpost[pos] = 0;
+	}
+    }
+    return MPI_SUCCESS;
+    
+}
+
+
+
+
+
+
 
 void Volpex_print_procplist()
 {
@@ -202,11 +299,35 @@ void Volpex_print_procplist()
                 printf("[%d]:procid:%d-> ",SL_this_procid,proc->id);
                 for (j=0; j<proc->plist->num;j++)
                         printf("%d ", proc->plist->ids[j]);
+		printf("  SL_id ->");
+                for (j=0; j<proc->plist->num;j++)
+                        printf("%d ", proc->plist->SL_ids[j]);
 
                 printf("\n");
         }
 
 
+}
+
+Volpex_proc* Volpex_get_proc_bySLid(int id)
+{
+    Volpex_proc *dproc = NULL, *proc = NULL;
+    int i, size;
+
+    size = SL_array_get_last(Volpex_proc_array ) + 1;
+    for(i=0; i<size; i++){
+        proc = (Volpex_proc*) SL_array_get_ptr_by_pos (Volpex_proc_array, i);
+        if ( NULL == proc ) {
+            continue;
+        }
+
+        if (id == proc->SL_id){
+            dproc = proc;
+            break;
+        }
+    }
+
+    return dproc;
 }
 
 
@@ -275,7 +396,7 @@ int Volpex_get_fullrank(char *myredrank)
 {
     Volpex_proc *dproc=NULL;
     
-    dproc = (Volpex_proc *)SL_array_get_ptr_by_id ( Volpex_proc_array, SL_this_procid );
+    dproc = (Volpex_proc *)SL_array_get_ptr_by_id ( Volpex_proc_array, Volpex_this_procid );
     strcpy(myredrank, dproc->rank);
     
     return 0;

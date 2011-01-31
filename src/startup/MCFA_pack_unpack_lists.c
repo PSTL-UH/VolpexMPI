@@ -22,8 +22,7 @@ char* MCFA_pack_proclist(struct MCFA_proc_node *procList, int *msglen)
 		numprocs++;
 		curr = curr->next;
 	}
-
-	noofints = numprocs * 5;
+	noofints = numprocs * 6;
 	noofchars = numprocs * (MAXHOSTNAMELEN + MAXNAMELEN + MAXRANK);
          
 	MCFA_pack_size(noofints, noofchars, &len);
@@ -37,14 +36,15 @@ char* MCFA_pack_proclist(struct MCFA_proc_node *procList, int *msglen)
 
         while(curr !=NULL)
         {
-                MCFA_pack_int(buffer, &curr ->procdata.id ,1,&pos);
-                MCFA_pack_string(buffer, curr ->procdata.hostname ,MAXHOSTNAMELEN,&pos);
-                MCFA_pack_int(buffer, &curr ->procdata.portnumber ,1,&pos);
-                MCFA_pack_int(buffer, &curr ->procdata.jobid ,1,&pos);
-                MCFA_pack_int(buffer, &curr ->procdata.sock ,1,&pos);
-		MCFA_pack_int(buffer, &curr ->procdata.status ,1,&pos);
-		MCFA_pack_string(buffer, curr->procdata.executable, MAXNAMELEN, &pos);
-		MCFA_pack_string(buffer,curr->procdata.fullrank, MAXRANK, &pos);
+                MCFA_pack_int(buffer, &curr ->procdata->id ,1,&pos);
+                MCFA_pack_int(buffer, &curr ->procdata->volpex_id ,1,&pos);
+                MCFA_pack_string(buffer, curr ->procdata->hostname ,MAXHOSTNAMELEN,&pos);
+                MCFA_pack_int(buffer, &curr ->procdata->portnumber ,1,&pos);
+                MCFA_pack_int(buffer, &curr ->procdata->jobid ,1,&pos);
+                MCFA_pack_int(buffer, &curr ->procdata->sock ,1,&pos);
+		MCFA_pack_int(buffer, &curr ->procdata->status ,1,&pos);
+		MCFA_pack_string(buffer, curr->procdata->executable, MAXNAMELEN, &pos);
+		MCFA_pack_string(buffer,curr->procdata->fullrank, MAXRANK, &pos);
                 curr = curr->next;
         }
 
@@ -59,7 +59,7 @@ char* MCFA_pack_proclist(struct MCFA_proc_node *procList, int *msglen)
 struct MCFA_proc_node* MCFA_unpack_proclist(char *buffer, int len)
 {
 
-        int id,portnumber,jobid,sock,status;
+        int id,portnumber,jobid,sock,status,volpex_id;
         char hostname[MAXHOSTNAMELEN], exec[MAXNAMELEN], fullrank[MAXRANK];
         int pos=0,proc_count = 0;
         int i;
@@ -74,6 +74,7 @@ struct MCFA_proc_node* MCFA_unpack_proclist(char *buffer, int len)
                 proc_count ++ ;
 
                 MCFA_unpack_int(buffer, &id ,1,&pos);
+                MCFA_unpack_int(buffer, &volpex_id ,1,&pos);
                 MCFA_unpack_string(buffer, hostname ,MAXHOSTNAMELEN,&pos);
                 MCFA_unpack_int(buffer, &portnumber ,1,&pos);
                 MCFA_unpack_int(buffer, &jobid ,1,&pos);
@@ -112,7 +113,7 @@ char* MCFA_pack_hostlist(struct MCFA_host_node *hostList, int *msglen)
 	while(curr !=NULL)
         {
 		hostcount++;
-		numprocseachhost = numprocseachhost + curr->hostdata.numofProcs;
+		numprocseachhost = numprocseachhost + curr->hostdata->numofProcs;
 		curr = curr->next;
         }
 
@@ -130,17 +131,17 @@ char* MCFA_pack_hostlist(struct MCFA_host_node *hostList, int *msglen)
         while(curr !=NULL)
         {
 
-                MCFA_pack_string(buffer, curr ->hostdata.hostname, MAXHOSTNAMELEN, &pos);
-                MCFA_pack_int(buffer, &curr ->hostdata.numofProcs, 1, &pos);
-                MCFA_pack_int(buffer, &curr ->hostdata.lastPortUsed, 1, &pos);
-                for(i=0;i<curr ->hostdata.numofProcs;i++)
+                MCFA_pack_string(buffer, curr ->hostdata->hostname, MAXHOSTNAMELEN, &pos);
+                MCFA_pack_int(buffer, &curr ->hostdata->numofProcs, 1, &pos);
+                MCFA_pack_int(buffer, &curr ->hostdata->lastPortUsed, 1, &pos);
+                for(i=0;i<curr ->hostdata->numofProcs;i++)
                 {
-                        MCFA_pack_int(buffer, &curr ->hostdata.id[i].procID, 1, &pos);
-                        MCFA_pack_int(buffer, &curr ->hostdata.id[i].jobID, 1, &pos);
-			MCFA_pack_string(buffer, curr->hostdata.id[i].exec, MAXNAMELEN, &pos);
+                        MCFA_pack_int(buffer, &curr ->hostdata->id[i].procID, 1, &pos);
+                        MCFA_pack_int(buffer, &curr ->hostdata->id[i].jobID, 1, &pos);
+			MCFA_pack_string(buffer, curr->hostdata->id[i].exec, MAXNAMELEN, &pos);
                 }
 //                MCFA_pack_string(buffer, curr ->hostdata.executable, MAXHOSTNAMELEN, &pos);
-                MCFA_pack_int(buffer, &curr ->hostdata.status, 1, &pos);
+                MCFA_pack_int(buffer, &curr ->hostdata->status, 1, &pos);
 
                 curr = curr->next;
         }
@@ -230,12 +231,12 @@ char* MCFA_pack_jobstatus(struct MCFA_proc_node *procList,int jobid, int *msglen
 
 	while(curr !=NULL)
 	{
-	    if (curr->procdata.jobid == jobid)
+	    if (curr->procdata->jobid == jobid)
 		numprocs++;
 	    curr = curr->next;
 	}
 
-	noofints = numprocs * 5;
+	noofints = numprocs * 6;
         noofchars = numprocs * (MAXHOSTNAMELEN + MAXNAMELEN + MAXRANK);
 
 
@@ -250,16 +251,17 @@ char* MCFA_pack_jobstatus(struct MCFA_proc_node *procList,int jobid, int *msglen
 
 	 while(curr !=NULL)
 	 { 
-	     if (curr->procdata.jobid == jobid)
+	     if (curr->procdata->jobid == jobid)
 	     {
-		MCFA_pack_int(buffer, &curr ->procdata.id ,1,&pos);
-                MCFA_pack_string(buffer, curr ->procdata.hostname ,MAXHOSTNAMELEN,&pos);
-                MCFA_pack_int(buffer, &curr ->procdata.portnumber ,1,&pos);
-                MCFA_pack_int(buffer, &curr ->procdata.jobid ,1,&pos);
-                MCFA_pack_int(buffer, &curr ->procdata.sock ,1,&pos);
-		MCFA_pack_int(buffer, &curr ->procdata.status ,1,&pos);
-		MCFA_pack_string(buffer, curr->procdata.executable, MAXNAMELEN,&pos);
-		MCFA_pack_string(buffer, curr->procdata.fullrank, MAXRANK, &pos);
+		MCFA_pack_int(buffer, &curr ->procdata->id ,1,&pos);
+		MCFA_pack_int(buffer, &curr ->procdata->volpex_id ,1,&pos);
+                MCFA_pack_string(buffer, curr ->procdata->hostname ,MAXHOSTNAMELEN,&pos);
+                MCFA_pack_int(buffer, &curr ->procdata->portnumber ,1,&pos);
+                MCFA_pack_int(buffer, &curr ->procdata->jobid ,1,&pos);
+                MCFA_pack_int(buffer, &curr ->procdata->sock ,1,&pos);
+		MCFA_pack_int(buffer, &curr ->procdata->status ,1,&pos);
+		MCFA_pack_string(buffer, curr->procdata->executable, MAXNAMELEN,&pos);
+		MCFA_pack_string(buffer, curr->procdata->fullrank, MAXRANK, &pos);
 	     }
 	     
 	     curr = curr->next;
@@ -272,7 +274,7 @@ char* MCFA_pack_jobstatus(struct MCFA_proc_node *procList,int jobid, int *msglen
 
 struct MCFA_proc_node* MCFA_unpack_jobstatus(char *buffer, int len)
 {  
-	int id,portnumber,jobid,sock,status;
+	int id,portnumber,jobid,sock,status,volpex_id;
         char hostname[MAXHOSTNAMELEN], exec[MAXNAMELEN], fullrank[MAXRANK];
         int pos=0,proc_count = 0;
         int i;
@@ -287,6 +289,7 @@ struct MCFA_proc_node* MCFA_unpack_jobstatus(char *buffer, int len)
                 proc_count ++ ;
 
                 MCFA_unpack_int(buffer, &id ,1,&pos);
+                MCFA_unpack_int(buffer, &volpex_id ,1,&pos);
                 MCFA_unpack_string(buffer, hostname ,MAXHOSTNAMELEN,&pos);
                 MCFA_unpack_int(buffer, &portnumber ,1,&pos);
                 MCFA_unpack_int(buffer, &jobid ,1,&pos);
@@ -321,7 +324,7 @@ char* MCFA_pack_procstatus(struct MCFA_proc_node *procList,int procid, int *msgl
 	if(node !=NULL)
         {
 //                if(node->jobid == jobid)
-                MCFA_pack_size( 5, MAXHOSTNAMELEN + MAXNAMELEN + MAXRANK, &len);
+                MCFA_pack_size( 6, MAXHOSTNAMELEN + MAXNAMELEN + MAXRANK, &len);
                 buffer = malloc(len);
 		if(NULL == buffer){
                 	printf("ERROR: in allocating memory\n");
@@ -329,6 +332,7 @@ char* MCFA_pack_procstatus(struct MCFA_proc_node *procList,int procid, int *msgl
     		}
 
 		MCFA_pack_int(buffer, &node->id ,1,&pos);
+		MCFA_pack_int(buffer, &node->volpex_id ,1,&pos);
 	        MCFA_pack_string(buffer,node->hostname ,MAXHOSTNAMELEN,&pos);
         	MCFA_pack_int(buffer, &node->portnumber ,1,&pos);
                 MCFA_pack_int(buffer, &node->jobid ,1,&pos);
@@ -359,11 +363,14 @@ struct MCFA_process* MCFA_unpack_procstatus(char *buffer, int len)
                 exit(-1);
         }
 
+	proc->hostname = (char*)malloc(MAXHOSTNAMELEN * sizeof(char));
+	proc->executable = (char*)malloc(MAXNAMELEN * sizeof(char));
 	if(buffer !=NULL)
 	
 	        for(i=0;i<len;)
         	{
 	                MCFA_unpack_int(buffer, &proc->id ,1,&pos);
+	                MCFA_unpack_int(buffer, &proc->volpex_id ,1,&pos);
         	        MCFA_unpack_string(buffer, proc->hostname ,MAXHOSTNAMELEN,&pos);
                 	MCFA_unpack_int(buffer, &proc->portnumber ,1,&pos);
 	                MCFA_unpack_int(buffer, &proc->jobid ,1,&pos);
@@ -378,6 +385,85 @@ struct MCFA_process* MCFA_unpack_procstatus(char *buffer, int len)
 	        }
 	
 	return proc;
+}
+char* MCFA_pack_procs(struct MCFA_proc_node *procList,int *ids, int numprocs,int *msglen)
+{
+
+        struct MCFA_process *node;
+         char *buffer = NULL;
+
+        int len;
+        int pos=0,i;
+	int noofints = 0;
+        int noofchars = 0;
+	
+	noofints = numprocs * 6;
+        noofchars = numprocs * (MAXHOSTNAMELEN + MAXNAMELEN + MAXRANK);
+
+        MCFA_pack_size(noofints, noofchars, &len);
+        buffer = malloc(len);
+        if(buffer == NULL){
+                printf("ERROR: in allocating memory\n");
+                exit(-1);
+        }
+
+	for(i=0; i<numprocs; i++){
+	        node = MCFA_search_proc(procList,ids[i]);
+        	if(node !=NULL)
+        	{
+                	MCFA_pack_int(buffer, &node->id ,1,&pos);
+                	MCFA_pack_int(buffer, &node->volpex_id ,1,&pos);
+	                MCFA_pack_string(buffer,node->hostname ,MAXHOSTNAMELEN,&pos);
+        	        MCFA_pack_int(buffer, &node->portnumber ,1,&pos);
+                	MCFA_pack_int(buffer, &node->jobid ,1,&pos);
+	                MCFA_pack_int(buffer, &node ->sock ,1,&pos);
+        	        MCFA_pack_int(buffer, &node ->status ,1,&pos);
+                	MCFA_pack_string(buffer,node->executable,MAXNAMELEN,&pos);
+	                MCFA_pack_string(buffer,node->fullrank, MAXRANK, &pos);
+		}
+
+        }
+
+        *msglen = len;
+
+        return buffer;
+}
+struct MCFA_proc_node* MCFA_unpack_procs(char *buffer, int len)
+{
+
+        int id,portnumber,jobid,sock,status,volpex_id;
+        char hostname[MAXHOSTNAMELEN], exec[MAXNAMELEN], fullrank[MAXRANK];
+        int pos=0,proc_count = 0;
+        int i;
+
+        struct MCFA_proc_node *tempList;
+
+        MCFA_initProcList(&tempList);
+//      printf("Lenth of processBuffer   %d\n",len);
+        for(i=0;i<len;)
+        {
+
+                proc_count ++ ;
+
+                MCFA_unpack_int(buffer, &id ,1,&pos);
+                MCFA_unpack_int(buffer, &volpex_id ,1,&pos);
+                MCFA_unpack_string(buffer, hostname ,MAXHOSTNAMELEN,&pos);
+                MCFA_unpack_int(buffer, &portnumber ,1,&pos);
+                MCFA_unpack_int(buffer, &jobid ,1,&pos);
+                MCFA_unpack_int(buffer, &sock ,1,&pos);
+                MCFA_unpack_int(buffer, &status ,1,&pos);
+                MCFA_unpack_string(buffer, exec, MAXNAMELEN,&pos);
+                MCFA_unpack_string(buffer, fullrank, MAXRANK,&pos);
+
+                MCFA_add_proc(&tempList, id, hostname, portnumber, jobid,sock,status,exec,fullrank);
+
+             printf("[%d]:%d\t  %s\t  %d\t  %d\n \n",SL_this_procid,id,hostname,portnumber,jobid);
+                i= pos;
+        }
+
+        return tempList;
+      printf("[%d]:Num of procs = %d\n",SL_this_procid,proc_count);
+
 }
 
 char* MCFA_pack_hoststatus(struct MCFA_host_node *hostList,char *host, int *msglen)

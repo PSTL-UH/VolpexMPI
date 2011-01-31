@@ -52,7 +52,9 @@
 
 
 #define	CONDOR		1
-#define SSH		2
+#define SSH		0
+#define BOINC		3
+
 
 char  *MCFA_HOSTNAME;
 char  *MCFA_PORT;
@@ -82,11 +84,12 @@ struct MCFA_host{
 
 struct MCFA_host_node{
         struct MCFA_host_node *next;
-        struct MCFA_host hostdata;
+        struct MCFA_host *hostdata;
         };
 
 struct MCFA_process{
         int 	id;
+	int volpex_id;
 	char 	*hostname;
 //        char 	hostname[MAXHOSTNAMELEN];
         int 	portnumber;
@@ -101,7 +104,7 @@ struct MCFA_process{
 
 struct MCFA_proc_node{
         struct MCFA_proc_node *next;
-        struct MCFA_process procdata;
+        struct MCFA_process *procdata;
         };
 
 
@@ -200,25 +203,28 @@ int MCFA_add_host(struct MCFA_host_node **hostList,struct MCFA_host *node);
 
 
 int MCFAcontrol_getid();
-int MCFAcontrol_add(int, char*, int, int,char*);
+int MCFAcontrol_add(int, char*, int, int,char*,int);
 int MCFAcontrol_print_options();
 int MCFAcontrol_deletejob(int);
 int MCFAcontrol_deleteproc(int);
 int MCFAcontrol_print();
 
 int MCFA_connect(int id);
-struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, int port, int jobID, int numprocs,int hostCount,int redundancy, int condor_flag);
+int MCFA_connect_stage2();
+struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, int port, int jobID, int numprocs,int hostCount,
+			int redundancy, int condor_flag,struct MCFA_proc_node *newproclist);
 
 void MCFA_get_abs_path(char *arg, char **path);
 void MCFA_get_path(char *arg, char **path);
 char** MCFA_allocate_func(char fileName[MAXHOSTNAMELEN], int *num);
 int MCFA_get_exec_name(char *path, char *filename);
+char ** MCFA_get_hostarray(struct MCFA_host_node *hostlist, char *starthost);
 
 int MCFA_proc_exists(struct MCFA_proc_node *procList,int id);
 int MCFA_procjob_exists(struct MCFA_proc_node *procList,int id);
 int MCFA_check_proc(struct MCFA_proc_node *procList);
 
-
+char MCFA_search_rank_lastlevel(struct MCFA_proc_node *procList, int initid);
 
 
 int MCFA_event_addprocs(SL_event_msg_header *header, int numprocs);
@@ -232,9 +238,10 @@ int MCFA_event_printallhoststatus(SL_event_msg_header *header);
 
 
 
-char ** MCFA_set_args(int id,char **hostName, char *path, int port, int jobID, int numprocs,int hostCount, int redundancy, int flag);
-void MCFA_set_lists(int id,char **hostName, char *path, int port, int jobID, int numprocs,int hostCount, int redundancy);
+char ** MCFA_set_args(int id,char *hostName, char *path, int port, int jobID, int numprocs,int hostCount, int redundancy, int flag);
+struct MCFA_proc_node* MCFA_set_lists(int id,char **hostName, char *path, int port, int jobID, int numprocs,int hostCount, int redundancy);
 void MCFA_create_condordesc(char *exe, int numprocs);
+struct MCFA_host_node* MCFA_set_hostlist(char *hostFile, char *hostname, int numprocs, int port, int *hostCount, char ***hostName);
 
 int MCFA_update_proclist(struct MCFA_proc_node *procList, int id, char *hostname, int port);
 char* MCFA_pack_proc_address(char *name, int id);
@@ -242,6 +249,63 @@ int MCFA_unpack_proc_address(char *buf, char **hostname, int *id);
 char ** MCFA_read_argfile();
 void MCFA_start_condorjob();
 
+int MCFA_node_selection();
+
+
+
+
+/*------------------MCFA_node_selection----------------------*/
+
+struct MCFA_nodes{
+    int timeval;
+    int id1;
+    int id2;
+    int color;
+};
+typedef struct MCFA_nodes MCFA_nodes;
+
+struct MCFA_node{
+        int left;
+        int right;
+        double distance;
+};
+typedef struct MCFA_node MCFA_node;
+
+
+
+
+
+int MCFA_node_selection(int redundancy);
+int MCFA_sort(MCFA_nodes *a, int size);
+void MCFA_update_fullrank(int *newnodes, int redundancy, int **cluster);
+void MCFA_update_fullrank1(int *newnodes, int redundancy );
+void MCFA_print_cluster(int **cluster, int redundancy);
+int* MCFA_pick_nodes(MCFA_nodes *a, int size, int redundancy, int ***tcluster);
+void MCFA_search_next_node(MCFA_nodes *a,int size,int node1,int node2, int *val1, int *val2, int *pos);
+
+
+int MCFA_transpose_distmatrix(int **procarray);
+int MCFA_print_distmatrix(int **procarray, int size);
+MCFA_node* MCFA_app_comm_matrix(int redundancy);
+
+
+
+
+
+/*--------------------MCFA_clusturing--------------------*/
+
+MCFA_node* MCFA_tree(int **procarray, int numprocs);
+int MCFA_nodecompare(const void* a, const void* b);
+void MCFA_cuttree (int nelements, MCFA_node* tree, int nclusters, int clusterid[
+]);
+int* MCFA_cluster(MCFA_node *result, int red, int **mat);
+void MCFA_printtree(MCFA_node* result, int nnodes);
+void MCFA_printclusterdist(int *clusterid);
+MCFA_node** MCFA_create_subtree(int ***subdistmat, int redundancy, int *newnodes
+);
+int* MCFA_create_mapping(MCFA_node *mpitree, MCFA_node *coretree, int nnodes);
+int*** MCFA_dividedistmatrix(int **distmatrix, int redundancy, int *newnodes);
+void MCFA_print_submatrix(int ***subdistmat, int redundancy, int *newnodes);
 
 
 

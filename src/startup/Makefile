@@ -19,7 +19,9 @@ OBJ =	MCFA_pack_unpack.o	\
 	MCFA_env.o		\
 	MCFA_event_handling.o	\
 	MCFA_eventcontrol.o	\
-	MCFA_spawn_procs.o
+	MCFA_spawn_procs.o	\
+	MCFA_node_selection.o   \
+        MCFA_clustering.o
 #	MCFA_socket_comm.o	\
 #	MCFA_socket_comm.o	\
 
@@ -28,7 +30,7 @@ OBJ =	MCFA_pack_unpack.o	\
 all:    
 	make $(VOLPEX_LIB) 
 	make MCFA_startprocs
-#	make MCFA_control
+	make MCFA_control
 #	make MCFA_monitor
 	make MCFA_startup_d
 
@@ -37,7 +39,7 @@ $(VOLPEX_LIB): $(HEADER) $(OBJ)
 
 $(OBJ):	$(HEADER)
 .c.o:	$(HEADER)
-	$(CC) $(CFLAGS) -c $<
+	$(CC) $(CFLAGS)  -c $<
 
 MCFA_startprocs: $(HEADER) $(OBJ)
 	$(CC) $(CFLAGS) -o mcfarun MCFA_startprocs.c $(LDFLAGS)

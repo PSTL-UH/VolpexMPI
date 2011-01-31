@@ -49,7 +49,7 @@
 #define CK_LEN  (int)(5*sizeof(int))
 
 #define MAX_MSG	1
-#define MAX_MSG_TIME 3000000
+#define MAX_MSG_TIME 10000000
 #define MAX_MSG_REPEAT 30000000000
 #define VOLPEX_PROC_CONNECTED     1
 #define VOLPEX_PROC_NOT_CONNECTED 0
@@ -67,6 +67,7 @@ typedef struct global_map Global_Map;
 
 struct volpex_proc{
       int 	      id;
+      int 	   SL_id;
       char     *hostname;
       int 	    port;
       char 	rank[16];  /* fullrank of a process in MPI_COMM_WORLD */
@@ -133,8 +134,9 @@ typedef struct volpex_proc Volpex_proc;
 
 struct volpex_proclist{
     int 	 num;   // number of replicas for this rank
-    int  	 *ids;  // SL_id of each replica.
-    int 	*recvpost;
+    int  	 *ids;  // Volpex_id of each replica.
+    int 	*SL_ids;// SL_ids of each replica.
+    int 	*recvpost;//if send is already posted or not
 };
 
 typedef struct volpex_proclist Volpex_proclist;
@@ -542,11 +544,12 @@ int Volpex_compare_msg_header(Volpex_msg_header* header1, Volpex_msg_header* hea
 int Volpex_compare_msg_progress(Volpex_msg_header* header1, Volpex_msg_header* header2, int *msgprogress );
 void Volpex_print_msg_header ( Volpex_msg_header *header );
 
-int Volpex_init_proc(int id, char *hostname, int port, char *rank);
+int Volpex_init_proc(int id, int SL_id, char *hostname, int port, char *rank);
 int Volpex_proc_read_and_set();
 int Volpex_proc_read_and_set();
 int Volpex_get_procid_fullrank(char *fullrank);
 Volpex_proc* Volpex_get_proc_byid(int id);
+Volpex_proc* Volpex_get_proc_bySLid(int id);
 int Volpex_proc_dump();
 int Volpex_get_procrank(int id);
 int Volpex_get_fullrank(char *myredrank);
@@ -554,6 +557,7 @@ int Volpex_get_rank();
 int Volpex_count_numoftargets(int rank, int comm, char mylevel, int *ownteam);
 int Volpex_dest_src_locator(int rank, int comm, char *myfullrank, int **target, int *numoftargets,int msglen, int msgtype);
 int Volpex_set_state_not_connected(int target);
+int Volpex_get_max_rank();
 
 Volpex_msg_perf* Volpex_msg_performance_init();
 void Volpex_msg_performance_insert(double time, int msglen, int src);
@@ -574,7 +578,8 @@ int Volpex_request_get_counter ( int red );
 
 
 int Volpex_init_comm(int id, int size);
-int Volpex_init_comm_world(int numprocs, int redundancy);
+//int Volpex_init_comm_world(int numprocs, int redundancy);
+int Volpex_init_comm_world(int size);
 int Volpex_init_comm_self(void);
 int Volpex_get_plist_byrank(int rank, Volpex_comm *oldcomm, Volpex_proclist *plist);
 int Volpex_add_proc(Volpex_proclist *proclist, int id);
@@ -583,7 +588,8 @@ void Volpex_print_comm( int commid);
 int Volpex_comm_copy(Volpex_comm* comm1, Volpex_comm* comm2);
 int Volpex_proc_dumpall();
 int Volpex_searchproc_comm(int commid, int procid);
-int Volpex_init_procplist(int redcy);
+//int Volpex_init_procplist(int redcy);
+int Volpex_init_procplist();
 
 int Volpex_msg_performance_free(Volpex_proc *tproc);
 int Volpex_net_performance_free(Volpex_proc *tproc);

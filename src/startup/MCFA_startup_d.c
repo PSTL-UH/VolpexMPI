@@ -56,7 +56,7 @@ else
 
 
    MCFA_set_env(path, hostname, port, jobID, id, event_handler_id, rank, red, flag);
-   PRINTF(("path           : %s\n \
+   printf("path           : %s\n \
 	hostname         : %s\n \
 	port             : %d\n \
 	jobID            : %d\n \
@@ -65,7 +65,7 @@ else
         rank		 : %s\n \
 	red		 : %d\n \
 	flag		 : %d\n",
-        path, hostname, port, jobID, id, event_handler_id,rank,red,flag));
+        path, hostname, port, jobID, id, event_handler_id,rank,red,flag);
 
 
 char **arg1;
@@ -91,22 +91,22 @@ char **arg1;
 else
 	wait(&status);
         if (WIFEXITED(status)) {
-                       PRINTF(("exited, status=%d proc=%d\n", WEXITSTATUS(status),id));
+                       printf("exited, status=%d\n", WEXITSTATUS(status));
                    } else if (WIFSIGNALED(status)) {
-                       printf("killed by signal %d proc=%d\n", WTERMSIG(status),id);
+                       printf("killed by signal %d\n", WTERMSIG(status));
                    } else if (WIFSTOPPED(status)) {
-                       printf("stopped by signal %d proc=%d\n", WSTOPSIG(status),id);
+                       printf("stopped by signal %d\n", WSTOPSIG(status));
                    }
 
 
-/*	int i;
+	int i;
 	for (i=0; i<MAXARGUMENTS;i++){
 		if(NULL != arg[i])
 			free(arg[i]);
 	}
 	if(NULL != arg)
 		free(arg);
-*/
+
 
         return 1;
 }
@@ -140,7 +140,7 @@ char ** MCFA_read_argfile()
     sprintf(arg[0], "%s", "condor");
     
     arg[1] = (char *) malloc (MAXNAMELEN);
-    if (NULL == arg[0]){
+    if (NULL == arg[1]){
 	printf("ERROR: in allocating memory\n");
 	exit(-1);
     }

@@ -40,7 +40,7 @@ extern int SL_this_procid;
 extern int SL_this_procport;
 extern int SL_this_listensock;
 extern int SL_numprocs;
-
+extern int SL_init_numprocs;
 
 /* Message header send before any message */
 struct SL_msg_header {

@@ -23,6 +23,7 @@ Volpex_dest_source_fnct *Volpex_dest_source_select;
 Volpex_target_list *Volpex_targets;
 double init_msg_time;
 double repeat_msg_time;
+extern int Volpex_this_procid;
 
 static void volpex_preconnect(void)
 {
@@ -76,6 +77,8 @@ int  MPI_Init( int *argc, char ***argv )
 {
     int i;
     next_avail_comm = 3;
+    int maxrank;
+    Volpex_numcomms = 0;
     PRINTF(("Moving into MCFA_Init\n"));
     MCFA_Init();
     GM_allocate_global_data();
@@ -83,17 +86,27 @@ int  MPI_Init( int *argc, char ***argv )
     PRINTF(("Hostname: %s\n", hostname));
     PRINTF(("HostIP: %s\n", hostip));
     Volpex_get_fullrank(fullrank);
-//	sleep(10);
+
+/** max rank is needed in case we add a new process
+	total number of process = Volpex_numprocs
+	but total mpiprocesses != Volpex_numprocs/redundancy
+	    total mpiprocesses = maximum mpi rank
+**/
+
+    maxrank = Volpex_get_max_rank();
     // Set up MPI_COMM_WORLD and MPI_COMM_SELF
-    Volpex_init_comm_world ( Volpex_numprocs, redundancy );
+//    Volpex_init_comm_world ( Volpex_numprocs, redundancy );
+
+
+    Volpex_init_comm_world ( maxrank+1 );
     Volpex_init_comm_self ();
 
-    Volpex_init_procplist(redundancy);
-    Volpex_numcomms = 0;
+//    Volpex_init_procplist(redundancy);
+    Volpex_init_procplist();
     Volpex_init_returnheader(&returnheaderList);
     Volpex_init_maxreuse(&maxtagreuse);
     Volpex_init_targetlist();
-
+//	Volpex_print_procplist();
     for(i = 0; i < REQLISTSIZE; i++){
         reqlist[i].insrtbuf = NULL;
 	reqlist[i].returnheader.len = -1;
@@ -116,11 +129,11 @@ int  MPI_Init( int *argc, char ***argv )
     repeat_msg_time = SL_papi_time();
     Volpex_dest_source_select = Volpex_dest_src_locator;
 
-   volpex_preconnect();
+ //  volpex_preconnect();
 //   Volpex_Redundancy_Barrier ( MPI_COMM_WORLD, hdata[MPI_COMM_WORLD].myrank );
 //if(redundancy>1)
  //  Volpex_set_target();
-    Volpex_Barrier ( MPI_COMM_WORLD);
+//    Volpex_Barrier ( MPI_COMM_WORLD);
 //	Volpex_Complete_Barrier(MPI_COMM_WORLD);	
     return MPI_SUCCESS;
 }

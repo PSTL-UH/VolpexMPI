@@ -48,7 +48,8 @@ int main(int argc, char *argv[])
     SL_proc_init ( MCFA_MASTER_ID, hostname, port );
 
 
-    myid = MCFA_connect(MCFA_CONSTANT_ID);
+    MCFA_connect(MCFA_CONSTANT_ID);
+    myid = MCFA_connect_stage2();
 
     SL_this_procid = myid;
     SL_this_procport =  port = 25000;

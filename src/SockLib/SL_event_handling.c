@@ -125,7 +125,7 @@ void SL_event_progress(SL_qitem *elem)
         static SL_event_handle *SL_event;
         void *buf = NULL;
         static int len =0;
-        printf("[%d]:ENTERED INTO EVENT HANDLER !!!!!!!!!!!!:::%d\n\n",SL_this_procid,elem->id);
+        PRINTF(("[%d]:ENTERED INTO EVENT HANDLER !!!!!!!!!!!!:::%d\n\n",SL_this_procid,elem->id));
         if(status == 0){
                 tevent = (SL_event_msg_header*) elem->iov[1].iov_base;
                 PRINTF(("[%d]:new event is %d\n",SL_this_procid,tevent->cmd));
@@ -137,6 +137,13 @@ void SL_event_progress(SL_qitem *elem)
                 else if(tevent->cmd == SL_CMD_DELETE_PROC ){
                         SL_event = SL_delete_proc;
                 }
+		else if(tevent->cmd == SL_CMD_ADD_EXISTING_PROC ){
+                        SL_event = SL_add_existing_proc;
+                }
+                else if (tevent->cmd == SL_CMD_START_COMM){
+                        SL_event = SL_start_communication;
+                }
+
 
                 len = tevent->msglen;
                 PRINTF(("[%d]:Length of recived msg is %d\n",SL_this_procid,len));

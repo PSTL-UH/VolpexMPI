@@ -3,11 +3,12 @@
 #include "SL.h"
 
 extern int SL_this_procport;
+extern int SL_init_numprocs;
 extern struct      MCFA_host_node *hostList;
 extern struct      MCFA_proc_node *procList;
 extern char hostname[MAXHOSTNAMELEN];
 
-char ** MCFA_set_args(int id,char **hostName, char *path, int port, int jobID, int numprocs,int hostCount, int redundancy, int condor_flag)
+char ** MCFA_set_args(int id,char *hostName, char *path, int port, int jobID, int numprocs,int hostCount, int redundancy, int condor_flag)
 {
 
 
@@ -43,7 +44,7 @@ char ** MCFA_set_args(int id,char **hostName, char *path, int port, int jobID, i
 
     MCFA_get_path(d_path1, &d_path);
     arg[0] = strdup("ssh");					
-    arg[1] = strdup(hostName[0]);				
+    arg[1] = strdup(hostName);				
     arg[2] = strdup(d_path);					
     arg[3] = strdup(path);					
     arg[4] = strdup(hostname);					
@@ -103,52 +104,143 @@ char ** MCFA_set_args(int id,char **hostName, char *path, int port, int jobID, i
 
 //MCFA_spawn_procs()
 
-void MCFA_set_lists(int id,char **hostName, char *path, int port, int jobID, int numprocs,int hostCount, int redundancy)
+//struct MCFA_proc_node* MCFA_set_lists(int id,char **hostName, char *path, int port, int jobID, int numprocs,int hostCount, int redundancy)
+struct MCFA_proc_node* MCFA_set_lists(int initid,char **hostName, char *path, int port, int jobID, int numprocs,int hostCount, int redundancy)
 {
 	struct      MCFA_host *node=NULL;
-    	int         i,j=0;
+        struct 	    MCFA_host_node *currhost=NULL;
+	struct	    MCFA_process *proc=NULL;
+    	int         i,id, j=0;
     	char        fullrank[16];
     	char        level = 'A';
-    	char        rank  = -1;
-
+    	char        rank = -1  ;
+	struct    MCFA_proc_node *newproclist = NULL;
+	char	newlevel;
+        
+/*        node = MCFA_search_hostname(hostList,starthost);
+	currhost = hostList;
+	while(strcmp(currhost->hostdata->hostname,node->hostname)){
+		currhost = currhost->next;
+	}
+*/
 
 	for(i=0;i<numprocs;i++)
     	{
-        	id = MCFA_get_nextID();
-//		port++;
-            node = MCFA_search_hostname(hostList,hostName[j]);
+            id = MCFA_get_nextID();
+	    node = MCFA_search_hostname(hostList,hostName[j]);		
+//	    node = currhost->hostdata;
             if(node != NULL){
                 node->id[node->numofProcs].procID = id;
                 node->id[node->numofProcs].jobID = jobID;
                 MCFA_get_exec_name(path,node->id[node->numofProcs].exec);
                 node->numofProcs++;
                node->lastPortUsed++;
-	//	node->lastPortUsed = port;
             }
-            if (rank == numprocs/redundancy-1){
+	    if (initid != -1){
+		newlevel = MCFA_search_rank_lastlevel(procList,initid);
+		newlevel++;
+		sprintf(fullrank,"%d,%c",initid,newlevel);
+	    }
+	    else if(initid == -1){
+	            if (rank == (numprocs/redundancy)-1){
                         rank = 0;
-                        level++;
-                }
-                else
+        	        level++;
+                    }
+                    else
                         rank++;
 
-            sprintf(fullrank,"%d,%c",rank,level);
+           	sprintf(fullrank,"%d,%c",rank,level);
+	   }
 
 
             port = node->lastPortUsed ;
             PRINTF(("MCFA_startprocs: Adding proc %d with jobid %d hostname %s to processList\n",id,jobID,hostname));
-            MCFA_add_proc(&procList, id, hostName[j],port, jobID,-1, 1,path,fullrank);    //for each process adding it process list
-            j++;
+            MCFA_add_proc(&procList, id, node->hostname,port, jobID,-1, 1,path,fullrank);    //for each process adding it process list
+	    MCFA_add_proc(&newproclist, id, node->hostname,port, jobID,-1, 1,path,fullrank);
+	    j++;
             if (j==hostCount){
                 j=0;
-//                port++;
-            }
-
+           } 
+/*
+	    if(currhost->next == NULL)
+		currhost = hostList;
+	    else
+		currhost = currhost->next;
+*/
+	
     }/* end for */
-//	MCFA_printProclist(procList);
-//      MCFA_printHostlist(hostList);
+	return(newproclist);
 
 }
+
+char MCFA_search_rank_lastlevel(struct MCFA_proc_node *procList, int initid)
+{
+	struct MCFA_proc_node *curr = procList;
+	char level, lastlevel;
+	int id;
+
+        while(curr !=NULL)
+        {
+		sscanf(curr -> procdata->fullrank,"%d,%c",&id,&level);
+		if (id == initid){
+			lastlevel = level;
+		}
+                curr = curr ->next;
+        }
+        return lastlevel;
+
+}
+
+struct MCFA_host_node* MCFA_set_hostlist(char *hostFile, char *hostname, int numprocs, int port, int *hostCount, char ***hostName)
+{
+	char        **thostName=NULL;
+//	int         hostCount = 0;
+	int         maxprocspernode = MAXPROCSPERNODE;
+	int 	    i;
+	struct      MCFA_host *newnode=NULL;
+	struct 	    MCFA_host_node *newhostlist;
+	
+	if (hostFile != NULL){
+        /* allocating hostfile to array named hostName */
+        thostName = MCFA_allocate_func(hostFile,hostCount);
+        /* counting number of hosts */
+        *hostCount = *hostCount-1;
+        }
+
+    else{                                                       //if hostfile option do not exist all procceses
+        thostName = (char**)malloc(sizeof(char*));
+        if (NULL == hostName){
+                printf("ERROR: in allocating memory\n");
+                exit(-1);
+        }
+        thostName[0] = strdup(hostname);
+        *hostCount = 1;
+    }
+/* creating host list */
+    MCFA_initHostList(&newhostlist);
+    int num = (int)ceil((double)numprocs/(double)*hostCount);
+    if(maxprocspernode<num)
+        maxprocspernode = num;
+
+    for(i=0;i<*hostCount;i++)
+    {
+        PRINTF(("MCFA_startprocs: adding hosts to hostlist\n"));
+      if((MCFA_search_hostname(hostList,thostName[i])) == NULL){       //for each host in hostfile creating an entry in hostList
+            PRINTF(("MCFA_startprocs: Adding host : %s\n",hostName[i]));
+            newnode = MCFA_init_hostnode(thostName[i],maxprocspernode,port);
+            MCFA_add_host(&hostList, newnode);
+	    MCFA_add_host(&newhostlist, newnode);
+        }
+
+    }
+    *hostName = thostName;
+
+    return newhostlist;
+
+
+}
+
+
 
 void MCFA_create_condordesc(char *exe, int numprocs)
 {

@@ -4,6 +4,12 @@
 #
 include ../Makefile.defs
 
+test_status:
+	$(CC) $(CFLAGS) -o test_status test_status.c $(LDFLAGS)
+
+target_selection:
+	 $(CC) $(CFLAGS) -o target_selection target_selection.c $(LDFLAGS)
+
 temp: 
 	$(CC) $(CFLAGS) -o temp temp.c $(LDFLAGS)
 

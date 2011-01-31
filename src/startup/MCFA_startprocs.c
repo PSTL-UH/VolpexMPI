@@ -7,7 +7,7 @@ extern int SL_this_listensock;
 extern fd_set SL_send_fdset;
 extern fd_set SL_recv_fdset;
 extern int SL_this_procport;
-
+//extern int SL_init_numprocs;
 
 void print_Options();
 void MCFA_gethostname ( char *hostname, int len );
@@ -18,7 +18,7 @@ int MCFA_add_host(struct MCFA_host_node **hostList,struct MCFA_host *node);
 struct      MCFA_host_node *hostList=NULL;
 struct      MCFA_proc_node *procList=NULL;
 char        hostname[MAXHOSTNAMELEN];
-static int 	id=0;
+static int 	id=-1;
 
 int main(int argc, char *argv[])
 {
@@ -26,8 +26,7 @@ int main(int argc, char *argv[])
     int 	flag=0;				//intializing value to false for -hostfile option
     int 	pathflag=0;			//intializing value to false for -wdir option
     int 	jobID=1; 
-    struct      MCFA_host *newnode=NULL;
-    int 	maxprocspernode = MAXPROCSPERNODE;		//maximum number of processes assigned to each hosts
+//    int 	maxprocspernode = MAXPROCSPERNODE;		//maximum number of processes assigned to each hosts
     int 	numprocs=-1;			//total number of clients
     char 	**hostName=NULL;		//contains all names of all hosts which are available
     char 	*hostFile=NULL;
@@ -44,7 +43,7 @@ int main(int argc, char *argv[])
     path = (char*) malloc (MAXNAMELEN * sizeof(char));
     strcpy(path,argv[argc-1]);  
 
-    port = SL_this_procport = 25000;
+    port = SL_this_procport = 45000;
     MCFA_printf_init(1,-1);
     jobID = MCFA_get_nextjobID();
 
@@ -100,46 +99,18 @@ int main(int argc, char *argv[])
     
     if (pathflag != 1)
 	MCFA_get_path(argv[argc-1],&path);
-    
-/*if  hostfile option exists */
-    if (flag == 1){
-	/* allocating hostfile to array named hostName */
-	hostName = MCFA_allocate_func(hostFile,&hostCount);
-	/* counting number of hosts */
-	hostCount = hostCount-1;				
-    }
-    else{							//if hostfile option do not exist all procceses
-    								//are executed on local machine
-	hostName = (char**)malloc(sizeof(char*));
-	if (NULL == hostName){
-		printf("ERROR: in allocating memory\n");
-	        exit(-1);
-	}
-	hostName[0] = strdup(hostname);
-	hostCount = 1;
-    }
+
+
+
+
     MCFA_initHostList(&hostList);				//initialing a hostlist
     MCFA_initProcList(&procList);
     
-/* creating host list */
-    int num = (int)ceil((double)numprocs/(double)hostCount);
-    if(maxprocspernode<num)
-	maxprocspernode = num;
+	MCFA_set_hostlist(hostFile,hostname, numprocs, port, &hostCount, &hostName);
+//	hostName = MCFA_get_hostarray( hostList, hostList->hostdata->hostname);
+//	hostCount = MCFA_get_total_hosts(hostList);
     
-    for(i=0;i<hostCount;i++)
-    {
-	PRINTF(("MCFA_startprocs: adding hosts to hostlist\n"));
-	if((MCFA_search_hostname(hostList,hostName[i])) == NULL){	//for each host in hostfile creating an entry in hostList
-	    PRINTF(("MCFA_startprocs: Adding host : %s\n",hostName[i]));
-	    newnode = MCFA_init_hostnode(hostName[i],maxprocspernode,port);
-	    MCFA_add_host(&hostList, newnode);			
-	    free(newnode);
-	}
-	
-    }
-	
-    
-    SL_array_init ( &(SL_proc_array), "SL_proc_array", 32 );
+	SL_array_init ( &(SL_proc_array), "SL_proc_array", 32 );
     FD_ZERO( &SL_send_fdset );
     FD_ZERO( &SL_recv_fdset );
     
@@ -151,16 +122,21 @@ int main(int argc, char *argv[])
 	    
     struct MCFA_proc_node *newproclist = NULL;
 	numprocs = numprocs * redundancy;
-    newproclist = MCFA_spawn_processes(hostName,path,port,jobID,numprocs,hostCount,redundancy,condor_flag);
-//    MCFA_printProclist(procList);
+	SL_numprocs = 0;
+
+    newproclist = MCFA_set_lists(id,hostName,path,port,jobID,numprocs,hostCount,redundancy);
+    MCFA_spawn_processes(hostName,path,port,jobID,numprocs,hostCount,redundancy,condor_flag,newproclist);
+
+
+//    newproclist = MCFA_spawn_processes(hostName,path,port,jobID,numprocs,hostCount,redundancy,condor_flag);
 
 
 	
     
-    struct SL_event_msg_header 		*header = NULL ;
+    SL_event_msg_header 		*header = NULL ;
     SL_qitem 				*event = NULL;
     int 				size = 0, count = 0;    
-
+    int num;
     while(1)
     {
 //        sleep(1); 
@@ -168,18 +144,20 @@ int main(int argc, char *argv[])
 	size = size + MCFA_check_proc(procList);
 	numprocs = numprocs - size;
 	size = 0;
-	if(numprocs <= 0)
+	if(numprocs <= 0){
 		break;
+	}
 	
 	SL_msg_progress();
 	event = SL_get_next_event();
 	if(NULL != event){
 	 
-	    header  = (struct SL_event_msg_header* )event->iov[1].iov_base;
+	    header  = (SL_event_msg_header* )event->iov[1].iov_base;
 	//	SL_proc_dumpall();
 
 	    printf("Recieving a new msg by process :%d\n\n", header->id);
 	    if(header->cmd == SL_CMD_DELETE_PROC){
+//		SL_proc_dumpall();
 		header->cmd = MCFA_CMD_DELETE_PROC;
 	    }
 	    else if(header->cmd == SL_CMD_ADD_PROC){
@@ -194,9 +172,18 @@ int main(int argc, char *argv[])
 		MCFA_event_addprocs(header, numprocs);
 		numprocs = numprocs + header->numprocs;
 		MCFA_printProclist(procList);
-//		MCFA_printHostlist(hostList);
+		MCFA_printHostlist(hostList);
 		
             }
+	    else if (header->cmd == MCFA_CMD_ADD_PROCID){
+		printf("MCFA_startprocs: Request to add process with id %d \n", header->procid);
+		MCFA_event_addprocs(header,numprocs);
+		numprocs++;
+		MCFA_printProclist(procList);
+//                MCFA_printHostlist(hostList);
+	    }
+	    
+
 	    else if (header->cmd == MCFA_CMD_DELETE_JOB){
 		PRINTF(("MCFA_startprocs: Request to delete processes \n"));
 		if (MCFA_procjob_exists(procList,header->jobid)){		    
@@ -262,7 +249,7 @@ int main(int argc, char *argv[])
     
     /* After everything is done, close the socket */
     PRINTF(("SERVER: connection closed \n"));
-
+printf("Total SL_numprocs:%d\n",SL_numprocs);
     for(i=0;i<hostCount;i++)
 	if(NULL == hostName[i])
 		free(hostName[i]);
@@ -315,79 +302,88 @@ void print_Options()
     
 }
 
-struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, int port, int jobID, int numprocs,int hostCount, int redundancy,int condor_flag)
+//struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, int port, int jobID, int numprocs,int hostCount, int redundancy,int condor_flag)
+
+struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, int port, int jobID,int numprocs,int hostCount, int redundancy,int spawn_flag, struct MCFA_proc_node *newproclist)
+
+
+
 {
 
     char 	**arg = NULL;
-    struct 	MCFA_proc_node *newproclist = NULL;
+//    struct 	MCFA_proc_node *newproclist = NULL;
     int 	i,k;
     int 	pid = 10;
     int 	msglen = 0;
     char 	*buf = NULL;
     FILE	*fp;
     char	fname[20];
+    struct MCFA_proc_node *currlist = newproclist;
+    char exec[MAXNAMELEN];
+    SL_event_msg_header *header;
+    SL_qitem                            *event = NULL;
+
+
+
+
+    SL_numprocs = SL_numprocs+numprocs;
+    SL_init_numprocs = numprocs;
+    
+    arg = MCFA_set_args(id,hostName[0],path,port,jobID,numprocs,hostCount,redundancy, spawn_flag);
     
     
-    arg = MCFA_set_args(id,hostName,path,port,jobID,numprocs,hostCount,redundancy, condor_flag);
-    
-    
-    MCFA_set_lists(id,hostName,path,port,jobID,numprocs,hostCount,redundancy);
-    
-    
-    
-/* assigning hostfile in round robin fashion */
-    struct MCFA_proc_node *currlist = procList;
-    PRINTF(("number of procs spawned = %d\n", numprocs)); 
     for(i=0;i<numprocs;i++)
     {
-        id = currlist->procdata.id;
+        id = currlist->procdata->id;
 	
         if(pid!=0){
-	    strcpy(arg[1], currlist->procdata.hostname);	
+	    strcpy(arg[1], currlist->procdata->hostname);	
 	    sprintf(arg[7], "%d" ,id);
-	    strcpy(arg[9],currlist->procdata.fullrank);		    
+	    strcpy(arg[9],currlist->procdata->fullrank);		    
 	    
-	    if(condor_flag != 1){	    
-		SL_proc_init(id, currlist->procdata.hostname, currlist->procdata.portnumber);               
-									    //adding each process to SL_proc_array
-	    }
-	    MCFA_add_proc(&newproclist, id, currlist->procdata.hostname,currlist->procdata.portnumber, 
-				currlist->procdata.jobid, currlist->procdata.sock, currlist->procdata.status,
-				currlist->procdata.executable,currlist->procdata.fullrank);
-        
-           if (condor_flag == 1){
-             	sprintf(fname, "volpex.%d",id);
-            	PRINTF(("Creating a file:%s \n", fname));
-                fp = fopen(fname, "w");
-		for(k=3; k<MAXARGUMENTS-1; k++){
-		    fprintf(fp,"%s\n",arg[k]);
-		}
-		fclose(fp);
-	    }
-	  else{
+	    if(spawn_flag == SSH){
+		SL_proc_init(id, currlist->procdata->hostname, currlist->procdata->portnumber);
 		pid=fork();
                 if(pid<0) {
                     MCFA_printf("fork failed errno is %d (%s)\n", errno, strerror(errno));
                 }
-            }
+                                                                            //adding each process to SL_proc_array
+	    }
+
+	    else if (spawn_flag == CONDOR){
+		sprintf(fname, "volpex.%d",id);
+                PRINTF(("Creating a file:%s \n", fname));
+                fp = fopen(fname, "w");
+                for(k=3; k<MAXARGUMENTS-1; k++){
+                    fprintf(fp,"%s\n",arg[k]);
+                }
+                fclose(fp);
+
+	    } 	    
+	    
+	    else if (spawn_flag == BOINC){
+		printf("SORRY!!!we currently do not provide support for BOINC\n");
+		exit(-1);
+	    }
         }
         currlist = currlist->next;
     }
-	if(pid==0 && condor_flag != 1){
-
-            execvp(arg[0],arg);
-	}
 
 
-    char exec[MAXNAMELEN];
-	SL_event_msg_header *header;
-	SL_qitem                            *event = NULL;
-        strcpy(exec, "");
-        MCFA_get_exec_name(arg[2],exec);
 
-    if (condor_flag == 1){
-        MCFA_create_condordesc(exec, numprocs);
-        MCFA_start_condorjob();
+
+    if(pid==0 && spawn_flag == SSH){
+    	execvp(arg[0],arg);
+    }
+
+
+
+    else if (spawn_flag == CONDOR){
+	
+       strcpy(exec, "");
+//       MCFA_get_exec_name(arg[2],exec);
+//       MCFA_create_condordesc(exec, numprocs);
+//       MCFA_start_condorjob();
 
 	k=0;
 	while(k<numprocs){
@@ -396,27 +392,27 @@ struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, int por
 		event = SL_get_next_event_noremove();
         	if(NULL != event){
 
-            		header  = (struct SL_event_msg_header* )event->iov[1].iov_base;
+            		header  = (SL_event_msg_header* )event->iov[1].iov_base;
 			if (header->cmd == MCFA_CMD_GETID){
 				SL_remove_event(event);
-		            	printf("Recieving a new msg by process :%d k:%d, numprocs=%d\n\n", header->id,k,numprocs);
-				MCFA_update_proclist(procList, header->id, header->hostname, header->port);
+		            	printf("Recieving a new msg by process :%d\n\n", header->id);
+				MCFA_update_proclist(procList, header->id, header->hostname,header->port);
+				MCFA_update_proclist(newproclist,header->id,header->hostname,header->port);
+//				MCFA_update_hostlist(hostList, ......)
+				printf("\n\n");
 				k++;
 			}
 			else{
-                               SL_move_eventtolast(event);
-                       }
-
+				SL_move_eventtolast(event);
+			}
 		}
 
 	}		
 
    }
 	MCFA_printProclist(procList);	
-
-
-
-/*sending data to client*/
+	MCFA_printHostlist(hostList);
+//sending data to client
     if(pid!=0){
         buf = MCFA_pack_proclist(procList, &msglen);
         PRINTF(("MCFA_startprocs:Total number of processes spawned %d\n",numprocs));
@@ -426,13 +422,34 @@ struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, int por
     
     for(k=0;k<numprocs;k++)
     {
-	PRINTF(("MCFA_startprocs:sending procList to process with id  %d\n",curr->procdata.id));
-      	SL_Send(&msglen, sizeof(int), curr->procdata.id, 0, 0);
-        SL_Send(buf, msglen, curr->procdata.id, 0, 0 );
+	PRINTF(("MCFA_startprocs:sending procList to process with id  %d\n",curr->procdata->id));
+      	SL_Send(&msglen, sizeof(int), curr->procdata->id, 0, 0);
+        SL_Send(buf, msglen, curr->procdata->id, 0, 0 );
 	curr = curr->next;
     }	
-   
+  
+if(redundancy>10) 
+	MCFA_node_selection(redundancy);
+
+
+	buf = MCFA_pack_proclist(procList, &msglen);
+        printf("MCFA_startprocs:Total number of processes spawned %d\n",numprocs);
+
+
+    curr = newproclist;
+
+    for(k=0;k<numprocs;k++)
+    {
+        SL_Send(buf, msglen, curr->procdata->id, 0, 0 );
+        curr = curr->next;
+    }
+
+
 	}
+
+
+
+
 
     for (i=0; i<MAXARGUMENTS;i++){
     	if(NULL != arg[i])
@@ -447,13 +464,14 @@ struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, int por
     return newproclist;
 }
 
-int MCFA_update_proclist(struct MCFA_proc_node *procList, int id, char *hostname, int port)
+
+int MCFA_update_proclist(struct MCFA_proc_node *proclist, int id, char *hostname, int port)
 {
     struct MCFA_process* proc;
-    proc = MCFA_search_proc(procList,id);
+    proc = MCFA_search_proc(proclist,id);
 
     proc->hostname = strdup(hostname);
-    proc->portnumber = port;
+    proc->portnumber     = port;
   //  SL_proc_init(id, hostname, proc->portnumber);
     return 1;
 }
@@ -462,7 +480,7 @@ int MCFA_check_proc(struct MCFA_proc_node *procList)
 {
     SL_proc *dproc=NULL;
     int i, size;
-    struct SL_event_msg_header header;
+    SL_event_msg_header header;
     int count = 0;
     struct MCFA_proc_node               *list =NULL;
     
@@ -483,14 +501,13 @@ int MCFA_check_proc(struct MCFA_proc_node *procList)
 }
 void MCFA_start_condorjob()
 {
-/*
-        system("ssh tpleblan@cusco.hpcc.uh.edu rm volpex*");
+/*        system("ssh tpleblan@cusco.hpcc.uh.edu rm volpex*");
         system("ssh tpleblan@cusco.hpcc.uh.edu rm temp1");
         system("scp volpex* tpleblan@cusco.hpcc.uh.edu:");
         system("scp mcfastart_d tpleblan@cusco.hpcc.uh.edu:");
         system("scp temp1 tpleblan@cusco.hpcc.uh.edu:");
         system ("ssh tpleblan@cusco.hpcc.uh.edu condor_submit volpexjob.condor");
-//      system("scp volpexjob.condor tpleblan@cusco.hpcc.uh.edu");
+      system("scp volpexjob.condor tpleblan@cusco.hpcc.uh.edu");
 */
 	system ("condor_submit volpexjob.condor");
 }

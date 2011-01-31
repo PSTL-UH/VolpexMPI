@@ -33,7 +33,8 @@ OBJ = 	volpex_API.o		\
 	volpex_target_info.o    \
 	volpex_hybrid.o		\
 	volpex_network_target_sel.o \
-	volpex_loglength_target_sel.o
+	volpex_add_new_proc.o	\
+	volpex_loglength_target_sel.o	
 
 .SUFFIXES: .o.c
 
@@ -45,7 +46,7 @@ $(VOLPEX_LIB): $(HEADER) $(OBJ)
 
 $(OBJ): $(HEADER)
 .c.o:   $(HEADER)
-	$(CC) $(CFLAGS)  -DVOLPEXFORTRAN -c $<
+	$(CC) $(CFLAGS) -DVOLPEXFORTRAN -c $<
 
 #winclib:
 #	mingw32-make winclean
