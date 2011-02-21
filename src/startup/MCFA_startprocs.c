@@ -19,6 +19,7 @@ struct      MCFA_host_node *hostList=NULL;
 struct      MCFA_proc_node *procList=NULL;
 char        hostname[MAXHOSTNAMELEN];
 static int 	id=-1;
+MCFA_set_lists_func *MCFA_set_lists;
 
 int main(int argc, char *argv[])
 {
@@ -54,7 +55,7 @@ int main(int argc, char *argv[])
         MCFA_printf("SERVER: could not determine my own hostname \n" );
     }
 
-
+    MCFA_set_lists =  MCFA_set_listsroundrobin;
 /* Parsing startup options */
     while(next<argc)
     {
@@ -91,6 +92,17 @@ int main(int argc, char *argv[])
 		MCFA_get_abs_path(argv[next+1],&path); /* getting the path of the file to be executed */
 		next=next+2;
 	}
+	else if(!strcmp(argv[next],"-allocation")||!strcmp(argv[next],"--allocation")){
+                if(!strcmp(argv[next+1],"straight"))
+			MCFA_set_lists = MCFA_set_liststraight;
+		else if (!strcmp(argv[next+1],"concentrate"))
+			MCFA_set_lists = MCFA_set_listsconcentrate;
+		else
+			MCFA_set_lists = MCFA_set_listsroundrobin;
+
+                MCFA_get_abs_path(argv[next+1],&path); /* getting the path of the file to be executed */
+                next=next+2;
+	}
 	
 	else{
 	    next=next+1;
@@ -125,10 +137,14 @@ int main(int argc, char *argv[])
 	SL_numprocs = 0;
 
     newproclist = MCFA_set_lists(id,hostName,path,port,jobID,numprocs,hostCount,redundancy);
+	MCFA_printProclist(procList);
+                MCFA_printHostlist(hostList);
+
+
+
     MCFA_spawn_processes(hostName,path,port,jobID,numprocs,hostCount,redundancy,condor_flag,newproclist);
+	
 
-
-//    newproclist = MCFA_spawn_processes(hostName,path,port,jobID,numprocs,hostCount,redundancy,condor_flag);
 
 
 	
@@ -297,14 +313,21 @@ void print_Options()
     printf("\t -help, --help\n");
     printf("\t\t displays a list of options supported by startprocs\n\n");
     printf("\t -condor, --condor\n");
-    printf("\t\t spawn process on condor pool.( if this flag is not available all \
-				processes are spawned on the frontend node using ssh\n\n");
+    printf("\t\t spawn process on condor pool.( if this flag is not available all \n");
+    printf("\t\t\t processes are spawned on the frontend node using ssh\n\n");
+    printf("\t -allocation, --allocation [scheme for allocation of processes]\n");
+    printf("\t\t Specify how the processes can be allocated using a given hostfile\n");
+    printf("\t\t\t\t [roundrobin] - processes are distributed in roundrobin manner for \n");
+    printf("\t\t\t\t\t	given list of hosts. This allocation strategy is also default allocation scheme\n");
+    printf("\t\t\t\t [concentrate]- processes are distributed such that maximum number of processes are on one host\n");
+    printf("\t\t\t\t [straight] -   processes are distributed as hosts are given in hostfile without changing the order of hosts\n\n");
+
     
 }
 
-//struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, int port, int jobID, int numprocs,int hostCount, int redundancy,int condor_flag)
 
-struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, int port, int jobID,int numprocs,int hostCount, int redundancy,int spawn_flag, struct MCFA_proc_node *newproclist)
+struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, int port, int jobID,int numprocs,
+							int hostCount, int redundancy,int spawn_flag, struct MCFA_proc_node *newproclist)
 
 
 
@@ -323,6 +346,7 @@ struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, int por
     SL_event_msg_header *header;
     SL_qitem                            *event = NULL;
 
+    struct MCFA_host_node *currhost = hostList;
 
 
 
@@ -337,20 +361,26 @@ struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, int por
         id = currlist->procdata->id;
 	
         if(pid!=0){
-	    strcpy(arg[1], currlist->procdata->hostname);	
-	    sprintf(arg[7], "%d" ,id);
-	    strcpy(arg[9],currlist->procdata->fullrank);		    
+//	    strcpy(arg[1], currlist->procdata->hostname);	
+//	    sprintf(arg[7], "%d" ,id);
+//	    strcpy(arg[9],currlist->procdata->fullrank);		    
 	    
 	    if(spawn_flag == SSH){
+	    /* SL_proc_init should be done for all processes on procList
+		but fork should be done at each host in hostList not based on proc list
+	    */
+	
 		SL_proc_init(id, currlist->procdata->hostname, currlist->procdata->portnumber);
-		pid=fork();
-                if(pid<0) {
-                    MCFA_printf("fork failed errno is %d (%s)\n", errno, strerror(errno));
-                }
+//		pid=fork();
+//                if(pid<0) {
+//                    MCFA_printf("fork failed errno is %d (%s)\n", errno, strerror(errno));
+//                }
                                                                             //adding each process to SL_proc_array
 	    }
 
 	    else if (spawn_flag == CONDOR){
+               currhost = hostList;
+	       arg = MCFA_set_args1(currhost->hostdata, path, port, redundancy, spawn_flag);	
 		sprintf(fname, "volpex.%d",id);
                 PRINTF(("Creating a file:%s \n", fname));
                 fp = fopen(fname, "w");
@@ -369,6 +399,30 @@ struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, int por
         currlist = currlist->next;
     }
 
+    char *procids, tproc[4], *jobids, tjob[4], *procfullids;
+    struct MCFA_process *proc;
+
+//	procids = (char*)malloc(4*numprocs*sizeof(char));
+
+    if (spawn_flag == SSH){
+        currhost = hostList;
+	while(currhost != NULL && pid !=0 ){
+
+		arg = MCFA_set_args1(currhost->hostdata, path, port, redundancy, spawn_flag);
+
+		printf("process is forking pid:%d\n",pid);
+		pid=fork();
+
+		printf("CHILD PROC ID:%d\n",pid);
+	        if(pid<0) {
+        	        MCFA_printf("fork failed errno is %d (%s)\n", errno, strerror(errno));
+                }
+		currhost = currhost->next;
+
+	}
+    }
+	
+    
 
 
 
@@ -378,8 +432,7 @@ struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, int por
 
 
 
-    else if (spawn_flag == CONDOR){
-	
+    else  if (spawn_flag == CONDOR){
        strcpy(exec, "");
 //       MCFA_get_exec_name(arg[2],exec);
 //       MCFA_create_condordesc(exec, numprocs);
@@ -451,14 +504,14 @@ if(redundancy>10)
 
 
 
-    for (i=0; i<MAXARGUMENTS;i++){
+ /*   for (i=0; i<12;i++){
     	if(NULL != arg[i])
         	free(arg[i]);
         }
         if(NULL != arg)
                 free(arg);
 
-    
+   */ 
     free(buf);
 
     return newproclist;

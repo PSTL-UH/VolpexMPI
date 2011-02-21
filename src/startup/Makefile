@@ -21,7 +21,8 @@ OBJ =	MCFA_pack_unpack.o	\
 	MCFA_eventcontrol.o	\
 	MCFA_spawn_procs.o	\
 	MCFA_node_selection.o   \
-        MCFA_clustering.o
+        MCFA_clustering.o	\
+	MCFA_set_list.o
 #	MCFA_socket_comm.o	\
 #	MCFA_socket_comm.o	\
 

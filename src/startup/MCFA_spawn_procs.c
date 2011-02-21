@@ -8,28 +8,160 @@ extern struct      MCFA_host_node *hostList;
 extern struct      MCFA_proc_node *procList;
 extern char hostname[MAXHOSTNAMELEN];
 
+
+
+char ** MCFA_set_args1(struct MCFA_host *host, char *path, int port, int redundancy, int condor_flag)
+{
+
+
+        /**
+                arg[0]  = type of connection
+                arg[1]  = name of host where process is to be spawned (since we need to do ssh shark01)
+                arg[2]  = path of deamon
+                arg[3]  = path of executable
+                arg[4]  = hostname of mcfarun
+                arg[5]  = port of mcfarun
+                arg[6]  = rank of mcfarun
+                arg[7]  = redundancy
+                arg[8]  = spawn flag
+
+                arg[9]  = number of proccesses on each host
+                arg[10] = SL_id of procs
+
+                arg[11] = NULL
+        **/
+
+
+        char        **arg = NULL;
+//      arg = (char **)malloc(MAXARGUMENTS * sizeof(char*));
+        arg = (char **)malloc(11 * sizeof(char*));
+    if(arg == NULL){
+        printf("ERROR: in allocating memory\n");
+        exit(-1);
+    }
+
+char *d_path, *d_path1 ;
+
+    d_path1 = (char*) malloc (MAXNAMELEN * sizeof(char));
+    strcpy(d_path1, "./mcfastart_d");
+   // d_path1   = strdup("./mcfastart_d");
+
+    MCFA_get_path(d_path1, &d_path);
+    arg[0] = strdup("ssh");
+    arg[1] = strdup(host->hostname);
+    arg[2] = strdup(d_path);
+    arg[3] = strdup(path);
+    arg[4] = strdup(hostname);
+    arg[5] = (char *) malloc (MAXPORTSIZE + 1);
+    if (NULL == arg[5]){
+                printf("ERROR: in allocating memory\n");
+                exit(-1);
+    }
+    sprintf(arg[5], "%d" ,port);
+
+    arg[6] = (char *) malloc (sizeof(int) + 1);
+    if (NULL == arg[6]){
+                printf("ERROR: in allocating memory\n");
+                exit(-1);
+    }
+    sprintf(arg[6], "%d",MCFA_MASTER_ID);
+
+    arg[7] = (char *) malloc (sizeof(int) + 1);
+    if (NULL == arg[7]){
+                printf("ERROR: in allocating memory\n");
+                exit(-1);
+    }
+    sprintf(arg[7], "%d", redundancy);
+
+    arg[8] = (char *) malloc (sizeof(int) + 1);
+    if (NULL == arg[8]){
+                printf("ERROR: in allocating memory\n");
+                exit(-1);
+    }
+    sprintf(arg[8], "%d", condor_flag);
+
+    arg[9] = (char *) malloc (sizeof(int) + 1);
+    if (NULL == arg[9]){
+                printf("ERROR: in allocating memory\n");
+                exit(-1);
+    }
+    sprintf(arg[9], "%d", host->numofProcs);
+
+
+char *tprocid[4];
+char *procids;
+int i;
+procids = (char*)malloc(4*host->numofProcs*sizeof(char));
+
+    sprintf(tprocid, "%d", host->id[0].procID);
+    strcpy(procids, tprocid);
+    for(i=1;i<host->numofProcs;i++){
+	     sprintf(tprocid, "%d", host->id[i].procID);
+             strcat(procids, " ");
+             strcat(procids,tprocid);
+     }
+     arg[10] = (char *) malloc (4*host->numofProcs);
+     if (NULL == arg[10]){
+                printf("ERROR: in allocating memory\n");
+                exit(-1);
+    }
+
+     strcpy(arg[10], procids);
+
+
+
+
+
+    
+	
+
+
+    arg[11]= NULL;
+
+//        free(d_path1);
+//      free(d_path);
+        return arg;
+}
+
+
+
+
+
+
+
+
+
+
+
+
 char ** MCFA_set_args(int id,char *hostName, char *path, int port, int jobID, int numprocs,int hostCount, int redundancy, int condor_flag)
 {
 
 
 	/**
 		arg[0]	= type of connection
-		arg[1]	= hostnames for procs
+		arg[1]  = name of host where process is to be spawned (since we need to do ssh shark01)
 		arg[2]	= path of deamon
 		arg[3]	= path of executable
 		arg[4]	= hostname of mcfarun
 		arg[5]	= port of mcfarun
-		arg[6]	= jobID
-		arg[7]	= rank of procs
-		arg[8]	= rank of mcfarun
-		arg[9]	= fullrank (e.g 0,A)
-		arg[10]	= redundancy
-		arg[11] = NULL 
+		arg[6]	= rank of mcfarun
+		arg[7]	= redundancy
+		arg[8]  = spawn flag
+		
+		arg[9]  = number of proccesses on each host
+		arg[10]	= SL_id of procs
+		arg[10]	= jobID
+		arg[12] = Volpex_id of procs
+		arg[13]	= fullrank (e.g 0,A)
+		
+		arg[14] = NULL 
 	**/
 
 
 	char        **arg = NULL;
-	arg = (char **)malloc(MAXARGUMENTS * sizeof(char*));
+//	arg = (char **)malloc(MAXARGUMENTS * sizeof(char*));
+	arg = (char **)malloc(11 * sizeof(char*));
     if(arg == NULL){
         printf("ERROR: in allocating memory\n");
         exit(-1);
@@ -44,7 +176,7 @@ char ** MCFA_set_args(int id,char *hostName, char *path, int port, int jobID, in
 
     MCFA_get_path(d_path1, &d_path);
     arg[0] = strdup("ssh");					
-    arg[1] = strdup(hostName);				
+    arg[1] = strdup(hostName);
     arg[2] = strdup(d_path);					
     arg[3] = strdup(path);					
     arg[4] = strdup(hostname);					
@@ -55,12 +187,42 @@ char ** MCFA_set_args(int id,char *hostName, char *path, int port, int jobID, in
     }
     sprintf(arg[5], "%d" ,port);
 
-    arg[6] = (char *) malloc (sizeof(int) + 1);			
+    arg[6] = (char *) malloc (sizeof(int) + 1);
     if (NULL == arg[6]){
                 printf("ERROR: in allocating memory\n");
                 exit(-1);
     }
-    sprintf(arg[6], "%d" ,jobID);
+    sprintf(arg[6], "%d",MCFA_MASTER_ID);
+
+    arg[7] = (char *) malloc (sizeof(int) + 1);
+    if (NULL == arg[7]){
+                printf("ERROR: in allocating memory\n");
+                exit(-1);
+    }
+    sprintf(arg[7], "%d", redundancy);
+
+    arg[8] = (char *) malloc (sizeof(int) + 1);
+    if (NULL == arg[8]){
+                printf("ERROR: in allocating memory\n");
+                exit(-1);
+    }
+    sprintf(arg[8], "%d", condor_flag);
+/*
+    arg[6] = (char *) malloc (sizeof(int) + 1);
+    if (NULL == arg[6]){
+                printf("ERROR: in allocating memory\n");
+                exit(-1);
+    }
+
+   sprintf(arg[6], "%d" ,numprocs);
+
+    arg[7] = (char *) malloc (sizeof(int) + 1);			
+    if (NULL == arg[6]){
+                printf("ERROR: in allocating memory\n");
+                exit(-1);
+    }
+
+   sprintf(arg[6], "%d" ,jobID);
 
     arg[7] = (char *) malloc (sizeof(int) + 1);
     if (NULL == arg[7]){
@@ -94,19 +256,32 @@ char ** MCFA_set_args(int id,char *hostName, char *path, int port, int jobID, in
                 exit(-1);
     }
     sprintf(arg[11], "%d", condor_flag);
-	
-    arg[12]= NULL;
+*/	
+    arg[11]= NULL;
 
-        free(d_path1);
-	free(d_path);
+//        free(d_path1);
+//	free(d_path);
 	return arg;
 }
 
 //MCFA_spawn_procs()
 
 //struct MCFA_proc_node* MCFA_set_lists(int id,char **hostName, char *path, int port, int jobID, int numprocs,int hostCount, int redundancy)
-struct MCFA_proc_node* MCFA_set_lists(int initid,char **hostName, char *path, int port, int jobID, int numprocs,int hostCount, int redundancy)
+struct MCFA_proc_node* MCFA_set_lists1(int initid,char **hostName, char *path, int port, int jobID, int numprocs,int hostCount, int redundancy)
 {
+/*
+	initid   - val = -1 if a process is spawned first time
+		      != -1 if a processes is added to the existing job pool
+	
+	hostName - consists of the array of hostnames taken from hostfile. If a particular host is repeated n times then there are n entries
+	of it.
+	path     - path of the executable file
+	port     - port at which mcfarun is running
+	numprocs - total number of processes to be spawned
+	hostCount - total number of entries in hostfile
+	redundancy - 
+*/
+
 	struct      MCFA_host *node=NULL;
         struct 	    MCFA_host_node *currhost=NULL;
 	struct	    MCFA_process *proc=NULL;

@@ -41,10 +41,10 @@ int MCFA_Init()
     path 		= strdup(getenv("MCFA_PATH"));
     hostname 		= strdup(getenv("MCFA_HOSTNAME"));
     port 		= atoi(getenv("MCFA_PORT"));
-    jobID 		= atoi(getenv("MCFA_JOBID"));
+//    jobID 		= atoi(getenv("MCFA_JOBID"));
     id 			= atoi(getenv("MCFA_ID"));
     event_handler_id    = atoi(getenv("MCFA_EVENT_HANDLER"));
-    fullrank		= strdup(getenv("MCFA_FULLRANK"));
+//    fullrank		= strdup(getenv("MCFA_FULLRANK"));
     redundancy		= atoi(getenv("MCFA_REDUNDANCY"));
     spawn_flag		= atoi(getenv("MCFA_SPAWN_FLAG"));	
 /*    
@@ -64,7 +64,8 @@ int MCFA_Init()
     strncpy(newpath, path, pos - path +1);
     chdir(newpath);
 	
-    MCFA_printf_init(jobID,id);	   
+    MCFA_printf_init(id,id);	   
+//    MCFA_printf_init(jobID,id);	   
 
     SL_array_init ( &(SL_proc_array), "SL_proc_array", 32 );
     SL_array_init ( &(Volpex_proc_array), "Volpex_proc_array", 32 );
@@ -77,6 +78,8 @@ int MCFA_Init()
     /* Add the startprocs process to the SL_array */
     SL_proc_init ( MCFA_MASTER_ID, hostname, port );
     SL_this_procid = id;
+	printf("My id is %d\n",SL_this_procid);
+            printf("My hostname is %s\n",hostname);
 
 	char myhostname[512];
 	int myid;
@@ -146,7 +149,7 @@ for(i=0;i<SL_numprocs;i++){
 int MCFA_Finalize ( void )
 {
     
-    MCFA_printf_finalize();	
+//    MCFA_printf_finalize();	
     SL_Finalize ();
     return MCFA_SUCCESS;
 }
