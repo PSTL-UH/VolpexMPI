@@ -86,7 +86,8 @@ int SL_Send ( void *buf, int len, int dest, int tag, int context_id )
       return SL_SUCCESS;
     }
 
-
+	PRINTF(("[%d]: Into SL_Send function for dest:%d len:%d tag:%d\n", SL_this_procid,
+                                dest,len,tag));
     ret = SL_send_post ( buf, len, dest, tag, context_id, timeout, loglength, reuse, &req );
     if ( SL_SUCCESS != ret ) {
 	printf("[%d]: SL_Send - error in SL_post_send %d\n", SL_this_procid, ret );
@@ -115,7 +116,8 @@ int SL_Isend ( void *buf, int len, int dest, int tag, int context_id, SL_Request
     if ( SL_PROC_NULL == dest ) {
         return SL_SUCCESS;
     }
-
+    PRINTF(("[%d]: Into SL_Isend function for dest:%d len:%d tag:%d\n", SL_this_procid,
+                                dest,len,tag));
     ret = SL_send_post ( buf, len, dest, tag, context_id, timeout, loglength, reuse, req );
     if ( SL_SUCCESS != ret ) {
 	printf("[%d]: SL_Isend - error in SL_post_send to proc %d code %d\n", SL_this_procid, dest, ret );
@@ -135,7 +137,8 @@ int SL_Recv ( void *buf, int len, int src, int tag, int context_id, SL_Status *s
     if ( SL_PROC_NULL == src ) {
         return SL_SUCCESS;
     }
-
+	PRINTF(("[%d]: Into SL_Recv function for src:%d len:%d tag:%d\n", SL_this_procid,
+                                src,len,tag));
     ret = SL_recv_post ( buf, len, src, tag, context_id, timeout, &req );
     if ( SL_SUCCESS != ret ) {
 	printf("[%d]: SL_Recv - error in SL_recv_post %d\n", SL_this_procid, ret );
@@ -164,6 +167,9 @@ int SL_Irecv ( void *buf, int len, int src, int tag, int context_id,
     if ( SL_PROC_NULL == src ) {
         return SL_SUCCESS;
     }
+
+    PRINTF(("[%d]: Into SL_Irecv function for src:%d len:%d tag:%d\n", SL_this_procid,
+				src,len,tag)); 
     ret = SL_recv_post ( buf, len, src, tag, context_id, timeout, req );
     if ( SL_SUCCESS != ret ) {
 	printf("[%d]: SL_Irecv - error in SL_irecv_post %d\n", SL_this_procid, ret );

@@ -10,13 +10,14 @@ int SL_this_procid=0;
 int SL_this_procport=25000;
 int SL_this_listensock=-1;
 int SL_numprocs=2;
-
+int SL_proxy_numprocs=0;
 int SL_proc_establishing_connection=0;
-
+//int SL_proxy_connected_procs = 0;
 fd_set SL_send_fdset;
 fd_set SL_recv_fdset;
 int SL_fdset_lastused=0;
 int SL_init_numprocs = 0;
+extern int SL_proxy_server_socket;
 
 int SL_proc_init ( int proc_id, char *hostname, int port ) 
 {
@@ -76,235 +77,6 @@ int SL_proc_init ( int proc_id, char *hostname, int port )
     return SL_SUCCESS;
 }
 
-SL_msg_perf* SL_msg_performance_init()
-{
-	SL_msg_perf *node = NULL, *head = NULL, *curr = NULL;
-        int i;
-
-        for (i = 0; i <= PERFBUFSIZE; i++){
-                node= (SL_msg_perf *)malloc(sizeof(SL_msg_perf));
-                node->pos    = i;
-		node->msglen = -1;
-                node->time   = -1;
-		node->msgtype = -1;
-		node->elemid = -1;
-                if(i == 0){
-                        head = curr = node;
-                        node->back = NULL;
-                        node->fwd = NULL;
-		}
-                if(i > 0 && i < PERFBUFSIZE){
-                        curr->fwd = node;
-                        node->back = curr;
-                        node->fwd = NULL;
-                        curr = curr->fwd;
-                }
-                if(i == PERFBUFSIZE){
-                        curr->fwd = node;
-                        node->back = curr;
-                        node->fwd = head;
-                        curr = curr->fwd;
-                        head->back = curr;
-                }
-        }
-
-        return head;
-
-}
-
-SL_network_perf* SL_network_performance_init()
-{
-        SL_network_perf *node = NULL, *head = NULL, *curr = NULL;
-        int i;
-
-        for (i = 0; i <= PERFBUFSIZE; i++){
-                node= (SL_network_perf *)malloc(sizeof(SL_network_perf));
-                node->pos   	 = i;
-                node->latency	 = -1;
-                node->bandwidth  = -1;
-                if(i == 0){
-                        head = curr = node;
-                        node->back = NULL;
-                        node->fwd = NULL;
-                }
-                if(i > 0 && i < PERFBUFSIZE){
-                        curr->fwd = node;
-                        node->back = curr;
-                        node->fwd = NULL;
-                        curr = curr->fwd;
-                }
-                if(i == PERFBUFSIZE){
-                        curr->fwd = node;
-                        node->back = curr;
-                        node->fwd = head;
-                        curr = curr->fwd;
-                        head->back = curr;
-                }
-        }
-
-        return head;
-
-}
-
-	
-
-void SL_msg_performance_insert(int msglen,double time, int msgtype, int elemid, SL_proc *proc)
-{
-	/** if pointer reaches to the end of buffer
- 	**	Calculate latency and bandwidth using least square method
-		using Hockney's formula 
-
-		t(s) =  {l		if s<MTU
-			{l + s/b	else
-
-		where t = execution time
-		      l = latency
-		      s = msglength
-		      b = bandwidth
-	**	insert it into th circular buffer for that proc
-	**/
-
-	SL_msg_perf* tmppt = proc->msgperf;
-	double latency = -1.0, bandwidth = -1.0;
-	double total_time = 0.0;
-	int total_len = 0;
-	int i;
-	int lcount = 0, bcount = 0;
-	
-	if (proc->msgperf->pos == PERFBUFSIZE){
-		proc->msgperf = proc->msgperf->fwd;
-		for(i=0; i<PERFBUFSIZE ; i++){
-			tmppt = tmppt->fwd;
-			if (tmppt->msglen < MTU){
-				total_time = total_time + tmppt->time;
-				lcount++;
-			}
-			else{
-				total_len  = total_len  + tmppt->msglen;
-				bcount++;
-			}
-		}	
-	if (lcount != 0)
-		latency = (total_time/(double)lcount)/1000000.0;
-
-	if (bcount != 0)
-		bandwidth = ((double)total_len/(double)(1024L*1024L))/((total_time/1000000.0)- latency);
-	
-
-	SL_network_performance_insert( latency, bandwidth,proc);
-//	SL_print_msg_performance(proc->msgperf);
-	
-	}
-	else if (msgtype == RECV){
-		proc->msgperf->msglen = msglen;
-		proc->msgperf->time   = time;
-		proc->msgperf->msgtype= msgtype;
-		proc->msgperf->elemid = elemid;
-		proc->msgperf = proc->msgperf->fwd;
-
-			
-	}
-
-/*		double c0, c1, cov00, cov01, cov11, chisq;
-		xmsglen[i] = (double)tmppt->msglen/1024.0;
-                ytime[i] = tmppt->time/1000000.0        ;
-                
-                gsl_fit_linear (ytime, 1, xmsglen, 1, PERFBUFSIZE,
-                        &c0, &c1, &cov00, &cov01, &cov11,
-                        &chisq);
-                latency = c0;
-                bandwidth = 1/c1;
-*/
-}
-
-void SL_print_msg_performance(SL_msg_perf *insertpt)
-{
-	SL_msg_perf *temp;
-	FILE *fp;
-	
-	int i;
-
-	fp = fopen("tmp","wa");
-	temp = insertpt;
-	printf(" Pos   MSGLEN   TIME		MSGTYPE		\n");
-              for(i=0; i<=PERFBUFSIZE ; i++){
-                      printf("%d	%d	%g  			%d	\n",temp->pos,temp->msglen, 
-				temp->time, temp->msgtype );
-			if (i!=0){
-				fprintf(fp,"%g %g\n",(double)(temp->msglen)/(double)(1024L),(double)(temp->time)/1000000);
-			}
-			temp = temp->fwd;
-              }
-
-	system("graph -T X -m 2 -C -W 0.001 -X x -Y y< tmp");
-	fclose(fp);
-}
-
-
-void SL_network_performance_insert(double latency, double bandwidth, SL_proc *proc)
-{
-	if (proc->netperf->pos == PERFBUFSIZE){
-//		SL_print_net_performance(proc->netperf);
-//		proc->netperf = proc->netperf->fwd;
-
-        }
-	else{
-	proc->netperf->latency   = latency;
-	proc->netperf->bandwidth = bandwidth;
-	proc->netperf = proc->netperf->fwd;
-	}
-}
-
-void SL_print_net_performance(SL_network_perf *insertpt)
-{
-        SL_network_perf *temp;
-	int i;
-        temp = insertpt;
-	printf("**************************************************************************\n");
-	printf(" Pos	Latency		Bandwidth\n");
-        for(i=0; i<=PERFBUFSIZE ; i++){
-	        printf("%d  %g 		%g \n", temp->pos, temp->latency,temp->bandwidth);
-		 temp = temp->fwd;
-        }
-	printf("**************************************************************************\n");
-	
-
-
-}
-
-int SL_net_performance_free(SL_proc *tproc)
-{
-        SL_network_perf *tnode = NULL;
-
-        while (tproc->netperf!=NULL){
-                tnode = tproc->netperf;
-                if(tnode->pos != PERFBUFSIZE){
-                        tproc->netperf = tproc->netperf->fwd;
-                        free(tnode);
-                }
-                else
-                break;
-        }
-        return SL_SUCCESS;
-
-}
-
-int SL_msg_performance_free(SL_proc *tproc)
-{
-        SL_msg_perf *tnode = NULL;
-
-        while (tproc->netperf!=NULL){
-                tnode = tproc->msgperf;
-                if(tnode->pos != PERFBUFSIZE){
-                        tproc->msgperf = tproc->msgperf->fwd;
-                        free(tnode);
-                }
-                else
-                break;
-        }
-        return SL_SUCCESS;
-
-}
 
 
 int SL_proc_finalize(SL_proc *proc)
@@ -354,8 +126,10 @@ int SL_init_internal()
 
         dproc->recvfunc    = (SL_msg_comm_fnct *)SL_msg_accept_newconn;
         dproc->sendfunc    = (SL_msg_comm_fnct *)SL_msg_accept_newconn;
+	PRINTF(("[%d]: Changing sock val from %d to %d\n", SL_this_procid, 
+				dproc->sock,SL_this_listensock));
 	dproc->sock        = SL_this_listensock;
-
+	
 	SL_init_eventq();
 
 
@@ -422,13 +196,15 @@ void SL_proc_close ( SL_proc * proc )
     /* Implement a shutdown handshake in order to give all processes 
        the possibility to remove themselves from the fdsets correctly. 
     */
-    if ( proc->id < SL_this_procid || proc->id == SL_EVENT_MANAGER) {
+    if ( proc->id < SL_this_procid || proc->id == SL_EVENT_MANAGER || proc->id == -2) {
 	SL_socket_write ( proc->sock, (char *) header, sizeof  (SL_msg_header), 1);
 //			  proc->timeout );
 	PRINTF(("[%d]:Sending CLOSE request to proc %d\n", SL_this_procid,proc->id ));
 	SL_socket_read  ( proc->sock, (char *) &header2, sizeof ( SL_msg_header), 1);
 //			  proc->timeout);
 	PRINTF(("[%d]:Got CLOSE reply from  proc %d\n",SL_this_procid, proc->id ));
+
+	
     }
     else {
 	SL_socket_read  ( proc->sock, (char *) &header2, sizeof ( SL_msg_header), 1);
@@ -438,14 +214,30 @@ void SL_proc_close ( SL_proc * proc )
 //			  proc->timeout );
 	PRINTF(("[%d]:Sending CLOSE reply to proc %d\n", SL_this_procid,proc->id ));
     }
-    FD_CLR ( proc->sock, &SL_send_fdset );
+//    FD_CLR ( proc->sock, &SL_send_fdset );
+ //   FD_CLR ( proc->sock, &SL_recv_fdset );
+   // proc->state = SL_PROC_NOT_CONNECTED;
+    
+    if ( proc->sock > 0 && proc->sock != SL_proxy_server_socket) {
+        SL_socket_close ( proc->sock );
+	FD_CLR ( proc->sock, &SL_send_fdset );
+    	FD_CLR ( proc->sock, &SL_recv_fdset );
+    	proc->state = SL_PROC_NOT_CONNECTED;
+    }
+ if(proc->id == -2){
+		SL_socket_close (SL_proxy_server_socket);
+		FD_CLR ( proc->sock, &SL_send_fdset );
     FD_CLR ( proc->sock, &SL_recv_fdset );
     proc->state = SL_PROC_NOT_CONNECTED;
+ }
 
-    if ( proc->sock > 0 ) {
-	SL_socket_close ( proc->sock );
-    }
+/*    else  if(proc->sock == SL_proxy_server_socket)
+	SL_proxy_connected_procs--;
 
+    if (SL_proxy_connected_procs <= 0)
+	SL_socket_close (SL_proxy_server_socket);
+*/
+	
     proc->sock = -1;
 
     SL_proc_finalize(proc);
@@ -503,6 +295,9 @@ int SL_proc_init_conn_nb ( SL_proc * proc, double timeout )
          a stronger request.
     */
 
+	int tmp = proc->sock;
+	PRINTF(("[%d]:SL_proc_init_conn_nb: Into function for process :%d\n",
+                SL_this_procid,proc->id));
 
     if ( proc->state == SL_PROC_UNREACHABLE ) {
 	return SL_ERR_PROC_UNREACHABLE;
@@ -513,9 +308,20 @@ int SL_proc_init_conn_nb ( SL_proc * proc, double timeout )
 
 	if ( proc->id < SL_this_procid ) {
 	    SL_open_socket_conn_nb ( &proc->sock, proc->hostname, proc->port );
+//	    if(proc->id < 0 && SL_this_procid > -2){
 	    proc->sendfunc = ( SL_msg_comm_fnct *) SL_msg_connect_newconn;
 	    proc->recvfunc = ( SL_msg_comm_fnct *) SL_msg_connect_newconn;
-	    proc->state = SL_PROC_CONNECT;
+//	    }
+/*	    else{
+
+	    proc->sendfunc = ( SL_msg_comm_fnct *) SL_msg_connect_proxy;
+	    proc->recvfunc = ( SL_msg_comm_fnct *) SL_msg_connect_proxy;
+	    }
+*/
+		   proc->state = SL_PROC_CONNECT;
+
+	    PRINTF(("[%d]:1SL_proc_init_conn_nb:Changing socket from %d to %d proc id:%d\n",
+                        SL_this_procid,tmp, proc->sock,proc->id));
 	    
 	    /* set the read and write fd sets */
 	    FD_SET ( proc->sock, &SL_send_fdset );
@@ -523,14 +329,40 @@ int SL_proc_init_conn_nb ( SL_proc * proc, double timeout )
 	    if ( proc->sock > SL_fdset_lastused ) {
 		SL_fdset_lastused = proc->sock;
 	    }
+
+
 	    
 	}
 	else {
+
+/*            if(proc->id >-1 && SL_this_procid > -1){
+	    SL_open_socket_conn_nb ( &proc->sock, proc->hostname, proc->port );
+            proc->sendfunc = ( SL_msg_comm_fnct *) SL_msg_connect_proxy;
+            proc->recvfunc = ( SL_msg_comm_fnct *) SL_msg_connect_proxy;
+		proc->state = SL_PROC_CONNECT;
+		FD_SET ( proc->sock, &SL_send_fdset );
+	        FD_SET ( proc->sock, &SL_recv_fdset );
+		PRINTF(("[%d]:SL_proc_init_conn_nb:Changing socket from %d to %d proc id:%d\n",
+                        SL_this_procid,tmp, proc->sock,proc->id));
+        	if ( proc->sock > SL_fdset_lastused ) {
+                	SL_fdset_lastused = proc->sock;
+            	}
+
+            }
+
+	    else{
+*/
+
 	    proc->sendfunc = ( SL_msg_comm_fnct *) SL_msg_accept_newconn;
 	    proc->recvfunc = ( SL_msg_comm_fnct *) SL_msg_accept_newconn;
-	    
+	    	    
+	    PRINTF(("[%d]Changing socket from %d to listen socket %d\n", 
+			SL_this_procid, proc->sock, SL_this_listensock));
 	    proc->sock  = SL_this_listensock;
 	    proc->state = SL_PROC_ACCEPT;
+	
+//	   }
+
 	}
 	if ( proc->connect_attempts == 0 ) {
 	    proc->connect_start_tstamp = SL_Wtime();
@@ -545,8 +377,6 @@ int SL_proc_init_conn_nb ( SL_proc * proc, double timeout )
 	}
 	SL_proc_establishing_connection++;
     }
-	PRINTF(("[%d]:SL_proc_init_conn_nb: Into function for process :%d\n",
-		SL_this_procid,proc->id));
 
 //    SL_proc_dumpall();
     return SL_SUCCESS;
@@ -594,7 +424,8 @@ void SL_proc_set_connection ( SL_proc *dproc, int sd )
     PRINTF(("[%d]:SL_proc_set_connection: connection established to proc %d on sock %d\n",
 	    SL_this_procid, dproc->id, sd ));
     
-    
+   
+	SL_proxy_numprocs++; 
     dproc->sock  = sd;
     dproc->state = SL_PROC_CONNECTED;
     SL_configure_socket_nb ( sd );
@@ -620,7 +451,8 @@ void SL_proc_dumpall ( )
 
     for ( i=0; i<size; i++ ) {
 	proc = (SL_proc*)SL_array_get_ptr_by_pos ( SL_proc_array, i );
-	printf("[%d]:id:%d, port:%d, hostname:%s, state:%d\n",SL_this_procid, proc->id,proc->port, proc->hostname, proc->state);
+	PRINTF(("[%d]:id:%d, port:%d, hostname:%s, state:%d sock:%d\n",SL_this_procid, 
+				proc->id,proc->port, proc->hostname, proc->state, proc->sock));
 }
     return;
 }

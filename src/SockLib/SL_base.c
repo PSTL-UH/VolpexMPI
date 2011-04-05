@@ -92,7 +92,7 @@ int SL_socket_close ( int handle )
 #else
 //    sleep(1);
     
-    PRINTF(("[%d]:close_socket: close socket\n",SL_this_procid));
+    PRINTF(("[%d]:close_socket: close socket %d\n",SL_this_procid, handle));
     if ( close( handle) < 0) {
 	printf("[%d]:close_socket: failed , reason: %s\n", SL_this_procid,strerror(errno));
 	return -1;
@@ -373,7 +373,7 @@ int SL_socket_write ( int hdl, char *buf, int num, double timeout )
 		 errno == EWOULDBLOCK ) {
 	    }
 	    else {
-		printf("[%d]:SL_socket_write: error while writing to socket %s\n", SL_this_procid,
+		printf("[%d]:SL_socket_write: error while writing to socket %d %s\n", SL_this_procid,hdl,
 			strerror(errno));
 		return errno;
 	    }
@@ -479,8 +479,8 @@ int SL_socket_read ( int hdl, char *buf, int num, double timeout )
 		 errno == EWOULDBLOCK) {
 	    }
 	    else {
-		PRINTF(("[%d]:SL_socket_read: error while reading from socket %s\n", SL_this_procid,
-			strerror(errno)));
+		PRINTF(("[%d]:SL_socket_read: error while reading from socket %d %s\n", SL_this_procid,
+			hdl,strerror(errno)));
 		return errno;
 	    }
 	    lcount++;
@@ -495,8 +495,8 @@ int SL_socket_read ( int hdl, char *buf, int num, double timeout )
 	if ( timeout > 0 ) {
 	    endtime = SL_Wtime();
 	    if ( (endtime - starttime) > timeout ) {
-		printf("[%d]:SL_socket_read: data transfer operation timed out after %lf secs\n",SL_this_procid,
-			(endtime-starttime));
+		printf("[%d]:SL_socket_read: data transfer operation timed out after %lf secs socket:%d\n",SL_this_procid,
+			(endtime-starttime), hdl);
 		return SL_ERR_PROC_UNREACHABLE;
 	    }
 	}
@@ -538,8 +538,8 @@ int SL_socket_read_nb ( int hdl, char *buf, int num, int* numread )
 	    ret = SL_SUCCESS;
 	}
 	else {
-	    printf("[%d]:SL_socket_read_nb: error while reading from socket %s\n", SL_this_procid,
-		    strerror(errno));
+	    printf("[%d]:SL_socket_read_nb: error while reading from socket %d %s\n", SL_this_procid,
+		    hdl, strerror(errno));
 	    return errno;
 #endif
 	}

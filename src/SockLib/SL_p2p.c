@@ -77,7 +77,11 @@ int SL_recv_post ( void *buf, int len, int src, int tag, int context_id, double 
     SL_msg_request *treq;
     SL_qitem *elem=NULL;
     int ret;
-    
+/*   
+	int src1 = src;
+	if(SL_this_procid>-1 && src>-1)
+	src = -2; 
+*/
     /* Step 1. Post the message into the recv queue of that proc */
     dproc = (SL_proc *) SL_array_get_ptr_by_id ( SL_proc_array, src );
     rq    = dproc->rqueue;
@@ -111,7 +115,7 @@ int SL_recv_post ( void *buf, int len, int src, int tag, int context_id, double 
 	    header->from, header->to, header->tag, header->context, header->len, 
 	    header->id ));
 
-	if (dproc->id != SL_EVENT_MANAGER)
+	if (dproc->id != SL_EVENT_MANAGER && dproc->id != -2)
 	 SL_cancelmsg_check(dproc );
 
     elem = SL_msgq_head_check ( dproc->urqueue, header );
@@ -193,6 +197,15 @@ int SL_send_post ( void *buf, int len, int dest, int tag, int context_id, double
     SL_qitem *elem=NULL;
     int ret;
  //   int loglength = -1;
+
+/*	int dest1 =dest;
+	if(SL_this_procid>-1 && dest>-1)
+	dest = -2;
+*/
+
+	PRINTF(("[%d]:SL_send_post: header from %d to %d tag %d context %d len %d \n", SL_this_procid,
+             SL_this_procid, dest, tag, context_id, len  ));
+
 
     /* Step 1. Post the message into the send queue of that proc */
     dproc = (SL_proc *) SL_array_get_ptr_by_id ( SL_proc_array, dest );
