@@ -22,7 +22,9 @@ OBJ =	MCFA_pack_unpack.o	\
 	MCFA_spawn_procs.o	\
 	MCFA_node_selection.o   \
         MCFA_clustering.o	\
-	MCFA_set_list.o
+	MCFA_set_list.o		\
+	MCFA_boinc.o		\
+	
 #	MCFA_socket_comm.o	\
 #	MCFA_socket_comm.o	\
 
@@ -34,6 +36,7 @@ all:
 	make MCFA_control
 #	make MCFA_monitor
 	make MCFA_startup_d
+	make MCFA_proxy
 
 $(VOLPEX_LIB): $(HEADER) $(OBJ) 
 	$(AR) $(AR_FLAGS) $(VOLPEX_LIB_DIR)/$(VOLPEX_LIB) $(OBJ)
@@ -54,6 +57,9 @@ MCFA_monitor: $(HEADER) $(OBJ)
 MCFA_startup_d: $(HEADER) $(OBJ)
 	$(CC) $(CFLAGS) -o mcfastart_d MCFA_startup_d.c $(LDFLAGS)
 
+MCFA_proxy: $(HEADER) $(OBJ)
+	$(CC) $(CFLAGS) -o mcfa_proxy MCFA_proxy.c $(LDFLAGS)
+
 clean:
 	rm -rf *.o *~ *.out 
-	rm -f mcfacontrol mcfamonitor mcfarun mcfastart_d
+	rm -f mcfacontrol mcfamonitor mcfarun mcfastart_d mcfa_proxy

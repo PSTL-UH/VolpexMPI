@@ -95,7 +95,8 @@ int* MCFA_cluster(MCFA_node *result, int redundancy, int **distmatrix)
     int nnodes = SL_numprocs-1;
     int nclusters = 0;
     int *clusterid;
-    int *numelements, count=0;
+    int *numelements;
+//    int count=0;
     int *newnodes;
     int **clusters;
     int *pos;

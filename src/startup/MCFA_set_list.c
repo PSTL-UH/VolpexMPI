@@ -26,8 +26,8 @@ struct MCFA_proc_node* MCFA_set_liststraight(int initid,char **hostName, char *p
 */
 
         struct      MCFA_host *node=NULL;
-        struct      MCFA_host_node *currhost=NULL;
-        struct      MCFA_process *proc=NULL;
+//        struct      MCFA_host_node *currhost=NULL;
+//        struct      MCFA_process *proc=NULL;
         int         i,id, j=0;
         char        fullrank[16];
         char        level = 'A';
@@ -108,8 +108,8 @@ struct MCFA_proc_node* MCFA_set_listsroundrobin(int initid,char **hostName, char
 
         struct      MCFA_host *node=NULL;
         struct      MCFA_host_node *currhost=NULL;
-        struct      MCFA_process *proc=NULL;
-        int         i,id, j=0;
+//        struct      MCFA_process *proc=NULL;
+        int         i,id;
         char        fullrank[16];
         char        level = 'A';
         char        rank = -1  ;
@@ -191,7 +191,7 @@ struct MCFA_proc_node* MCFA_set_listsconcentrate(int initid,char **hostName, cha
 
         struct      MCFA_host *node=NULL;
         struct      MCFA_host_node *currhost=NULL;
-        struct      MCFA_process *proc=NULL;
+//        struct      MCFA_process *proc=NULL;
         int         i,id, j=0;
         char        fullrank[16];
         char        level = 'A';

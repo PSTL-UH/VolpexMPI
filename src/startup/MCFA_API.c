@@ -30,12 +30,11 @@ int MCFA_Init()
     char *hostname;
     char  *msgbuf = NULL;
     int port;
-    int	 msglen;
-    int id,jobID,event_handler_id;
+    int	 msglen = 0;
+    int id,event_handler_id;
     char *path;		
     char newpath[BUFFERSIZE] = ".";
     int spawn_flag ;
-     
 
 
     path 		= strdup(getenv("MCFA_PATH"));
@@ -139,6 +138,7 @@ for(i=0;i<SL_numprocs;i++){
 
 	Volpex_numprocs = MCFA_proc_read_volpex_procs(msgbuf,msglen);
 
+    SL_proc_init ( MCFA_PROXY_ID, hostname, 828282 );
 
 //    free(msgbuf);	
     return MCFA_SUCCESS;

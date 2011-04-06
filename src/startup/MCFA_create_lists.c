@@ -487,17 +487,17 @@ struct MCFA_process* MCFA_getlast_proc(struct MCFA_proc_node *procList)
 
 
 
-void MCFA_free_proclist(struct MCFA_proc_node *procList)
+void MCFA_free_proclist(struct MCFA_proc_node *proclist)
 {
     struct MCFA_proc_node *currproc = NULL, *currnext = NULL;
-    currproc = procList;
-    if (procList !=NULL){
+    currproc = proclist;
+    if (proclist !=NULL){
         do{
                 currnext = currproc->next;
 		if(NULL != currproc->procdata->hostname)
 			free(currproc->procdata->hostname);
-		if(NULL != currproc->procdata->executable)
-			free(currproc->procdata->executable);	
+	//	if(NULL != currproc->procdata->executable)
+	//		free(currproc->procdata->executable);	
                 free(currproc);
                 currproc = currnext;
 

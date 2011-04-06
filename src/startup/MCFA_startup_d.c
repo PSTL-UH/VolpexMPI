@@ -34,21 +34,20 @@ int main(int argc, char **argv )
 {
     char *hostname;
     int port;
-    int id,jobID,event_handler_id;
+    int id,event_handler_id;
     char *path;
-    char *rank;
+//    char *rank;
     int red,numprocs;
     int spawn_flag;
     int pid = 10;
     int status;
     char **arg = NULL;
-    char ids[200];
 
 //	arg = MCFA_read_argfile();
     
     /** For condor since same executable is used by each deamon rename the file and then use it using 
 	system( 'rename volpex.* volpex' );*/ 
-    sleep(10);
+//    sleep(10);
     
     if (argc > 1){
 	
@@ -111,7 +110,7 @@ int main(int argc, char **argv )
     for(i=0;i<numprocs;i++){
 	
 	id = atoi(argv[nextSL]);
-	MCFA_set_env1(path, hostname, port, id, event_handler_id, red, spawn_flag);
+	MCFA_set_env(path, hostname, port, id, event_handler_id, red, spawn_flag);
 	nextSL++;
 	
 	printf("path           : %s\n \
@@ -153,9 +152,9 @@ int main(int argc, char **argv )
 	
 	
         if (WIFEXITED(status)) {
-	    printf("exited, status=%d\n", WEXITSTATUS(status));
+	    printf("exited, status=%d proc:%d\n", WEXITSTATUS(status),i);
 	} else if (WIFSIGNALED(status)) {
-	    printf("killed by signal %d\n", WTERMSIG(status));
+	    printf("killed by signal %d proc:%d\n", WTERMSIG(status),i);
 	} else if (WIFSTOPPED(status)) {
 	    printf("stopped by signal %d\n", WSTOPSIG(status));
 	}

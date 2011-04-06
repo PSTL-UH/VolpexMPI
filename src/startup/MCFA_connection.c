@@ -42,6 +42,10 @@ int MCFA_connect(int id)
         SL_fdset_lastused = dproc->sock;
     }
 
+    if ( dproc->sock > SL_fdset_lastused ) {
+        SL_fdset_lastused = dproc->sock;
+    }
+
     ret = SL_socket_read ( dproc->sock, ( char *) &tmp, sizeof(int),
                            dproc->timeout);
     if ( SL_SUCCESS != ret ) {

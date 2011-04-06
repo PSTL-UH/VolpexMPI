@@ -88,7 +88,7 @@ char *d_path, *d_path1 ;
     sprintf(arg[9], "%d", host->numofProcs);
 
 
-char *tprocid[4];
+char tprocid[4];
 char *procids;
 int i;
 procids = (char*)malloc(4*host->numofProcs*sizeof(char));
@@ -283,8 +283,8 @@ struct MCFA_proc_node* MCFA_set_lists1(int initid,char **hostName, char *path, i
 */
 
 	struct      MCFA_host *node=NULL;
-        struct 	    MCFA_host_node *currhost=NULL;
-	struct	    MCFA_process *proc=NULL;
+//      struct 	    MCFA_host_node *currhost=NULL;
+//	struct	    MCFA_process *proc=NULL;
     	int         i,id, j=0;
     	char        fullrank[16];
     	char        level = 'A';

@@ -6,7 +6,7 @@
 
 
 
-
+extern MCFA_set_lists_func *MCFA_set_lists;
 extern struct      MCFA_host_node *hostList;
 extern struct      MCFA_proc_node *procList;
 

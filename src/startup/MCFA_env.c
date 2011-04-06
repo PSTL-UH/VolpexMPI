@@ -17,7 +17,7 @@ int MCFA_init_env()
 
 }
 
-int MCFA_set_env(char *path, char *hostname, int port, int jobid, int id, int ehandler, char* rank, int red , int flag)
+int MCFA_set_env1(char *path, char *hostname, int port, int jobid, int id, int ehandler, char* rank, int red , int flag)
 {
         char *port1, *jobid1, *id1, *ehandler1, *red1, *flag1;
 
@@ -60,9 +60,9 @@ int MCFA_set_env(char *path, char *hostname, int port, int jobid, int id, int eh
 }
 
 
-int MCFA_set_env1(char *path, char *hostname, int port, int id, int ehandler, int red , int flag)
+int MCFA_set_env(char *path, char *hostname, int port, int id, int ehandler, int red , int flag)
 {
-        char *port1, *jobid1, *id1, *ehandler1, *red1, *flag1;
+        char *port1,  *id1, *ehandler1, *red1, *flag1;
 
         setenv("MCFA_PATH",             path,     1);
         setenv("MCFA_HOSTNAME",                 hostname, 1);
