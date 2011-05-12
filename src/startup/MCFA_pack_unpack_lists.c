@@ -26,7 +26,7 @@ char* MCFA_pack_proclist(struct MCFA_proc_node *procList, int *msglen)
 	noofchars = numprocs * (MAXHOSTNAMELEN + MAXNAMELEN + MAXRANK);
          
 	MCFA_pack_size(noofints, noofchars, &len);
-        buffer = malloc(len);
+        buffer = (char*)malloc(len*sizeof(char));
         if(buffer == NULL){
                 printf("ERROR: in allocating memory\n");
                 exit(-1);
@@ -121,7 +121,7 @@ char* MCFA_pack_hostlist(struct MCFA_host_node *hostList, int *msglen)
 	noofchars = hostcount * MAXHOSTNAMELEN + numprocseachhost * MAXNAMELEN;
 	
         MCFA_pack_size(noofints, noofchars, &len);
-        buffer = malloc(len);
+        buffer = (char*)malloc(len*sizeof(char));
         if(buffer == NULL){
                 printf("ERROR: in allocating memory\n");
                 exit(-1);
@@ -241,7 +241,7 @@ char* MCFA_pack_jobstatus(struct MCFA_proc_node *procList,int jobid, int *msglen
 
 
 	MCFA_pack_size(noofints, noofchars, &len);
-        buffer = malloc(len);
+        buffer = (char*)malloc(len*sizeof(char));
         if(buffer == NULL){
                 printf("ERROR: in allocating memory\n");
                 exit(-1);
@@ -325,7 +325,7 @@ char* MCFA_pack_procstatus(struct MCFA_proc_node *procList,int procid, int *msgl
         {
 //                if(node->jobid == jobid)
                 MCFA_pack_size( 6, MAXHOSTNAMELEN + MAXNAMELEN + MAXRANK, &len);
-                buffer = malloc(len);
+        	buffer = (char*)malloc(len*sizeof(char));
 		if(NULL == buffer){
                 	printf("ERROR: in allocating memory\n");
                 exit(-1);
@@ -401,7 +401,7 @@ char* MCFA_pack_procs(struct MCFA_proc_node *procList,int *ids, int numprocs,int
         noofchars = numprocs * (MAXHOSTNAMELEN + MAXNAMELEN + MAXRANK);
 
         MCFA_pack_size(noofints, noofchars, &len);
-        buffer = malloc(len);
+        buffer = (char*)malloc(len*sizeof(char));
         if(buffer == NULL){
                 printf("ERROR: in allocating memory\n");
                 exit(-1);
@@ -486,7 +486,7 @@ char* MCFA_pack_hoststatus(struct MCFA_host_node *hostList,char *host, int *msgl
 		numofints = 3 + 2 * node->numofProcs;
 		numofchars = MAXHOSTNAMELEN + MAXNAMELEN * node->numofProcs;
                 MCFA_pack_size( numofints, numofchars, &len);
-                buffer = malloc(len);
+        	buffer = (char*)malloc(len*sizeof(char));
 		if(NULL == buffer){
                 	printf("ERROR: in allocating memory\n");
                 	exit(-1);

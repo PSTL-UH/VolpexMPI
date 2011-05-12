@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
         MCFA_printf("SERVER: could not determine my own hostname \n" );
     }
 
-    MCFA_set_lists =  MCFA_set_listsroundrobin;
+    MCFA_set_lists =  MCFA_set_liststraight;
 /* Parsing startup options */
     while(next<argc)
     {
@@ -119,11 +119,12 @@ int main(int argc, char *argv[])
 	MCFA_get_path(argv[argc-1],&path);
 
     if(condor_flag == 2){
-        char *hname;
+/*        char *hname;
         hname = (char*) malloc (256 *sizeof(char));
 
         MCFA_get_ip(&hname);
         strcpy(hostname,hname);
+*/
     printf("%s\n\n", hostname);        
 //    exit(-1);
     }
@@ -368,85 +369,71 @@ struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, int por
     arg = MCFA_set_args(id,hostName[0],path,port,jobID,numprocs,hostCount,redundancy, spawn_flag);
     
     
-    for(i=0;i<numprocs;i++)
-    {
-        id = currlist->procdata->id;
+    if(spawn_flag == SSH){
+    	for(i=0;i<numprocs;i++)
+    	{
+        	id = currlist->procdata->id;
 	
-        if(pid!=0){
-	    if(spawn_flag == SSH){
 	    /* SL_proc_init should be done for all processes on procList
 		but fork should be done at each host in hostList not based on proc list
 	    */
-	
 		SL_proc_init(id, currlist->procdata->hostname, currlist->procdata->portnumber);
+		currlist = currlist->next;
+	
 	    }
-
-	    else if (spawn_flag == CONDOR){
-           currhost = hostList;
-	       arg = MCFA_set_args1(currhost->hostdata, path, port, redundancy, spawn_flag);	
-		sprintf(fname, "volpex.%d",id);
-                PRINTF(("Creating a file:%s \n", fname));
-                fp = fopen(fname, "w");
-                for(k=3; k<MAXARGUMENTS-1; k++){
-                    fprintf(fp,"%s\n",arg[k]);
-                }
-                fclose(fp);
-
-	    } 	    
+    }
+    else if (spawn_flag == CONDOR){
+ 	   currhost = hostList;
+	   arg = MCFA_set_args1(currhost->hostdata, path, port, redundancy, spawn_flag);	
+	   sprintf(fname, "volpex",id);
+           PRINTF(("Creating a file:%s \n", fname));
+           fp = fopen(fname, "w");
+           for(k=3; k<MAXARGUMENTS-1; k++){
+           	fprintf(fp,"%s\n",arg[k]);
+           }
+           fclose(fp);
+    } 	    
 	    
-	    else if (spawn_flag == BOINC){
+   else if (spawn_flag == BOINC){
         currhost = hostList;
         arg = MCFA_set_args1(currhost->hostdata, path, port, redundancy, spawn_flag);
-        sprintf(fname, "volpex.%d",id);
+        sprintf(fname, "volpex",id);
         PRINTF(("Creating a file:%s \n", fname));
         fp = fopen(fname, "w");
         for(k=3; k<MAXARGUMENTS-1; k++){
             fprintf(fp,"%s\n",arg[k]);
         }
         fclose(fp);
-/*
-        MCFA_set_boinc_dir();
+   }
         
-        char command[50];
-        sprintf(command ,"mv volpex.* %s/download", BOINCDIR);
-        printf("%s\n",command);
-        system(command);
-//        MCFA_delete_from_workunit();
-        MCFA_create_boinc_wu_template(arg[2],arg[3]);
-        MCFA_create_boinc_re_template(arg[3]);
-        MCFA_create_boinc_script(arg[2], arg[3], numprocs);
-		printf("HURRAY!!!we currently do provide support for BOINC\n");
-//		exit(-1);
-*/
-	    }
-        }
-        currlist = currlist->next;
-    }
 
-//    char *procids, tproc[4], *jobids, tjob[4], *procfullids;
-//    struct MCFA_process *proc;
-
-//	procids = (char*)malloc(4*numprocs*sizeof(char));
 
 	i = 0;
 
 //forking proxy_server
 	char **arg_proxy;
-        char *d_path, *d_path1 ;
-        SL_proc_init(MCFA_PROXY_ID, hostname, 828282);
-	arg_proxy = (char **)malloc(2 * sizeof(char*));
+	char thostname[MAXHOSTNAMELEN];
+        gethostname(thostname, MAXHOSTNAMELEN );
+        SL_proc_init(MCFA_PROXY_ID, thostname, 828282);
+	arg_proxy = (char **)malloc(5 * sizeof(char*));
         if(arg_proxy == NULL){
                 printf("ERROR: in allocating memory\n");
         exit(-1);
         }
-	if(pid != 0)
+	if(pid != 0){
 		pid = fork();
 	arg_proxy[0] = strdup("./mcfa_proxy");
-        arg_proxy[1] = NULL;
+	arg_proxy[1] = strdup(thostname);
+	arg_proxy[2] = (char *) malloc (sizeof(int) + 1);
+        sprintf(arg_proxy[2], "%d", port);
+        arg_proxy[3] = (char *) malloc (sizeof(int) + 1);
+        sprintf(arg_proxy[2], "%d", spawn_flag);
+        arg_proxy[4] = NULL;
+
         if (pid==0){
                 execvp(arg_proxy[0], arg_proxy);
-        }
-
+        	}
+	}
     if (spawn_flag == SSH ){
         currhost = hostList;
 	while(currhost != NULL && pid !=0 ){
@@ -483,14 +470,18 @@ struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, int por
         sprintf(command ,"cp volpex.* %s/download", BOINCDIR);
         printf("%s\n",command);
         system(command);
-        MCFA_create_boinc_wu_template(arg[2],arg[3]);
-        MCFA_create_boinc_re_template(arg[3],numprocs);
-        MCFA_create_boinc_script(arg[2], arg[3], numprocs);
-//        exit(-1);
-        printf("HURRAY!!!we currently do provide support for BOINC\n");
+//        MCFA_create_boinc_wu_template(arg[2],arg[3]);
+//        MCFA_create_boinc_re_template(arg[3],numprocs);
+//        MCFA_create_boinc_script(arg[2], arg[3], numprocs);
+          MCFA_create_volpex_job(arg[2], arg[3], numprocs);
+          MCFA_create_boinc_script(arg[2], arg[3], numprocs);
+          printf("HURRAY!!!we currently do provide support for BOINC\n");
     }
 
-
+    if (spawn_flag == CONDOR){
+  	MCFA_create_condordesc(exec, numprocs);
+	MCFA_start_condorjob();
+    }
 
     if (spawn_flag == CONDOR || spawn_flag == BOINC){
        strcpy(exec, "");

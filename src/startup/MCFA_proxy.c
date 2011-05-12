@@ -13,26 +13,29 @@ int main(int argc, char *argv[])
 {
     int         i=0;                    //intializing loop iterators
     int         port,len=MAXHOSTNAMELEN;
-	char  *msgbuf = NULL;
-	int  msglen;
+    char  	*msgbuf = NULL;
+    int  msglen;
 
-
-
-
-	port = SL_this_procport = 828282;
-	if ( gethostname(hostname, len ) != 0 ) {
-        printf("SERVER: could not determine my own hostname \n" );
-    }
+    hostname = strdup(argv[1]);
+    port     = atoi(argv[2]);
+    spawnflag= atoi(argv[3]);
+    MCFA_printf_init1(0,-2);
 
     SL_array_init ( &(SL_proc_array), "SL_proc_array", 32 );
     FD_ZERO( &SL_send_fdset );
     FD_ZERO( &SL_recv_fdset );
 
-    SL_proc_init ( MCFA_PROXY_ID, hostname, port );
+    SL_this_procport = 828282;
+    if ( gethostname(hostname, len ) != 0 ) {
+        printf("SERVER: could not determine my own hostname \n" );
+    }
+
+
+    SL_proc_init ( MCFA_PROXY_ID, hostname, SL_this_procport );
     SL_this_procid = MCFA_PROXY_ID;
     SL_init_internal();
 
-	SL_proc_init ( MCFA_MASTER_ID, hostname, 45000 );
+    SL_proc_init ( MCFA_MASTER_ID, hostname, port );
 
 	/* Determine the length of the message to be received */
 

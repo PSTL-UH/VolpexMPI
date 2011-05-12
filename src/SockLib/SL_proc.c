@@ -66,13 +66,13 @@ int SL_proc_init ( int proc_id, char *hostname, int port )
     tproc->msgperf     = SL_msg_performance_init();
     tproc->netperf     = SL_network_performance_init();
 
-	retval = PAPI_library_init(PAPI_VER_CURRENT);
+/*	retval = PAPI_library_init(PAPI_VER_CURRENT);
         if(retval != PAPI_VER_CURRENT)
         {
             printf("\nPAPI library init error!\n");
             exit(-1);
         }
-
+*/
 
     return SL_SUCCESS;
 }
@@ -438,8 +438,9 @@ void SL_proc_set_connection ( SL_proc *dproc, int sd )
     
     dproc->recvfunc    = (SL_msg_comm_fnct *)SL_msg_recv_newmsg;
     dproc->sendfunc    = (SL_msg_comm_fnct *)SL_msg_send_newmsg;
-    
-    SL_proc_establishing_connection--;
+
+    if(dproc->connect_attempts >0)    
+	    SL_proc_establishing_connection--;
     
     return;
 }
@@ -467,7 +468,12 @@ void SL_proc_handle_error ( SL_proc* proc, int err, int flag )
    
 	if ((flag == TRUE) && (SL_this_procid != SL_EVENT_MANAGER)){
 		printf("[%d]:Handling Event Error %d for proc %d\n",SL_this_procid, err, proc->id);
-		sleep(1);
+		if(proc->id == SL_EVENT_MANAGER){
+         	   printf("[%d]: Server is dead no point to continue: Killing myself bye!!!\n", 
+					SL_this_procid);
+            	   exit(-1);
+        	}
+		
 		header = (SL_event_msg_header*)malloc(sizeof(SL_event_msg_header));
 		header->cmd = SL_CMD_DELETE_PROC;
 		header->procid = proc->id;
@@ -541,11 +547,16 @@ void SL_proc_handle_error ( SL_proc* proc, int err, int flag )
 
 int SL_proc_id_generate(int flag)
 {
-	static int id = -1;
+	static int id = -2;
+	static int procid = -1;
 	if (flag == 0)
-		return ++id;
-	else
+		return ++procid;
+	else if (flag == -1)
+		procid--;
+	else 
 		return --id;
+
+	return SL_SUCCESS;
 }
 
 int SL_proc_port_generate()
@@ -558,7 +569,8 @@ double SL_papi_time()
 {
 	double time;
 
-	 time = ((double)PAPI_get_real_usec());
+//	 time = ((double)PAPI_get_real_usec());
+	time = SL_Wtime()*1000000;
 
 	return time;
 }

@@ -147,10 +147,11 @@ int Volpex_set_newtarget(int newtarget, int rank, int comm)
     tmp_SL = plist->SL_ids[0];
     for (i=0; i<proc->plist->num; i++)
     {
-        if (proc->plist->ids[i] == newtarget)
+        if (proc->plist->ids[i] == newtarget){
                 proc->plist->ids[i] = id ;
 		new_SLid = proc->plist->SL_ids[i];
 		proc->plist->SL_ids[i] = tmp_SL ;
+	}
     }
     proc->plist->ids[0] = newtarget;
     proc->plist->SL_ids[0] = new_SLid;

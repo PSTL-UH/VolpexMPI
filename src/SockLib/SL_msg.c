@@ -17,7 +17,7 @@ extern SL_array_t *SL_proc_array;
 
 int SL_magic=12345;
 int SL_event_handle_counter = 0;
-int SL_proxy_server_socket = -1;
+int SL_proxy_server_socket = -100;
 fd_set send_fdset;
 fd_set recv_fdset;
 int proxymsg = -100;
@@ -129,26 +129,26 @@ void SL_msg_progress ( void )
 	    if ( ((SL_PROC_ACCEPT == dproc->state)    ||
 		  (SL_PROC_CONNECT == dproc->state )) &&
 		 ((current_tstamp - dproc->connect_start_tstamp) > dproc->timeout) && dproc->id != SL_this_procid ){
-		printf("[%d]:Waiting for %lf secs for a connection from proc %d state %d\n",SL_this_procid,
-			(current_tstamp - dproc->connect_start_tstamp), dproc->id, dproc->state );
-			dproc->sendfunc = ( SL_msg_comm_fnct *) SL_msg_connect_proxy;
-            		dproc->recvfunc = ( SL_msg_comm_fnct *) SL_msg_connect_proxy;
-			dproc->state = SL_PROC_CONNECT;
-			dproc->connect_start_tstamp = current_tstamp;
-	//		dproc->timeout+=dproc->timeout;
-			proc  = (SL_proc *) SL_array_get_ptr_by_id ( SL_proc_array, SL_PROXY_SERVER );
-    			if(proc->state != SL_PROC_CONNECTED){
-		       		SL_proc_init_conn_nb ( proc, proc->timeout );
-			}
-			PRINTF(("[%d]: clearing socket:%d\n", SL_this_procid, dproc->sock));
-			 FD_CLR ( dproc->sock, &SL_send_fdset );
-        		FD_CLR ( dproc->sock, &SL_recv_fdset );
-        	/*	if ( dproc->sock > 0 ) {
-            			SL_socket_close ( dproc->sock );
-        		}
-		*/
-			dproc->sock = proc->sock;
+		if(SL_this_procid != SL_PROXY_SERVER)
+			printf("[%d]:Waiting for %lf secs for a connection from proc %d state %d\n",
+				SL_this_procid, (current_tstamp - dproc->connect_start_tstamp), 
+				dproc->id, dproc->state );
 
+			if (dproc->id != SL_EVENT_MANAGER && dproc->id != SL_PROXY_SERVER){
+				dproc->sendfunc = ( SL_msg_comm_fnct *) SL_msg_connect_proxy;
+        	    		dproc->recvfunc = ( SL_msg_comm_fnct *) SL_msg_connect_proxy;
+				dproc->state = SL_PROC_CONNECT;
+				dproc->connect_start_tstamp = current_tstamp;
+		//		dproc->timeout+=dproc->timeout;
+				proc  = (SL_proc *) SL_array_get_ptr_by_id ( SL_proc_array, SL_PROXY_SERVER );
+    				if(proc->state != SL_PROC_CONNECTED){
+		       			SL_proc_init_conn_nb ( proc, proc->timeout );
+				}
+				PRINTF(("[%d]: clearing socket:%d\n", SL_this_procid, dproc->sock));
+	      			FD_CLR ( dproc->sock, &SL_send_fdset );
+       		 		FD_CLR ( dproc->sock, &SL_recv_fdset );
+				dproc->sock = proc->sock;
+			}
 //		SL_proc_handle_error ( dproc, SL_ERR_PROC_UNREACHABLE,TRUE);
 	    }	      
 	}
@@ -225,14 +225,9 @@ int SL_msg_recv_knownmsg ( SL_proc *dproc, int fd )
 
     PRINTF(("[%d]: into recv_knownmsg\n",SL_this_procid));
 
-/*    if(proxymsg>0)
-	FD_CLR ( SL_proxy_server_socket, &recv_fdset );
-    else
-	    FD_CLR ( dproc->sock, &recv_fdset );
-*/
 
 	PRINTF(("[%d]: clearing socket:%d\n", SL_this_procid, fd));
-	FD_CLR ( fd, &send_fdset );
+	FD_CLR ( fd, &recv_fdset );
 
     ret = SL_socket_read_nb ( fd, ((char *)elem->iov[1].iov_base + elem->lenpos), 
 			      elem->iov[1].iov_len - elem->lenpos, &len );
@@ -246,10 +241,12 @@ int SL_msg_recv_knownmsg ( SL_proc *dproc, int fd )
 		if(dproc->rqueue->first != NULL){
                         SL_msg_header_dump((SL_msg_header*)elem->iov[0].iov_base);
 			SL_msgq_move ( dproc->rqueue, elem->move_to, elem );
-			proxymsg = -100;
+			if(fd == SL_proxy_server_socket)
+				proxymsg = -100;
 			
 		}
-                else if (dproc->urqueue->first != NULL && SL_this_procid == SL_PROXY_SERVER && dproc->id != SL_EVENT_MANAGER){
+                else if (dproc->urqueue->first != NULL && SL_this_procid == SL_PROXY_SERVER && 
+				dproc->id != SL_EVENT_MANAGER){
                         SL_proc *proc;
                         SL_msg_header *pheader;
                         SL_msg_header_dump((SL_msg_header*)elem->iov[0].iov_base);
@@ -294,7 +291,7 @@ int SL_msg_recv_newmsg ( SL_proc *dproc, int fd )
     */
 
 	PRINTF(("[%d]: clearing socket:%d\n", SL_this_procid, fd));
-	FD_CLR ( fd, &send_fdset );
+	FD_CLR ( fd, &recv_fdset );
 
     ret = SL_socket_read_nb ( fd, (char *) &tmpheader, sizeof(SL_msg_header), &len);
     if ( SL_SUCCESS != ret ) {
@@ -335,16 +332,20 @@ int SL_msg_recv_newmsg ( SL_proc *dproc, int fd )
 	if ( tmpheader.from != dproc->id ) {
             PRINTF((" [%d]:Connection management mixed up? %d %d\n", SL_this_procid,
                     tmpheader.from, dproc->id ));
+
+	    if(SL_this_procid>SL_EVENT_MANAGER)
+                dproc = (SL_proc *) SL_array_get_ptr_by_id ( SL_proc_array, tmpheader.from );
 //          SL_proc_dumpall ();
 //            return SL_ERR_GENERAL;
         }
 	
 
-	if(SL_this_procid == SL_PROXY_SERVER && dproc->id>SL_EVENT_MANAGER && tmpheader.to != SL_PROXY_SERVER){
+	if(SL_this_procid == SL_PROXY_SERVER && dproc->id>SL_EVENT_MANAGER && 
+			tmpheader.to != SL_PROXY_SERVER){
 		dproc = (SL_proc *) SL_array_get_ptr_by_id ( SL_proc_array,tmpheader.to);
 		SL_socket_write ( dproc->sock, (char *) &tmpheader, sizeof  (SL_msg_header),
             				dproc->timeout );
-            PRINTF(("[%d]:SL_msg_recv_newmsg:Sending CLOSE reply to proc %d from proc %d\n", 
+                PRINTF(("[%d]:SL_msg_recv_newmsg:Sending CLOSE reply to proc %d from proc %d\n", 
 				SL_this_procid,dproc->id, tmpheader.from ));
 		return SL_SUCCESS;
 	}
@@ -352,24 +353,24 @@ int SL_msg_recv_newmsg ( SL_proc *dproc, int fd )
 	if(SL_this_procid == SL_PROXY_SERVER && tmpheader.to == SL_PROXY_SERVER){
 		SL_proxy_numprocs--;
 	}
-
-	SL_socket_write ( dproc->sock, (char *) &tmpheader, sizeof  (SL_msg_header), 
-	    dproc->timeout );
+	
+	tmpheader.from = SL_this_procid;
+        tmpheader.to = dproc->id;
+	SL_socket_write ( dproc->sock, (char *) &tmpheader, sizeof  (SL_msg_header), 1 );
 	PRINTF(("[%d]:SL_msg_recv_newmsg:Sending CLOSE reply to proc %d\n", SL_this_procid,dproc->id ));
 	if(dproc->sock != SL_proxy_server_socket || SL_this_procid == SL_EVENT_MANAGER){
+		PRINTF(("[%d]: clearing socket:%d\n", SL_this_procid, dproc->sock));
+	        FD_CLR ( dproc->sock, &SL_send_fdset );
+        	FD_CLR ( dproc->sock, &SL_recv_fdset );
 		SL_socket_close ( dproc->sock );
 	}
-	
-	PRINTF(("[%d]: clearing socket:%d\n", SL_this_procid, dproc->sock));
-	FD_CLR ( dproc->sock, &SL_send_fdset );
-	FD_CLR ( dproc->sock, &SL_recv_fdset );
 	
 
 	dproc->state = SL_PROC_NOT_CONNECTED;
 	dproc->sock  = -1;
 
-	dproc->recvfunc = SL_msg_closed;
-        dproc->sendfunc = SL_msg_closed;
+//	dproc->recvfunc = SL_msg_closed;
+//        dproc->sendfunc = SL_msg_closed;
 	return SL_SUCCESS;
 //	return SL_MSG_CLOSED;
     }
@@ -475,7 +476,8 @@ if (tmpheader.loglength != -1){
 		if(dproc->rqueue->first != NULL){
 			SL_msg_header_dump((SL_msg_header*)elem->iov[0].iov_base);
 			SL_msgq_move ( dproc->rqueue, elem->move_to, elem );
-			proxymsg = -100;
+			if(fd == SL_proxy_server_socket)
+				proxymsg = -100;
 		}
 		else if (dproc->urqueue->first != NULL && SL_this_procid == SL_PROXY_SERVER && dproc->id != SL_EVENT_MANAGER){
 			SL_proc *proc;
@@ -537,7 +539,8 @@ int SL_msg_send_knownmsg ( SL_proc *dproc, int fd )
 #endif	
 //	    ret = SL_MSG_DONE;
             dproc->sendfunc = SL_msg_send_newmsg;
-	    proxymsgsend = -100;	
+	    if(fd == SL_proxy_server_socket)
+		    proxymsgsend = -100;	
 	}
     }
 
@@ -583,7 +586,8 @@ int SL_msg_send_newmsg ( SL_proc *dproc, int fd )
 	    SL_msgq_move ( dproc->squeue, elem->move_to, elem );
 	    dproc->cursendelem = NULL;
 	    dproc->sendfunc = SL_msg_send_newmsg;
-	    proxymsgsend = -100;
+	    if(fd == SL_proxy_server_socket)
+		    proxymsgsend = -100;
 //	    ret = SL_MSG_DONE;
 #ifdef QPRINTF
 	    if ( NULL != elem->move_to ) {
@@ -661,6 +665,8 @@ int SL_msg_accept_stage2(SL_proc *dproc, int fd)
     char hostname[SL_MAXHOSTNAMELEN];
     int newid ;
     int port;
+    static SL_tnumprocs=0;
+    int killsig=0;
     
 	PRINTF(("[%d]: SL_accept_stage2: read in handshake on connection %d returned %d\n", 
 				SL_this_procid, sd, ret));
@@ -696,19 +702,53 @@ int SL_msg_accept_stage2(SL_proc *dproc, int fd)
 	    
 	    if (tmp == SL_CONSTANT_ID || tmp == SL_PROC_ID){
 		PRINTF(("[%d]:Assining new ID to process  %d\n\n",SL_this_procid,tmp));
-		if (tmp == SL_CONSTANT_ID)
+		if (tmp == SL_CONSTANT_ID){
 		    newid = SL_proc_id_generate(1);
-		else
-		    newid = SL_proc_id_generate(0);
+		}
+		if (SL_tnumprocs == SL_numprocs){
+             	   newid = -1;
+                	killsig = 1;
+            	}
+            	else{
+                	newid = SL_proc_id_generate(0);
+                	SL_tnumprocs++;
+            	}
+
 		port = SL_proc_port_generate();
 		ret = SL_socket_read ( sd, hostname, SL_MAXHOSTNAMELEN, SL_ACCEPT_MAX_TIME );
 		if ( SL_SUCCESS != ret ) {
 		    return ret;
 		}
+
+		if ((strlen(hostname)<7 || strlen(hostname)>15) && killsig != 1 ){
+                	newid = -1;
+	                SL_proc_id_generate(-1);
+        	        SL_tnumprocs--;
+            	}
+
 		ret = SL_socket_write ( sd, (char *) &newid, sizeof(int), SL_ACCEPT_MAX_TIME);
 		if ( SL_SUCCESS != ret ) {
 		    return ret;
 		}
+
+		if(newid == -1){
+             		PRINTF((" We do not need more procs as of now so sending a signal to kill %s\n",
+				hostname));
+                	dproc->sock = SL_this_listensock;
+	                dproc->state = SL_PROC_ACCEPT;
+        	        dproc->sendfunc = SL_msg_accept_newconn;
+                	dproc->recvfunc = SL_msg_accept_newconn;
+	                PRINTF(("[%d]: 8. clearing socket:%d\n", SL_this_procid, sd));
+        	        FD_CLR ( sd, &SL_send_fdset);
+                	FD_CLR ( sd, &SL_recv_fdset);
+	                FD_CLR ( sd, &send_fdset);
+        	        FD_CLR ( sd, &recv_fdset);
+                	SL_socket_close(sd);
+
+                	return SL_SUCCESS;
+            	}
+		PRINTF(("[%d]:Assined ID:%d to host  %s\n\n",SL_this_procid,newid,hostname));
+
 		ret = SL_socket_write ( sd, (char *) &port, sizeof(int), SL_ACCEPT_MAX_TIME);
 		if ( SL_SUCCESS != ret ) {
 		    return ret;

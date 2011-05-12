@@ -14,7 +14,7 @@ int MCFA_pack_size(int num_of_ints, int num_of_chars, int *buffer_length)
 
 int MCFA_pack_int(void *packbuf, int *from, int count, int *pos)
 {
-	char *cursor = packbuf;
+	char *cursor = (char*)packbuf;
 	cursor += *pos;
 
 	memcpy(cursor, from, count * sizeof(int));
@@ -25,7 +25,7 @@ int MCFA_pack_int(void *packbuf, int *from, int count, int *pos)
 
 int MCFA_pack_string(void *packbuf, char *from, int count, int *pos)
 {
-        char *cursor = packbuf;
+        char *cursor = (char*)packbuf;
         cursor += *pos;
 
          memcpy(cursor, from, count *  sizeof(char));
@@ -35,7 +35,7 @@ int MCFA_pack_string(void *packbuf, char *from, int count, int *pos)
 
 int MCFA_unpack_int(void *unpackbuf, int *to, int count, int *pos)
 {
-        char *cursor = unpackbuf;
+        char *cursor = (char*)unpackbuf;
 
         cursor += *pos;
 	
@@ -46,7 +46,7 @@ int MCFA_unpack_int(void *unpackbuf, int *to, int count, int *pos)
 
 int MCFA_unpack_string(void *unpackbuf, char *to, int count, int *pos)
 {
-        char *cursor = unpackbuf;
+        char *cursor = (char*)unpackbuf;
 
         cursor += *pos;
 

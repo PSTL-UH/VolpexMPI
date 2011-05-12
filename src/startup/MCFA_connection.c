@@ -33,7 +33,7 @@ int MCFA_connect(int id)
 
 
     dproc = SL_array_get_ptr_by_id ( SL_proc_array, MCFA_MASTER_ID );
-    SL_open_socket_conn ( &dproc->sock, dproc->hostname, dproc->port );
+    SL_open_socket_conn_nb ( &dproc->sock, dproc->hostname, dproc->port );
     dproc->state = SL_PROC_CONNECTED;
     /* set the read and write fd sets */
     FD_SET ( dproc->sock, &SL_send_fdset );
@@ -42,8 +42,17 @@ int MCFA_connect(int id)
         SL_fdset_lastused = dproc->sock;
     }
 
-    if ( dproc->sock > SL_fdset_lastused ) {
-        SL_fdset_lastused = dproc->sock;
+    getsockopt (dproc->sock, SOL_SOCKET, SO_ERROR, &terr, &len1);
+    if ( EINPROGRESS == terr || EWOULDBLOCK == terr) {
+	    printf("[%d]: Connection could not be established\n", SL_this_procid);
+    }
+    if ( 0 != terr ) {
+	    PRINTF(("[%d]: clearing socket:%d\n", SL_this_procid, dproc->sock));
+	    FD_CLR ( dproc->sock, &SL_send_fdset );
+	    FD_CLR ( dproc->sock, &SL_recv_fdset );
+	    PRINTF( ("[%d]:SL_msg_connect_newconn: reconnecting %d %s \n", SL_this_procid,terr,
+                                                             strerror ( terr ) ));
+/*Something better should be done */
     }
 
     ret = SL_socket_read ( dproc->sock, ( char *) &tmp, sizeof(int),
@@ -79,7 +88,9 @@ int MCFA_connect_stage2()
 	dproc = SL_array_get_ptr_by_id ( SL_proc_array, MCFA_MASTER_ID );
     ret = SL_socket_read ( dproc->sock, ( char *) &newid, sizeof(int),
                            -1);
-    if ( SL_SUCCESS != ret ) {
+    if ( SL_SUCCESS != ret  || newid == -1) {
+        printf("I am no longer needed\n");
+        exit(-1);
         return ret;
     }
 
@@ -93,3 +104,31 @@ int MCFA_connect_stage2()
     return newid;
 
 }
+/*
+char *MCFA_get_ip_client()
+{
+   struct ifaddrs *ifAddrStruct=NULL;
+    void *tmpAddrPtr=NULL;
+    char *addressBuffer;
+
+    addressBuffer = (char*)malloc(INET_ADDRSTRLEN * sizeof(char));
+
+
+    getifaddrs(&ifAddrStruct);
+
+    while (ifAddrStruct!=NULL) {
+        if (ifAddrStruct->ifa_addr->sa_family==AF_INET && strcmp(ifAddrStruct->ifa_name, "eth0")==0) { // check it is IP4
+            // is a valid IP4 Address
+            tmpAddrPtr=&((struct sockaddr_in *)ifAddrStruct->ifa_addr)->sin_addr;
+            inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
+            printf("1.%s IP Address %s\n", ifAddrStruct->ifa_name, addressBuffer);
+
+        }
+        ifAddrStruct=ifAddrStruct->ifa_next;
+    }
+
+        return addressBuffer;
+
+}
+*/
+

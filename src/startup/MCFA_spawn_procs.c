@@ -88,10 +88,11 @@ char *d_path, *d_path1 ;
     sprintf(arg[9], "%d", host->numofProcs);
 
 
-char tprocid[4];
+char *tprocid;
 char *procids;
 int i;
 procids = (char*)malloc(4*host->numofProcs*sizeof(char));
+tprocid = (char *) malloc (sizeof(int) + 1);
 
     sprintf(tprocid, "%d", host->id[0].procID);
     strcpy(procids, tprocid);
@@ -430,6 +431,7 @@ void MCFA_create_condordesc(char *exe, int numprocs)
 	fprintf(fp,"Output	= output.$(Process)\n");
 	fprintf(fp, "Notification = never\n");
 	fprintf(fp,"Log		= volpex.log\n\n\n");
+	fprintf(fp, "transfer_input_files = %s , volpex.$(Process)\n", exe);
 	fprintf(fp, "should_transfer_files = YES\n");
 	fprintf(fp, "when_to_transfer_output = ON_EXIT\n\n");
 	fprintf(fp, "Queue ");

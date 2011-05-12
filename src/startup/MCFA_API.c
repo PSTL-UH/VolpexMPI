@@ -35,6 +35,7 @@ int MCFA_Init()
     char *path;		
     char newpath[BUFFERSIZE] = ".";
     int spawn_flag ;
+    int ret;
 
 
     path 		= strdup(getenv("MCFA_PATH"));
@@ -87,9 +88,15 @@ int MCFA_Init()
 
 
 	/*CONDOR*/
-	if(spawn_flag == 1){
+	if(spawn_flag == 1 || spawn_flag == 2){
 		gethostname(myhostname, 512);
-		MCFA_connect(-64);
+//		myhostname = MCFA_get_ip_client();
+		ret = MCFA_connect(-64);
+		if (ret != SL_SUCCESS){
+         	   printf("Could not recieve correct id\n");
+	           exit(-1);
+        	}
+
 		myid = MCFA_connect_stage2();
 		
 		SL_this_procid = myid;
@@ -224,8 +231,8 @@ int MCFA_proc_read_init(char *msgbuf,int len)
 int SL_add_proc(void *buf, int len)
 {
 	int numprocs;
-	numprocs = MCFA_proc_read_init(buf,len);
-        MCFA_proc_read_volpex_procs(buf,len);
+	numprocs = MCFA_proc_read_init((char*)buf,len);
+        MCFA_proc_read_volpex_procs((char*)buf,len);
 	SL_numprocs += numprocs;
 	Volpex_numprocs = SL_numprocs;
 	printf("[%d] :Added new proc to list \n",SL_this_procid);
@@ -249,18 +256,18 @@ int SL_delete_proc(void *buf, int len)
     struct MCFA_proc_node* curr = NULL;
     SL_proc *dproc;
 
-    proclist = MCFA_unpack_proclist(buf,len);	
+    proclist = MCFA_unpack_proclist((char*)buf,len);	
     curr = proclist;
 
     while(curr!=NULL)
     {
 	
-    	dproc = SL_array_get_ptr_by_id ( SL_proc_array,curr->procdata->id  );
+    	dproc = (SL_proc*) SL_array_get_ptr_by_id ( SL_proc_array,curr->procdata->id  );
 	PRINTF(("[%d]:MCFA_API: Handling error for proc %d\n",SL_this_procid,dproc->id));
 	if (dproc->id == SL_this_procid){
-//		printf("[%d]:Bye!!!! I am signing off", SL_this_procid);
-//		MCFA_printf_finalize();
-//		exit(-1);
+		printf("[%d]:Bye!!!! I am signing off", SL_this_procid);
+		MCFA_printf_finalize();
+		exit(-1);
 	}
     	SL_proc_handle_error ( dproc, SL_ERR_PROC_UNREACHABLE,FALSE);	
 //	Volpex_set_not_connected(dproc->id);	
@@ -281,7 +288,7 @@ int SL_start_communication(int id)
         int i,k,j,buflen=0;
         int *initialnodes;
 	int len;
-        buf1 = malloc(MAX_LEN);
+        buf1 = (char*)malloc(MAX_LEN*sizeof(char));;
 
         if (SL_this_procid == id){
             timeval = (MCFA_init_nodes*) calloc (SL_numprocs , (sizeof(MCFA_init_nodes)));
