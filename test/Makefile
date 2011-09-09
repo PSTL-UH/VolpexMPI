@@ -4,10 +4,16 @@
 #
 include ../Makefile.defs
 
+latency:latency.c
+	$(CC) $(CFLAGS) -o latency latency.c $(LDFLAGS)
+
+SLt:SLt.c
+	$(CC) $(CFLAGS) -o SLt SLt.c $(LDFLAGS)
+
 test_status:
 	$(CC) $(CFLAGS) -o test_status test_status.c $(LDFLAGS)
 
-target_selection:
+target_selection:target_selection.c
 	 $(CC) $(CFLAGS) -o target_selection target_selection.c $(LDFLAGS)
 
 temp: 
@@ -151,4 +157,4 @@ cleanish:
 
 clean:
 	$(RM) $(RMFLAGS) *.o *~ *.out
-	$(RM) -f bt sp mg ft lu is ep cg temp
+	$(RM) -f bt sp mg ft lu is ep cg temp target_selection

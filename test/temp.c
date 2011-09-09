@@ -10,7 +10,8 @@ int main ( int argc, char * argv[] )
     double darr[2], dsum[2], dmax[2], dprod[2], dmin[2];
     int iland[2], ilor[2], ilxor[2];
     int iband[2], ibor[2], ibxor[2];
-    
+
+//	sleep(10);    
     MPI_Init ( &argc, &argv );
     MPI_Comm_size ( MPI_COMM_WORLD, &numnode );
     MPI_Comm_rank ( MPI_COMM_WORLD, &mynode );

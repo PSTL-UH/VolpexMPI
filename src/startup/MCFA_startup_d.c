@@ -73,9 +73,9 @@ int main(int argc, char **argv )
 	path                = strdup (arg[1]);
 	hostname            = strdup ( arg[2] );
 	port                = atoi ( arg[3] );
-	event_handler_id    = atoi (arg[6]);
-	red                 = atoi (arg[8]);
-        spawn_flag                = atoi (arg[9]);
+	event_handler_id    = atoi (arg[4]);
+	red                 = atoi (arg[5]);
+        spawn_flag                = atoi (arg[6]);
 	numprocs                = atoi (argv[7]);
 
 
@@ -104,7 +104,7 @@ int main(int argc, char **argv )
     
     
     nextSL = 8;
-    if (spawn_flag == CONDOR)
+    if (spawn_flag != 0)
 	numprocs = 1;
  
     for(i=0;i<numprocs;i++){
@@ -113,14 +113,14 @@ int main(int argc, char **argv )
 	MCFA_set_env(path, hostname, port, id, event_handler_id, red, spawn_flag);
 	nextSL++;
 	
-	printf("path           : %s\n \
+	PRINTF(("path           : %s\n \
 	hostname         : %s\n	      \
 	port             : %d\n	      \
 	id               : %d\n	      \
 	event_handler_id : %d\n	      \
 	red		 : %d\n	      \
 	flag		 : %d\n",
-	       path, hostname, port, id, event_handler_id,red,spawn_flag);
+	       path, hostname, port, id, event_handler_id,red,spawn_flag));
 	
 	
 	char **arg1;
@@ -177,12 +177,13 @@ char ** MCFA_read_argfile()
     char        **arg = NULL;
     char exec[MAXNAMELEN];
     
-   system("mv volpex.* volpex" );
+//   system("mv volpex.* volpex" );
 
  //   sprintf
     
     fp = fopen ("volpex", "r");
     if (fp == NULL)
+
 	printf(" Error in opening condor input file \n");
 
     

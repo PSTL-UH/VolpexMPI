@@ -48,6 +48,9 @@ void SL_print_msg_performance(SL_msg_perf* insertpt);
 SL_network_perf* SL_network_performance_init();
 void SL_network_performance_insert(double latency, double bandwidth, SL_proc *proc);
 void SL_print_net_performance(SL_network_perf *insertpt);
+int SL_net_performance_free(SL_proc *tproc);
+int SL_msg_performance_free(SL_proc *tproc);
+
 #endif
 
 

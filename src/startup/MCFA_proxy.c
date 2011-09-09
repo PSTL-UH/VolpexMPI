@@ -7,7 +7,7 @@ extern fd_set SL_send_fdset;
 extern fd_set SL_recv_fdset;
 extern int SL_this_procport;
 //extern int SL_init_numprocs;
-extern char        hostname[MAXHOSTNAMELEN];
+//extern char        hostname[MAXHOSTNAMELEN];
 
 int main(int argc, char *argv[])
 {
@@ -15,11 +15,13 @@ int main(int argc, char *argv[])
     int         port,len=MAXHOSTNAMELEN;
     char  	*msgbuf = NULL;
     int  msglen;
+    char *hostname;
+    int spawnflag;
 
     hostname = strdup(argv[1]);
     port     = atoi(argv[2]);
     spawnflag= atoi(argv[3]);
-    MCFA_printf_init1(0,-2);
+//    MCFA_printf_init1(0,-2);
 
     SL_array_init ( &(SL_proc_array), "SL_proc_array", 32 );
     FD_ZERO( &SL_send_fdset );

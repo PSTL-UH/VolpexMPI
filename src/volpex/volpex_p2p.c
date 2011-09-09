@@ -155,9 +155,11 @@ int  Volpex_Wait(MPI_Request *request, MPI_Status *status)
 		}
 	}
 	if ( done == 1 ) {
+
 	    PRINTF(("[%d] Volpex_Wait has request %d number %d set to done target:%d numoftargets:%d nummsg:%d\n", 
 				SL_this_procid, *request,newrequest,reqlist[newrequest].target, numoftargets,
 						Volpex_targets[reqlist[newrequest].target%(Volpex_numprocs/redundancy)].numofmsg ));
+
 	    *request = MPI_REQUEST_NULL;
 
 
@@ -181,17 +183,18 @@ int  Volpex_Wait(MPI_Request *request, MPI_Status *status)
 
                         Volpex_targets[procid].target = finaltarget;
                         printf("####[%d]: Setting target:%d for source:%d numofmsg:%d\n", SL_this_procid,
-                                Volpex_targets[procid].target,procid, Volpex_targets[procid].numofmsg);
+                                Volpex_targets[procid].target,reqlist[newrequest].header->src, 
+					Volpex_targets[procid].numofmsg);
 
 
-                                Volpex_set_newtarget(finaltarget,procid, MPI_COMM_WORLD);
+                                Volpex_set_newtarget(finaltarget,reqlist[newrequest].header->src, MPI_COMM_WORLD);
 
 
 
 
 
                         Volpex_targets[procid].numofmsg++;
-                        proc = Volpex_get_proc_byid(Volpex_targets[procid].target);
+                        proc = Volpex_get_proc_bySLid(Volpex_targets[procid].target);
                         proc->recvpost = 1;
 
 
@@ -458,7 +461,15 @@ int  Volpex_Isend(void *buf, int count, MPI_Datatype datatype, int dest, int tag
     PRINTF(("[%d] Into Volpex_Isend len=%d dest=%d tag=%d reuse=%d\n", 
 	    SL_this_procid, len, dest, tag, reuse));
 
-    if(dest == hdata[comm].myrank){
+ int tflag = 0;
+    for(k=0; k<numoftargets; k++){
+        if(targets[k] == SL_this_procid){
+            tflag = 1;
+            break;
+        }
+    }
+      if(tflag == 1){
+//    if(dest == hdata[comm].myrank){
 	i = Volpex_request_get_counter ( 1 );
 	Volpex_request_clean ( i, 1 );
 	reqlist[i].target = hdata[comm].myrank ;
@@ -608,8 +619,15 @@ int  Volpex_Irecv_ll(void *buf, int len, int source, int tag,
     PRINTF(("[%d] Into Volpex_Irecv_ll len=%d tag=%d source=%d reuse=%d new_req=%d\n", 
 	    SL_this_procid, len, tag, source, reuse, new_req));
     
-    
-    if(source == hdata[comm].myrank){
+     int tflag = 0;
+    for(k=0; k<numoftargets; k++){
+        if(targets[k] == SL_this_procid){
+            tflag = 1;
+            break;
+        }
+    }
+      if(tflag == 1){
+//    if(source == hdata[comm].myrank){
 	reqlist[i].target = SL_this_procid;
 	reqlist[i].req_type = 1;  /*1 = irecv*/
 	reqlist[i].in_use = 1;
@@ -666,6 +684,7 @@ int  Volpex_Irecv_ll(void *buf, int len, int source, int tag,
 	    }
 	    else if(Volpex_targets[procid].numofmsg>MAX_MSG){
                 *request = i;
+		PRINTF(("[%d]: ++Setting REQUEST:%d",SL_this_procid,i));
                 Volpex_progress();
                 if ( NULL != targets ) {
                     free ( targets );
@@ -704,8 +723,9 @@ for(p = 0; p < numoftargets; p++){
 
 
 
-
-	*request = i-1;
+	PRINTF(("[%d]: +++Setting REQUESTprevious:%d REQUESTnew:%d",SL_this_procid,i-1,assoc_recv[0]));
+//	*request = i-1;
+	*request = assoc_recv[0];
 
 	if(targets !=NULL){
 		free ( targets );

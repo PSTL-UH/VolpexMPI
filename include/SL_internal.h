@@ -13,7 +13,7 @@
 #include <fcntl.h>
 #include <math.h>
 #include <errno.h>
-#include <papi.h>
+//#include <papi.h>
 #ifdef MINGW
 #include <windows.h>
 #include <winsock2.h>
@@ -41,7 +41,7 @@ extern int SL_this_procport;
 extern int SL_this_listensock;
 extern int SL_numprocs;
 extern int SL_init_numprocs;
-
+extern int SL_proxy_numprocs;
 /* Message header send before any message */
 struct SL_msg_header {
     int      cmd; /* what type of message is this */
@@ -191,6 +191,7 @@ struct SL_msgq_head     *SL_event_sendcq;
 #define SL_MAX_EVENT_HANDLE     1
 #define SL_CONSTANT_ID          -32
 #define SL_EVENT_MANAGER        -1
+#define SL_PROXY_SERVER		-2
 #define PERFBUFSIZE	20
 #define MTU		(1024L*4L)	
 #define SL_PROC_ID	-64

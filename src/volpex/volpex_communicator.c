@@ -49,6 +49,7 @@ int Volpex_free_comm()
 		tcomm = (Volpex_comm*)SL_array_get_ptr_by_pos ( Volpex_comm_array, i );
 		for(j=0;j<tcomm->size;j++){
 			free(tcomm->plist[j].ids);
+			free(tcomm->plist[j].SL_ids);
 			free(tcomm->plist[j].recvpost);
 		}
                 free(tcomm->plist);
@@ -202,6 +203,8 @@ int Volpex_comm_copy(Volpex_comm* newcomm, Volpex_comm* oldcomm)
 	newcomm->plist[i].num = oldcomm->plist[i].num;
 	newcomm->plist[i].ids = (int *) malloc (newcomm->plist[i].num * 
 						sizeof(int));
+	newcomm->plist[i].SL_ids = (int *) malloc (newcomm->plist[i].num *
+                                                sizeof(int));
 	newcomm->plist[i].recvpost = (int *) malloc (newcomm->plist[i].num *
                                                 sizeof(int));
 	if ( NULL == newcomm->plist[i].ids ) {
@@ -210,6 +213,7 @@ int Volpex_comm_copy(Volpex_comm* newcomm, Volpex_comm* oldcomm)
 	
 	for(j=0; j<newcomm->plist[i].num;j++) {
 	    newcomm->plist[i].ids[j] = oldcomm->plist[i].ids[j];
+	    newcomm->plist[i].SL_ids[j] = oldcomm->plist[i].SL_ids[j];
 	    newcomm->plist[i].recvpost[j] = 0;
 	}
     }
@@ -231,6 +235,7 @@ int Volpex_get_plist_byrank(int rank, Volpex_comm *oldcomm,
     }
     for(i=0; i<plist->num; i++){
 	plist->ids[i] = oldcomm->plist[rank].ids[i];
+	plist->SL_ids[i] = oldcomm->plist[rank].SL_ids[i];
 	plist->recvpost[i] = 0;
     }
 
@@ -347,7 +352,7 @@ void Volpex_set_recvpost(int commid,int procid)
 
         for (i=0;i<comm->size;i++){
                 for(j=0; j<comm->plist[i].num; j++){
-                        if(comm->plist[i].ids[j] == procid){
+                        if(comm->plist[i].SL_ids[j] == procid){
                                 comm->plist[i].recvpost[j] = 1;
                                 break;
                         }
@@ -365,7 +370,7 @@ int Volpex_check_recvpost(int commid,int procid)
 
         for (i=0;i<comm->size;i++){
                 for(j=0; j<comm->plist[i].num; j++){
-                        if(comm->plist[i].ids[j] == procid){
+                        if(comm->plist[i].SL_ids[j] == procid){
                                 ret = comm->plist[i].recvpost[j] ;
                                 break;
                         }

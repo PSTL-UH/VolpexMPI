@@ -49,7 +49,7 @@
 #define CK_LEN  (int)(5*sizeof(int))
 
 #define MAX_MSG	1
-#define MAX_MSG_TIME 10000000
+#define MAX_MSG_TIME 50000000
 #define MAX_MSG_REPEAT 30000000000
 #define VOLPEX_PROC_CONNECTED     1
 #define VOLPEX_PROC_NOT_CONNECTED 0
@@ -641,7 +641,7 @@ int Volpex_get_volpexid(int SL_id);
 
 void Volpex_print_procplist();
 int Volpex_numoftargets(int rank, int comm, int target);
-
+int Volpex_insert_comm_newproc(int rank, int procid);
 
 int Volpex_init_send(int commid);
 int Volpex_set_primarytarget(Volpex_proc *proc, int newtarget);

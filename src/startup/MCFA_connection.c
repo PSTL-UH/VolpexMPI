@@ -16,7 +16,7 @@ int MCFA_connect(int id)
     char *hostname = NULL;
     int len=256;
     SL_proc *dproc = NULL;
-    int tmp,ret;
+    int tmp,ret,terr,len1;
 
     hostname = (char*)malloc(256 * (sizeof(char)));
     if(hostname == NULL){
@@ -89,7 +89,7 @@ int MCFA_connect_stage2()
     ret = SL_socket_read ( dproc->sock, ( char *) &newid, sizeof(int),
                            -1);
     if ( SL_SUCCESS != ret  || newid == -1) {
-        printf("I am no longer needed\n");
+        printf("I am no longer needed:%d\n", newid);
         exit(-1);
         return ret;
     }

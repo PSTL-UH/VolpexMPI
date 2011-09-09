@@ -702,10 +702,11 @@ int SL_msg_accept_stage2(SL_proc *dproc, int fd)
 	    
 	    if (tmp == SL_CONSTANT_ID || tmp == SL_PROC_ID){
 		PRINTF(("[%d]:Assining new ID to process  %d\n\n",SL_this_procid,tmp));
+		PRINTF(("[%d]: SL_tnumprocs:%d SL_numprocs:%d\n",SL_this_procid,SL_tnumprocs,SL_numprocs));
 		if (tmp == SL_CONSTANT_ID){
 		    newid = SL_proc_id_generate(1);
 		}
-		if (SL_tnumprocs == SL_numprocs){
+		else if (SL_tnumprocs == SL_numprocs){
              	   newid = -1;
                 	killsig = 1;
             	}
@@ -720,7 +721,7 @@ int SL_msg_accept_stage2(SL_proc *dproc, int fd)
 		    return ret;
 		}
 
-		if ((strlen(hostname)<7 || strlen(hostname)>15) && killsig != 1 ){
+		if (( strlen(hostname)>15) && killsig != 1 ){
                 	newid = -1;
 	                SL_proc_id_generate(-1);
         	        SL_tnumprocs--;

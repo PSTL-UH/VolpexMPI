@@ -3,7 +3,7 @@
 #include "SL.h"
 
 
-#define THRESHOLDCUT 1000
+#define THRESHOLDCUT 2
 
 int*** MCFA_dividedistmatrix(int **distmatrix, int redundancy, int *newnodes);
 void MCFA_print_submatrix(int ***subdistmat, int redundancy, int *newnodes);
@@ -82,7 +82,7 @@ MCFA_node*  MCFA_tree(int **distmatrix, int numprocs)
 }
 
 
-int* MCFA_cluster(MCFA_node *result, int redundancy, int **distmatrix)
+int** MCFA_cluster(MCFA_node *result, int redundancy, int **distmatrix, int *numclusters, int **numelems)
 /* This process returns the newnode list where processes are arranged 
 	such as first n processes form team 0
 	next n processes form next team and so on
@@ -122,7 +122,7 @@ int* MCFA_cluster(MCFA_node *result, int redundancy, int **distmatrix)
     for(i=0;i<nclusters;i++)
 	numelements[i]=0;
 
-    newnodes = malloc(SL_numprocs*sizeof(int));
+//    newnodes = malloc(SL_numprocs*sizeof(int));
     
     clusterid = malloc(SL_numprocs*sizeof(int));
 
@@ -152,16 +152,23 @@ int* MCFA_cluster(MCFA_node *result, int redundancy, int **distmatrix)
 	    printf("%d ",clusters[i][j]);
         printf("\n");
     }
+	*numclusters = nclusters;
+	*numelems    = numelements;
+	return clusters;
+}
     
 //   newclusters = MCFA_sort_clusters(int *numelements, int **clusters, int nclusters); 
     
 /* Sorting ranks */
-    
+int* MCFA_sortedlist (int ** clusters, int nclusters, int *numelements, int redundancy)
+{
+	int *numelementsleft,i,j, num=0, *newnodes;
     numelementsleft = malloc(nclusters*sizeof(int)); //calculates number of processes assined and number of
     for(i=0;i<nclusters;i++)			     //procs unassined
         numelementsleft[i]=numelements[i];
     
     
+    newnodes = malloc(SL_numprocs*sizeof(int));
     for(i=0;i<nclusters;i++)
     {
 	if(numelementsleft[i]>=SL_numprocs/redundancy){
@@ -207,7 +214,7 @@ int* MCFA_cluster(MCFA_node *result, int redundancy, int **distmatrix)
     }
     
     
-
+/*
     free(numelements);
     for(i=0; i<nclusters; i++)
 	free(clusters[i]);
@@ -215,7 +222,7 @@ int* MCFA_cluster(MCFA_node *result, int redundancy, int **distmatrix)
     free(pos);
     free(numelementsleft);
     free(clusterid);
-
+*/
     
     return newnodes;
 }

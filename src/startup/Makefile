@@ -7,13 +7,12 @@
 # $HEADER$
 #
 include ../../Makefile.defs
-
+#OBJ1 =  MCFA_API.o
 
 OBJ =	MCFA_pack_unpack.o	\
 	MCFA_create_lists.o	\
 	MCFA_printf.o		\
 	MCFA_pack_unpack_lists.o \
-	MCFA_API.o		\
 	MCFA_getID.o		\
 	MCFA_connection.o	\
 	MCFA_env.o		\
@@ -24,6 +23,7 @@ OBJ =	MCFA_pack_unpack.o	\
         MCFA_clustering.o	\
 	MCFA_set_list.o		\
 	MCFA_boinc.o		\
+	MCFA_API.o	
 	
 #	MCFA_socket_comm.o	\
 #	MCFA_socket_comm.o	\
@@ -33,7 +33,7 @@ OBJ =	MCFA_pack_unpack.o	\
 all:    
 	make $(VOLPEX_LIB) 
 	make MCFA_startprocs
-	make MCFA_control
+#	make MCFA_control
 #	make MCFA_monitor
 	make MCFA_startup_d
 	make MCFA_proxy
@@ -41,11 +41,12 @@ all:
 $(VOLPEX_LIB): $(HEADER) $(OBJ) 
 	$(AR) $(AR_FLAGS) $(VOLPEX_LIB_DIR)/$(VOLPEX_LIB) $(OBJ)
 
+
 $(OBJ):	$(HEADER)
 .c.o:	$(HEADER)
 	$(CC) $(CFLAGS)  -c $<
 
-MCFA_startprocs: $(HEADER) $(OBJ)
+MCFA_startprocs: $(HEADER)  $(OBJ)
 	$(CC) $(CFLAGS) -o mcfarun MCFA_startprocs.c $(LDFLAGS)
 
 MCFA_control: $(HEADER) $(OBJ)

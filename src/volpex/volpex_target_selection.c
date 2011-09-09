@@ -48,7 +48,7 @@ int Volpex_dest_src_locator(int rank, int comm, char *myfullrank, int **target,
 
 
     for(i=0; i< plist->num; i++){
-        proc = Volpex_get_proc_byid (plist->ids[i]);
+        proc = Volpex_get_proc_bySLid (plist->SL_ids[i]);
         if (proc->state == VOLPEX_PROC_CONNECTED){
             numtargets ++;
         }
@@ -127,7 +127,7 @@ int Volpex_set_newtarget(int newtarget, int rank, int comm)
     Volpex_proc *proc=NULL ;
     Volpex_proc	*tproc=NULL; int j;
     Volpex_proclist *plist=NULL ;
-    int id,tmp,tmp_SL,new_SLid;
+    int id,tmp,tmp_SL,new_id;
 
     communicator = Volpex_get_comm_byid ( comm );
     plist        = &communicator->plist[rank];
@@ -144,17 +144,17 @@ int Volpex_set_newtarget(int newtarget, int rank, int comm)
 
 
     id = proc->plist->ids[0];
-    tmp_SL = plist->SL_ids[0];
+    tmp_SL = proc->plist->SL_ids[0];
     for (i=0; i<proc->plist->num; i++)
     {
-        if (proc->plist->ids[i] == newtarget){
+        if (proc->plist->SL_ids[i] == newtarget){
+		new_id = proc->plist->ids[i];
                 proc->plist->ids[i] = id ;
-		new_SLid = proc->plist->SL_ids[i];
 		proc->plist->SL_ids[i] = tmp_SL ;
 	}
     }
-    proc->plist->ids[0] = newtarget;
-    proc->plist->SL_ids[0] = new_SLid;
+    proc->plist->SL_ids[0] = newtarget;
+    proc->plist->ids[0] = new_id;
 	for(i=0;i<proc->plist->num;i++){
                         tproc = Volpex_get_proc_byid(proc->plist->ids[i]);
                         for(j=0; j<proc->plist->num;j++)

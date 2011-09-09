@@ -152,8 +152,8 @@ int main(int argc, char *argv[])
 	SL_numprocs = 0;
 
     newproclist = MCFA_set_lists(id,hostName,path,port,jobID,numprocs,hostCount,redundancy);
-	MCFA_printProclist(procList);
-                MCFA_printHostlist(hostList);
+//	MCFA_printProclist(procList);
+//                MCFA_printHostlist(hostList);
 
     MCFA_spawn_processes(hostName,path,port,jobID,numprocs,hostCount,redundancy,condor_flag,newproclist);
 	
@@ -374,13 +374,17 @@ struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, int por
     	{
         	id = currlist->procdata->id;
 	
-	    /* SL_proc_init should be done for all processes on procList
-		but fork should be done at each host in hostList not based on proc list
-	    */
+	   //  SL_proc_init should be done for all processes on procList
+	//	but fork should be done at each host in hostList not based on proc list
+	    
 		SL_proc_init(id, currlist->procdata->hostname, currlist->procdata->portnumber);
 		currlist = currlist->next;
+
+		
 	
 	    }
+
+	printf("spawn flag is SSH temporarily added code\n");
     }
     else if (spawn_flag == CONDOR){
  	   currhost = hostList;
@@ -436,6 +440,8 @@ struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, int por
 	}
     if (spawn_flag == SSH ){
         currhost = hostList;
+
+
 	while(currhost != NULL && pid !=0 ){
 
 		arg = MCFA_set_args1(currhost->hostdata, path, port, redundancy, spawn_flag);
@@ -479,11 +485,11 @@ struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, int por
     }
 
     if (spawn_flag == CONDOR){
-  	MCFA_create_condordesc(exec, numprocs);
-	MCFA_start_condorjob();
+//  	MCFA_create_condordesc(exec, numprocs);
+//	MCFA_start_condorjob();
     }
 
-    if (spawn_flag == CONDOR || spawn_flag == BOINC){
+    if (spawn_flag == CONDOR || spawn_flag == BOINC ){
        strcpy(exec, "");
 
 	k=0;
@@ -512,7 +518,7 @@ struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, int por
 
    }
 	MCFA_printProclist(procList);	
-	MCFA_printHostlist(hostList);
+//	MCFA_printHostlist(hostList);
 //sending data to client
     if(pid!=0){
         buf = MCFA_pack_proclist(procList, &msglen);
@@ -532,7 +538,7 @@ struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, int por
 	curr = curr->next;
     }	
   
-if(redundancy>10)
+if(redundancy>1)
             MCFA_node_selection(redundancy);
 
 	buf = MCFA_pack_proclist(procList, &msglen);

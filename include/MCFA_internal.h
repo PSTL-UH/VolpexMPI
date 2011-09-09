@@ -32,7 +32,7 @@
 #define MCFA_CMD_PRINT_ALLPROCSTATUS	10
 #define MCFA_CMD_PRINT_ALLHOSTSTATUS	11*/
 
-
+#define MCFA_PROXY_ID -2
 
 #define MCFA_MASTER_ID  	-1
 #define SL_STATUS_NULL  	0
@@ -53,7 +53,10 @@
 
 #define	CONDOR		1
 #define SSH		0
-#define BOINC		3
+#define BOINC		2
+
+char *BOINCDIR;
+
 
 
 char  *MCFA_HOSTNAME;
@@ -185,8 +188,8 @@ int MCFA_printf_init ( int jobid, int procid );
 int MCFA_printf_finalize ( void );
 
 int MCFA_init_env();
-int MCFA_set_env(char *path, char *hostname, int port, int jobid, int id, int ehandler, char* rank, int red, int flag);
-
+int MCFA_set_env1(char *path, char *hostname, int port, int jobid, int id, int ehandler, char* rank, int red, int flag);
+int MCFA_set_env(char *path, char *hostname, int port, int id, int ehandler, int red , int flag);
 int MCFA_get_total_hosts(struct MCFA_host_node *hostlist);
 
 struct MCFA_proc_node* MCFA_add_procs(struct SL_event_msg_header *header);
@@ -211,8 +214,13 @@ int MCFAcontrol_print();
 
 int MCFA_connect(int id);
 int MCFA_connect_stage2();
+
+
+
 struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, int port, int jobID, int numprocs,int hostCount,
 			int redundancy, int condor_flag,struct MCFA_proc_node *newproclist);
+
+
 
 void MCFA_get_abs_path(char *arg, char **path);
 void MCFA_get_path(char *arg, char **path);
@@ -239,7 +247,28 @@ int MCFA_event_printallhoststatus(SL_event_msg_header *header);
 
 
 char ** MCFA_set_args(int id,char *hostName, char *path, int port, int jobID, int numprocs,int hostCount, int redundancy, int flag);
-struct MCFA_proc_node* MCFA_set_lists(int id,char **hostName, char *path, int port, int jobID, int numprocs,int hostCount, int redundancy);
+/*****Function to spawn processes with diffrent allocation strategies*************/
+/***1. Round Robin
+    2. Concentrate- to maximize locality
+    3. Using hosts specified in host file as it is
+
+***/
+
+typedef struct MCFA_proc_node* MCFA_set_lists_func(int id,char **hostName, char *path, int port, 
+							int jobID, int numprocs,int hostCount, int redundancy);
+
+
+struct MCFA_proc_node* MCFA_set_liststraight(int id,char **hostName, char *path, int port, 
+							int jobID, int numprocs,int hostCount, int redundancy);
+struct MCFA_proc_node* MCFA_set_listsroundrobin(int initid,char **hostName, char *path, int port, 
+							int jobID, int numprocs,int hostCount, int redundancy);
+struct MCFA_proc_node* MCFA_set_listsconcentrate(int initid,char **hostName, char *path, int port,
+                                                        int jobID, int numprocs,int hostCount, int redundancy);
+
+
+
+
+
 void MCFA_create_condordesc(char *exe, int numprocs);
 struct MCFA_host_node* MCFA_set_hostlist(char *hostFile, char *hostname, int numprocs, int port, int *hostCount, char ***hostName);
 
@@ -249,9 +278,10 @@ int MCFA_unpack_proc_address(char *buf, char **hostname, int *id);
 char ** MCFA_read_argfile();
 void MCFA_start_condorjob();
 
-int MCFA_node_selection();
 
-
+/*-----------------------MCFA_API---------------------------*/
+int MCFA_proc_read_volpex_procs(char *msgbuf,int len);
+int MCFA_proc_read_init(char *msgbuf,int len);
 
 
 /*------------------MCFA_node_selection----------------------*/
@@ -298,7 +328,9 @@ MCFA_node* MCFA_tree(int **procarray, int numprocs);
 int MCFA_nodecompare(const void* a, const void* b);
 void MCFA_cuttree (int nelements, MCFA_node* tree, int nclusters, int clusterid[
 ]);
-int* MCFA_cluster(MCFA_node *result, int red, int **mat);
+//int* MCFA_cluster(MCFA_node *result, int red, int **mat);
+int** MCFA_cluster(MCFA_node *result, int red, int **mat, int *numcluster, int **numelms);
+int* MCFA_sortedlist (int ** clusters, int nclusters, int *numelements, int redundancy);
 void MCFA_printtree(MCFA_node* result, int nnodes);
 void MCFA_printclusterdist(int *clusterid);
 MCFA_node** MCFA_create_subtree(int ***subdistmat, int redundancy, int *newnodes
@@ -307,6 +339,18 @@ int* MCFA_create_mapping(MCFA_node *mpitree, MCFA_node *coretree, int nnodes);
 int*** MCFA_dividedistmatrix(int **distmatrix, int redundancy, int *newnodes);
 void MCFA_print_submatrix(int ***subdistmat, int redundancy, int *newnodes);
 
+
+
+
+/*-----------------------MCFA_BOINC-------------------*/
+void MCFA_create_boinc_wu_template(char *demon, char *exe);
+void MCFA_create_boinc_re_template(char *exe,int numprocs);
+void MCFA_create_boinc_script(char *demon, char *exe, int numprocs);
+void MCFA_set_boinc_dir();
+char* MCFA_get_ip(char **ip);
+
+
+char* MCFA_get_ip_client();
 
 
 /* MACROS */

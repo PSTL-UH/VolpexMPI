@@ -154,6 +154,8 @@ int Volpex_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm)
 	*newcomm = MPI_COMM_NULL;
     }
 
+//	Volpex_print_allcomm();
+
     free ( procs);
     return(MPI_SUCCESS);    
 }

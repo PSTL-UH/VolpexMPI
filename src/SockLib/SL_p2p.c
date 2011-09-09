@@ -115,8 +115,8 @@ int SL_recv_post ( void *buf, int len, int src, int tag, int context_id, double 
 	    header->from, header->to, header->tag, header->context, header->len, 
 	    header->id ));
 
-	if (dproc->id != SL_EVENT_MANAGER && dproc->id != -2)
-	 SL_cancelmsg_check(dproc );
+//	if (dproc->id != SL_EVENT_MANAGER && dproc->id != -2)
+//	 SL_cancelmsg_check(dproc );
 
     elem = SL_msgq_head_check ( dproc->urqueue, header );
     if ( elem != NULL ) {

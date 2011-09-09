@@ -2,7 +2,6 @@
 #include "MCFA_internal.h"
 #include "SL.h"
 
-
 extern char* fullrank;
 extern int SL_this_listensock;
 extern fd_set SL_send_fdset;
@@ -58,7 +57,7 @@ int MCFA_Init()
         flag             : %d\n",
         path, hostname, port, jobID, id, event_handler_id,redundancy,spawn_flag));
 */
-
+//    spawn_flag = CONDOR;
     char *pos;
     pos = strrchr(path, '/');
     strncpy(newpath, path, pos - path +1);
@@ -79,7 +78,7 @@ int MCFA_Init()
     SL_proc_init ( MCFA_MASTER_ID, hostname, port );
     SL_this_procid = id;
 	printf("My id is %d\n",SL_this_procid);
-            printf("My hostname is %s\n",hostname);
+            printf("My hostname is %s redundancy:%d\n",hostname,redundancy);
 
 	char myhostname[512];
 	int myid;
@@ -140,6 +139,17 @@ for(i=0;i<SL_numprocs;i++){
 
 	SL_start_communication(comm_id);
 }
+
+int *commarray;
+commarray = (int*) malloc (SL_numprocs+1 * sizeof(int));
+if(redundancy>10){
+	SL_Recv (commarray,SL_numprocs+1 * sizeof(int), MCFA_MASTER_ID, 0, 0, SL_STATUS_NULL);
+	SL_Recv (&comm_id , sizeof(int), MCFA_MASTER_ID, 0, 0, SL_STATUS_NULL);
+	
+}
+
+
+
 }
 	SL_Recv ( msgbuf, msglen, MCFA_MASTER_ID, 0, 0, SL_STATUS_NULL);
 
@@ -298,7 +308,7 @@ int SL_start_communication(int id)
                 for(k=0;k<3;k++){
                     stime = SL_papi_time();
                     SL_Send (buf1, MAX_LEN, i, 0, 0 );
-                    SL_Recv (buf1, MAX_LEN, i, 0, 0, SL_STATUS_IGNORE);
+                    SL_Recv (buf1, MAX_LEN, i, 0, 0, (SL_Status*) SL_STATUS_IGNORE);
                     etime = SL_papi_time();
                   PRINTF(("[%d]:Time for proc:%d Iteration:%d = %f \n", SL_this_procid, i,k,etime-stime));
                     if (k>1)
@@ -313,7 +323,7 @@ int SL_start_communication(int id)
     //        MCFA_time_sort(timeval, SL_numprocs);
             initialnodes = (int*)malloc (SL_numprocs * sizeof(int));
             MCFA_pack_size(SL_numprocs, 0, &len);
-            buffer = malloc(len);
+            buffer = (char*)malloc(len*sizeof(char)); 
             for(j=0;j<SL_numprocs;j++){
                 PRINTF(("[%d]:Sorted recv time for proc:%d is %d \n", SL_this_procid, j,timeval[j].id));
                 initialnodes[j] = timeval[j].id;
@@ -325,7 +335,7 @@ int SL_start_communication(int id)
         }
         else if (SL_this_procid > id){
             for(k=0;k<3;k++){
-                SL_Recv (buf1, MAX_LEN, id, 0, 0, SL_STATUS_IGNORE);
+                SL_Recv (buf1, MAX_LEN, id, 0, 0, (SL_Status*)SL_STATUS_IGNORE);
                 SL_Send (buf1, MAX_LEN,id, 0, 0 );
             }
         }

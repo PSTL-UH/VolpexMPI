@@ -101,7 +101,7 @@ int Volpex_get_volpexid(int SL_id)
 {
 	Volpex_proc *tproc = NULL;
 
-	tproc = Volpex_get_proc_byid(SL_id);
+	tproc = Volpex_get_proc_bySLid(SL_id);
 
 	return (tproc->rank_MCW);
 }
