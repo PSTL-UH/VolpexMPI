@@ -278,7 +278,7 @@ int main(int argc, char *argv[])
     
     /* After everything is done, close the socket */
     PRINTF(("SERVER: connection closed \n"));
-printf("Total SL_numprocs:%d\n",SL_numprocs);
+//printf("Total SL_numprocs:%d\n",SL_numprocs);
     for(i=0;i<hostCount;i++)
 	if(NULL == hostName[i])
 		free(hostName[i]);
@@ -446,10 +446,10 @@ struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, int por
 
 		arg = MCFA_set_args1(currhost->hostdata, path, port, redundancy, spawn_flag);
 
-		printf("process is forking pid:%d\n",pid);
+//		printf("process is forking pid:%d\n",pid);
 		pid=fork();
 
-		printf("CHILD PROC ID:%d\n",pid);
+//		printf("CHILD PROC ID:%d\n",pid);
 	        if(pid<0) {
         	        MCFA_printf("fork failed errno is %d (%s)\n", errno, strerror(errno));
                 }
