@@ -183,7 +183,7 @@ struct SL_msgq_head     *SL_event_sendcq;
 
 #define SL_RECONN_MAX      20
 #define SL_ACCEPT_MAX_TIME 30
-#define SL_READ_MAX_TIME    1
+#define SL_READ_MAX_TIME    5
 #define SL_ACCEPT_INFINITE_TIME -1
 #define SL_BIND_PORTSHIFT 200
 #define SL_SLEEP_TIME       1

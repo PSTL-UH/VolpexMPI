@@ -644,6 +644,7 @@ int Volpex_numoftargets(int rank, int comm, int target);
 int Volpex_insert_comm_newproc(int rank, int procid);
 
 int Volpex_init_send(int commid);
+int Volpex_init_send_newproc(Volpex_comm *tcomm,int procid,int rank);
 int Volpex_set_primarytarget(Volpex_proc *proc, int newtarget);
 int Volpex_set_target();
 int Volpex_Complete_Barrier ( MPI_Comm);

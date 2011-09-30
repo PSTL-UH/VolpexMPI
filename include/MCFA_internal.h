@@ -50,6 +50,9 @@
 #define BUFFERSIZE     		 2048
 #define PROCADDRESS		516     //hostname + id
 
+#define NOCLUSTER	0
+#define COMMUNICATION   1
+#define IPADDRESS	2
 
 #define	CONDOR		1
 #define SSH		0
@@ -189,7 +192,8 @@ int MCFA_printf_finalize ( void );
 
 int MCFA_init_env();
 int MCFA_set_env1(char *path, char *hostname, int port, int jobid, int id, int ehandler, char* rank, int red, int flag);
-int MCFA_set_env(char *path, char *hostname, int port, int id, int ehandler, int red , int flag);
+int MCFA_set_env(char *path, char *hostname, int port, int id, int ehandler, int red , 
+			int flag, int cluster_flag);
 int MCFA_get_total_hosts(struct MCFA_host_node *hostlist);
 
 struct MCFA_proc_node* MCFA_add_procs(struct SL_event_msg_header *header);
@@ -217,8 +221,9 @@ int MCFA_connect_stage2();
 
 
 
-struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, int port, int jobID, int numprocs,int hostCount,
-			int redundancy, int condor_flag,struct MCFA_proc_node *newproclist);
+struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, int port, int jobID, 
+			int numprocs,int hostCount, int redundancy, int condor_flag,
+			int cluster_flag, struct MCFA_proc_node *newproclist);
 
 
 
@@ -246,7 +251,8 @@ int MCFA_event_printallhoststatus(SL_event_msg_header *header);
 
 
 
-char ** MCFA_set_args(int id,char *hostName, char *path, int port, int jobID, int numprocs,int hostCount, int redundancy, int flag);
+char ** MCFA_set_args(int id,char *hostName, char *path, int port, int jobID, int numprocs,
+			int hostCount, int redundancy, int flag, int cluster_flag);
 /*****Function to spawn processes with diffrent allocation strategies*************/
 /***1. Round Robin
     2. Concentrate- to maximize locality
@@ -269,7 +275,7 @@ struct MCFA_proc_node* MCFA_set_listsconcentrate(int initid,char **hostName, cha
 
 
 
-void MCFA_create_condordesc(char *exe, int numprocs);
+void MCFA_create_condordesc(char *deamon, char *exe, int numprocs);
 struct MCFA_host_node* MCFA_set_hostlist(char *hostFile, char *hostname, int numprocs, int port, int *hostCount, char ***hostName);
 
 int MCFA_update_proclist(struct MCFA_proc_node *procList, int id, char *hostname, int port);
@@ -319,6 +325,11 @@ int MCFA_print_distmatrix(int **procarray, int size);
 MCFA_node* MCFA_app_comm_matrix(int redundancy);
 
 
+/*function to decide different criterion for distance matrix*/
+
+typedef int MCFA_create_distmatrix_func(int **tarray);
+int MCFA_distmatrix_communication(int **tarray);
+int MCFA_distmatrix_ipaddress(int **tarray);
 
 
 
@@ -347,7 +358,9 @@ void MCFA_create_boinc_wu_template(char *demon, char *exe);
 void MCFA_create_boinc_re_template(char *exe,int numprocs);
 void MCFA_create_boinc_script(char *demon, char *exe, int numprocs);
 void MCFA_set_boinc_dir();
+void MCFA_create_volpex_job(char *deomon, char *exe, int numprocs);
 char* MCFA_get_ip(char **ip);
+
 
 
 char* MCFA_get_ip_client();

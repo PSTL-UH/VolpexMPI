@@ -53,7 +53,7 @@ typedef int SL_event_handle(void *buf, int len);
 int SL_add_proc(void *buf, int len);
 int SL_delete_proc(void *buf, int len);
 int SL_add_existing_proc(void *buf, int len);
-int SL_start_communication(int id);
+int SL_start_communication(void *buf, int id);
 
 
 SL_event_msg_header* SL_init_msgheader();
