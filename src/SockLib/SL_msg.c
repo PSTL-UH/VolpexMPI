@@ -39,7 +39,6 @@ void SL_msg_progress ( void )
 
     tout.tv_sec=0;
     tout.tv_usec=500;
-    int count = 0;
     /* reset the fdsets before the select call */
     nd = select ( SL_fdset_lastused+1,  &recv_fdset, &send_fdset, NULL, &tout );
     if ( nd > 0 ) {
@@ -61,7 +60,7 @@ void SL_msg_progress ( void )
 		ret = dproc->recvfunc ( dproc, i );
 		if ( ret != SL_SUCCESS ) {
 		    /* Handle the error code */ 
-		    printf("[%d]Error handling for recvfdset dproc=%d ret=%d\n",SL_this_procid,dproc->id, ret);
+		    PRINTF(("[%d]Error handling for recvfdset dproc=%d ret=%d\n",SL_this_procid,dproc->id, ret));
 		    if (dproc->id != SL_this_procid)
 		    	SL_proc_handle_error ( dproc, ret,TRUE );
 		}
@@ -96,7 +95,7 @@ void SL_msg_progress ( void )
 		    ret = dproc->sendfunc ( dproc, i );
 		    if ( ret != SL_SUCCESS ) {
 			/* Handle the error code */
-			printf("[%d]Error handling for sendfdset dproc=%d\n",SL_this_procid,dproc->id);
+			PRINTF(("[%d]Error handling for sendfdset dproc=%d\n",SL_this_procid,dproc->id));
 			if (dproc->id != SL_this_procid)
 				SL_proc_handle_error ( dproc, ret,TRUE );
 		    }
@@ -665,7 +664,7 @@ int SL_msg_accept_stage2(SL_proc *dproc, int fd)
     char hostname[SL_MAXHOSTNAMELEN];
     int newid ;
     int port;
-    static SL_tnumprocs=0;
+    static int SL_tnumprocs=0;
     int killsig=0;
     
 	PRINTF(("[%d]: SL_accept_stage2: read in handshake on connection %d returned %d\n", 

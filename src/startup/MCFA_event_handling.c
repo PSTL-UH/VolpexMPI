@@ -81,7 +81,7 @@ int MCFA_event_addprocs(SL_event_msg_header *header, int numprocs)
     SL_event_msg_header                 SL_header ;
     char 				**start_host, path[MAXNAMELEN];
     struct      MCFA_process *proc = NULL;
-    int id,port,jobID,newnumprocs,hostCount,redundancy,spawn_flag;
+    int id,port,jobID,newnumprocs,hostCount,redundancy,spawn_flag,cluster_flag;
 	
 	
    start_host = MCFA_get_startproc(header, &hostCount);
@@ -124,7 +124,8 @@ int MCFA_event_addprocs(SL_event_msg_header *header, int numprocs)
     MCFA_inform_existing_procs(&SL_header, buf, numprocs);
 
     spawn_flag = 0;	//should be modified(hardcoded as of now)
-    MCFA_spawn_processes(start_host,path,port,jobID,newnumprocs,hostCount,redundancy,spawn_flag,list);  
+    cluster_flag = 0;
+    MCFA_spawn_processes(start_host,path,port,jobID,newnumprocs,hostCount,redundancy,spawn_flag,cluster_flag,list);  
     return MCFA_SUCCESS;
 }
 

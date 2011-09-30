@@ -16,7 +16,8 @@ int MCFA_connect(int id)
     char *hostname = NULL;
     int len=256;
     SL_proc *dproc = NULL;
-    int tmp,ret,terr,len1;
+    int tmp,ret,terr;
+    socklen_t len1=sizeof(int);
 
     hostname = (char*)malloc(256 * (sizeof(char)));
     if(hostname == NULL){

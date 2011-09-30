@@ -17,7 +17,6 @@ extern char *hostip;
 extern char *hostname;
 
 extern Max_tag_reuse *maxtagreuse;
-static int not_found=0;
  /*******************************/
         extern double timer;
     /*******************************/

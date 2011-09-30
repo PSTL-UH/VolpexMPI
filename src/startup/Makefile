@@ -23,6 +23,7 @@ OBJ =	MCFA_pack_unpack.o	\
         MCFA_clustering.o	\
 	MCFA_set_list.o		\
 	MCFA_boinc.o		\
+	MCFA_help.o		\
 	MCFA_API.o	
 	
 #	MCFA_socket_comm.o	\

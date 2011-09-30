@@ -288,8 +288,8 @@ int Volpex_Complete_Barrier ( MPI_Comm comm)
     for ( i=0 ; i < Volpex_numprocs; i++ ) {
             ret[2*i]   = SL_Isend ( &i, sizeof(int), i, 0, 0, &reqs[2*i]);
             if ( ret[2*i] != SL_SUCCESS ) {
-                printf("[%d]: Got an error in Red_barrier for target %d i%d\n", SL_this_procid,
-                       i, i );
+                PRINTF(("[%d]: Got an error in Red_barrier for target %d i%d\n", SL_this_procid,
+                       i, i ));
                 reqs[2*i] = SL_REQUEST_NULL;
                 local_comp++;
             }
@@ -362,8 +362,8 @@ int Volpex_Redundancy_Barrier ( MPI_Comm comm, int rank )
     for ( i=0 ; i < numoftargets; i++ ) {
 	    ret[2*i]   = SL_Isend ( &i, sizeof(int), targets[i], 0, 0, &reqs[2*i]);	    
 	    if ( ret[2*i] != SL_SUCCESS ) {
-		printf("[%d]: Got an error in Red_barrier for target %d i%d\n", SL_this_procid, 
-		       targets[i], i );
+		PRINTF(("[%d]: Got an error in Red_barrier for target %d i%d\n", SL_this_procid, 
+		       targets[i], i ));
 		reqs[2*i] = SL_REQUEST_NULL;
 		local_comp++;
 	    }

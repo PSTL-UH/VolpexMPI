@@ -54,9 +54,9 @@ int SL_event_post(void *buf, int len, int dest, int tag, int context_id,SL_msg_r
 				 -1,
 				 -1);
 
-    printf ("[%d]:SL_event_post: header from %d to %d tag %d context %d len %d id %d\n",SL_this_procid,
+    PRINTF(("[%d]:SL_event_post: header from %d to %d tag %d context %d len %d id %d\n",SL_this_procid,
              header->from, header->to, header->tag, header->context, header->len,
-             header->id );
+             header->id ));
 
     // for later: add 'special msgq_insert which moves the 
     // event as close to the beginnig of the queue as possible, 

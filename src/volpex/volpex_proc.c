@@ -406,7 +406,7 @@ int Volpex_set_state_not_connected(int target)
 {
     int i;
     Volpex_proc *dproc = NULL, *tproc=NULL;
-    int tmp,j,tnum;
+    int tmp,j,tnum, tmp_SL, target_SL;
    Volpex_proclist *plist=NULL;
     dproc = Volpex_get_proc_byid(target);
 
@@ -417,7 +417,14 @@ int Volpex_set_state_not_connected(int target)
 
     plist = dproc->plist;
     tnum = plist->num;
-    PRINTF(("[%d]: Dproc:%d Num:%d  ",SL_this_procid,dproc->id,plist->num));
+    PRINTF(("[%d]: Dproc:%d Num:%d  target:%d\n",SL_this_procid,dproc->id,plist->num,target));
+/*get target_SL for failed process*/
+for(i=0;i<tnum;i++){
+	if(plist->ids[i] == target){
+		target_SL = plist->SL_ids[i];
+	}
+}
+
     for(i=0;i<tnum;i++){
 	PRINTF(("%d  ",plist->ids[i]));
 	if (plist->ids[i] != target){
@@ -425,8 +432,12 @@ int Volpex_set_state_not_connected(int target)
 		for(j=0;j<tproc->plist->num;j++){
 			if (tproc->plist->ids[j] == target){
 				tmp = tproc->plist->ids[plist->num-1];	
+				tmp_SL = tproc->plist->SL_ids[plist->num-1];
 				tproc->plist->ids[plist->num-1] = target;
-				tproc->plist->ids[j] = tmp;	
+				tproc->plist->SL_ids[plist->num-1] = target_SL;
+				tproc->plist->ids[j] = tmp;
+				tproc->plist->SL_ids[j] = tmp_SL;
+				break;	
 			}
 		}	
 		tproc->plist->num--;	
@@ -437,8 +448,11 @@ int Volpex_set_state_not_connected(int target)
     for(j=0;j<dproc->plist->num;j++){
                if (dproc->plist->ids[j] == target){
                     tmp = dproc->plist->ids[dproc->plist->num-1];
+		    tmp_SL = dproc->plist->SL_ids[dproc->plist->num-1];
                     dproc->plist->ids[dproc->plist->num-1] = target;
+		    dproc->plist->SL_ids[dproc->plist->num-1] = target_SL;
                     dproc->plist->ids[j] = tmp;
+		    dproc->plist->SL_ids[j] = tmp_SL;
 		    break;
                     }
                 }

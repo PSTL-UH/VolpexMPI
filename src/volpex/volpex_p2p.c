@@ -80,8 +80,8 @@ int Volpex_numoftargets(int rank, int comm, int target)
     {
 
         proc = Volpex_get_proc_byid(plist->ids[i]);
-	 PRINTF(("[%d]: id=%d target=%d recvpost=%d reuseval=%d\n", SL_this_procid, proc->id, proc->plist->ids[i],
-                                                                        proc->recvpost,proc->reuseval));
+	 printf("[%d]: id=%d target=%d recvpost=%d reuseval=%d\n", SL_this_procid, proc->id, proc->plist->ids[i],
+                                                                        proc->recvpost,proc->reuseval);
         if (proc->reuseval< reuseval)
 		
                 numoftargets++ ;
@@ -534,8 +534,8 @@ int  Volpex_Isend(void *buf, int count, MPI_Datatype datatype, int dest, int tag
 
         Volpex_set_recvpost(comm, targets[j]);
         if(ret != SL_SUCCESS){
-            printf("[%d] VIsend Error: After SL_recv_post in Volpex_Send, setting "
-                    "VOLPEX_PROC_STATE_NOT_CONNECTED for process : %d\n", SL_this_procid,targets[j]);
+            PRINTF(("[%d] VIsend Error: After SL_recv_post in Volpex_Send, setting "
+                    "VOLPEX_PROC_STATE_NOT_CONNECTED for process : %d\n", SL_this_procid,targets[j]));
             Volpex_set_state_not_connected(targets[j]);
         }
 
@@ -675,9 +675,8 @@ int  Volpex_Irecv_ll(void *buf, int len, int source, int tag,
 	    ret = SL_Isend(reqlist[i].header, sizeof(Volpex_msg_header), targets[j], 
 			   CK_TAG, comm, &reqlist[i].request);
 
-
 	    if(ret != SL_SUCCESS){
-		printf("[%d]VIrecv Error: setting VOLPEX_PROC_STATE_NOT_CONNECTED\n",SL_this_procid);
+		PRINTF(("[%d]VIrecv Error: setting VOLPEX_PROC_STATE_NOT_CONNECTED\n",SL_this_procid));
 		Volpex_set_state_not_connected(targets[j]);
 		reqlist[i].flag = 2;
 		num_errors++;		

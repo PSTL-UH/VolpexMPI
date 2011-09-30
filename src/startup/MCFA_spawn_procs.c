@@ -10,7 +10,7 @@ extern char hostname[MAXHOSTNAMELEN];
 
 
 
-char ** MCFA_set_args1(struct MCFA_host *host, char *path, int port, int redundancy, int condor_flag)
+char ** MCFA_set_args1(struct MCFA_host *host, char *path, int port, int redundancy, int condor_flag, int cluster_flag)
 {
 
 
@@ -34,7 +34,7 @@ char ** MCFA_set_args1(struct MCFA_host *host, char *path, int port, int redunda
 
         char        **arg = NULL;
 //      arg = (char **)malloc(MAXARGUMENTS * sizeof(char*));
-        arg = (char **)malloc(11 * sizeof(char*));
+        arg = (char **)malloc(12 * sizeof(char*));
     if(arg == NULL){
         printf("ERROR: in allocating memory\n");
         exit(-1);
@@ -85,7 +85,14 @@ char *d_path, *d_path1 ;
                 printf("ERROR: in allocating memory\n");
                 exit(-1);
     }
-    sprintf(arg[9], "%d", host->numofProcs);
+    sprintf(arg[9], "%d", cluster_flag);
+
+    arg[10] = (char *) malloc (sizeof(int) + 1);
+    if (NULL == arg[10]){
+                printf("ERROR: in allocating memory\n");
+                exit(-1);
+    }
+    sprintf(arg[10], "%d", host->numofProcs);
 
 
 char *tprocid;
@@ -101,13 +108,13 @@ tprocid = (char *) malloc (sizeof(int) + 1);
              strcat(procids, " ");
              strcat(procids,tprocid);
      }
-     arg[10] = (char *) malloc (4*host->numofProcs);
-     if (NULL == arg[10]){
+     arg[11] = (char *) malloc (4*host->numofProcs);
+     if (NULL == arg[11]){
                 printf("ERROR: in allocating memory\n");
                 exit(-1);
     }
 
-     strcpy(arg[10], procids);
+     strcpy(arg[11], procids);
 
 
 
@@ -117,7 +124,7 @@ tprocid = (char *) malloc (sizeof(int) + 1);
 	
 
 
-    arg[11]= NULL;
+    arg[12]= NULL;
 
 //        free(d_path1);
 //      free(d_path);
@@ -135,7 +142,7 @@ tprocid = (char *) malloc (sizeof(int) + 1);
 
 
 
-char ** MCFA_set_args(int id,char *hostName, char *path, int port, int jobID, int numprocs,int hostCount, int redundancy, int condor_flag)
+char ** MCFA_set_args(int id,char *hostName, char *path, int port, int jobID, int numprocs,int hostCount, int redundancy, int condor_flag, int cluster_flag)
 {
 
 
@@ -149,6 +156,7 @@ char ** MCFA_set_args(int id,char *hostName, char *path, int port, int jobID, in
 		arg[6]	= rank of mcfarun
 		arg[7]	= redundancy
 		arg[8]  = spawn flag
+		arg[9]  = cluster flag
 		
 		arg[9]  = number of proccesses on each host
 		arg[10]	= SL_id of procs
@@ -208,6 +216,14 @@ char ** MCFA_set_args(int id,char *hostName, char *path, int port, int jobID, in
                 exit(-1);
     }
     sprintf(arg[8], "%d", condor_flag);
+
+    arg[9] = (char *) malloc (sizeof(int) + 1);
+    if (NULL == arg[9]){
+                printf("ERROR: in allocating memory\n");
+                exit(-1);
+    }
+    sprintf(arg[9], "%d", cluster_flag);
+
 /*
     arg[6] = (char *) malloc (sizeof(int) + 1);
     if (NULL == arg[6]){
@@ -352,7 +368,7 @@ struct MCFA_proc_node* MCFA_set_lists1(int initid,char **hostName, char *path, i
 char MCFA_search_rank_lastlevel(struct MCFA_proc_node *procList, int initid)
 {
 	struct MCFA_proc_node *curr = procList;
-	char level, lastlevel;
+	char level, lastlevel=0;
 	int id;
 
         while(curr !=NULL)
@@ -418,20 +434,21 @@ struct MCFA_host_node* MCFA_set_hostlist(char *hostFile, char *hostname, int num
 
 
 
-void MCFA_create_condordesc(char *exe, int numprocs)
+void MCFA_create_condordesc(char *deamon, char *exec, int numprocs)
 {
 	FILE *fp;
 	
 	fp = fopen("volpexjob.condor", "w");
 
 	fprintf(fp,"\nExecutable	=");
-	fprintf(fp," %s\n\n\n", exe);
+	fprintf(fp," %s\n\n\n", deamon);
 	fprintf(fp,"Universe	= vanilla\n");
-	fprintf(fp,"Input	= volpex.$(Process)\n");
+//	fprintf(fp,"Input	= volpex.$(Process)\n");
+	fprintf(fp,"Input	= volpex\n");
 	fprintf(fp,"Output	= output.$(Process)\n");
 	fprintf(fp, "Notification = never\n");
 	fprintf(fp,"Log		= volpex.log\n\n\n");
-	fprintf(fp, "transfer_input_files = %s , volpex.$(Process)\n", exe);
+	fprintf(fp, "transfer_input_files = %s, volpex\n", exec);
 	fprintf(fp, "should_transfer_files = YES\n");
 	fprintf(fp, "when_to_transfer_output = ON_EXIT\n\n");
 	fprintf(fp, "Queue ");

@@ -90,7 +90,7 @@ int SL_recv_post ( void *buf, int len, int src, int tag, int context_id, double 
     if ( dproc->state != SL_PROC_CONNECTED ) {
         ret = SL_proc_init_conn_nb ( dproc, timeout );
 	if ( SL_SUCCESS != ret ) {
-		printf("[%d]:PROBLEM recvpost\n", SL_this_procid);
+		PRINTF(("[%d]:PROBLEM recvpost\n", SL_this_procid));
 	    return ret;
 	}
         // SL_proc_init_conn ( dproc );
@@ -98,7 +98,7 @@ int SL_recv_post ( void *buf, int len, int src, int tag, int context_id, double 
 
     treq = (SL_msg_request *) malloc ( sizeof (SL_msg_request ));
     if ( NULL == treq ) {
-	printf("[%d]:PROBLEM recvpost\n", SL_this_procid);
+	PRINTF(("[%d]:PROBLEM recvpost\n", SL_this_procid));
 	return SL_ERR_NO_MEMORY;
     }
 

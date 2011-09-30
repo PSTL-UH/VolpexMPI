@@ -13,6 +13,7 @@ int MCFA_init_env()
         setenv("MCFA_FULLRANK",           "",  	  0);
         setenv("MCFA_REDUNDANCY",         "",     0);
 	setenv("MCFA_SPAWN_FLAG",	  "",	  0);
+	setenv("MCFA_CLUSTER_FLAG",	  "",	  0);
         return 1;
 
 }
@@ -60,9 +61,10 @@ int MCFA_set_env1(char *path, char *hostname, int port, int jobid, int id, int e
 }
 
 
-int MCFA_set_env(char *path, char *hostname, int port, int id, int ehandler, int red , int flag)
+int MCFA_set_env(char *path, char *hostname, int port, int id, int ehandler, int red , 
+		int flag, int cluster_flag)
 {
-        char *port1,  *id1, *ehandler1, *red1, *flag1;
+        char *port1,  *id1, *ehandler1, *red1, *flag1, *flag2;
 
         setenv("MCFA_PATH",             path,     1);
         setenv("MCFA_HOSTNAME",                 hostname, 1);
@@ -92,6 +94,11 @@ int MCFA_set_env(char *path, char *hostname, int port, int id, int ehandler, int
         sprintf(flag1, "%d", flag);
         setenv("MCFA_SPAWN_FLAG",             flag1   , 1);
         free(flag1);
+
+	flag2 = (char *) malloc (sizeof(int) + 1);
+        sprintf(flag2, "%d", cluster_flag);
+        setenv("MCFA_CLUSTER_FLAG",           flag2   , 1);
+        free(flag2);
 
         return 1;
 }

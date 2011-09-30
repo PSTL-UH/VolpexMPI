@@ -538,8 +538,8 @@ int SL_socket_read_nb ( int hdl, char *buf, int num, int* numread )
 	    ret = SL_SUCCESS;
 	}
 	else {
-	    printf("[%d]:SL_socket_read_nb: error while reading from socket %d %s\n", SL_this_procid,
-		    hdl, strerror(errno));
+	    PRINTF(("[%d]:SL_socket_read_nb: error while reading from socket %d %s\n", SL_this_procid,
+		    hdl, strerror(errno)));
 	    return errno;
 #endif
 	}

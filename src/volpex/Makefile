@@ -29,12 +29,12 @@ OBJ = 	volpex_API.o		\
 	volpex_returnheader.o    \
 	volpex_progress.o	\
 	volpex_debug.o		\
-	volpex_fAPI.o		\
 	volpex_target_info.o    \
 	volpex_hybrid.o		\
 	volpex_network_target_sel.o \
 	volpex_add_new_proc.o	\
-	volpex_loglength_target_sel.o	
+	volpex_loglength_target_sel.o	\
+	volpex_fAPI.o		
 
 .SUFFIXES: .o.c
 

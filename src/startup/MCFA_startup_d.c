@@ -15,9 +15,10 @@
              4.   arg[6]  = rank of mcfarun
              5.   arg[7]  = redundancy
              6.   arg[8]  = spawn flag
+             6.   arg[9]  = cluster flag
 
-             7.   arg[9]  = number of proccesses on each host
-             8.   arg[10] = SL_id of procs  
+             7.   arg[10]  = number of proccesses on each host
+             8.   arg[11] = SL_id of procs  
              9.  arg[11] = jobID(no need)
              10.  arg[12] = Volpex_id of procs(no need)
              11.  arg[13] = fullrank (e.g 0,A)(no need)
@@ -38,7 +39,7 @@ int main(int argc, char **argv )
     char *path;
 //    char *rank;
     int red,numprocs;
-    int spawn_flag;
+    int spawn_flag, cluster_flag;
     int pid = 10;
     int status;
     char **arg = NULL;
@@ -57,15 +58,8 @@ int main(int argc, char **argv )
 	event_handler_id    = atoi (argv[4]);                
 	red         	= atoi (argv[5]);   
 	spawn_flag		= atoi (argv[6]);
-	numprocs		= atoi (argv[7]);
-//    ids                 = strdup(argv[9]);
-	
-//    jobID               = atoi (argv[4]);
-//    id                  = atoi (argv[5]);   //startid or listofids
-//    event_handler_id    = atoi (argv[6]);   //list of ranks 
-//    rank	        = strdup(argv[7]);
-//    red         	= atoi (argv[8]);   
-//    flag		= atoi (argv[9]);
+	cluster_flag		= atoi(argv[7]);
+	numprocs		= atoi (argv[8]);
     }
     else
     {
@@ -76,15 +70,8 @@ int main(int argc, char **argv )
 	event_handler_id    = atoi (arg[4]);
 	red                 = atoi (arg[5]);
         spawn_flag                = atoi (arg[6]);
-	numprocs                = atoi (argv[7]);
-
-
-//	jobID               = atoi (arg[4]);
-//	id                  = atoi (arg[5]);
-//	event_handler_id    = atoi (arg[6]);
-//	rank                = strdup(arg[7]);
-//	red                 = atoi (arg[8]);
-//	spawn_flag                = atoi (arg[9]);
+	cluster_flag		= atoi(arg[7]);
+	numprocs                = atoi (argv[8]);
 	
     }
     int i;
@@ -103,14 +90,14 @@ int main(int argc, char **argv )
     int nextSL;
     
     
-    nextSL = 8;
+    nextSL = 9;
     if (spawn_flag != 0)
 	numprocs = 1;
  
     for(i=0;i<numprocs;i++){
 	
 	id = atoi(argv[nextSL]);
-	MCFA_set_env(path, hostname, port, id, event_handler_id, red, spawn_flag);
+	MCFA_set_env(path, hostname, port, id, event_handler_id, red, spawn_flag, cluster_flag);
 	nextSL++;
 	
 	PRINTF(("path           : %s\n \
@@ -119,8 +106,10 @@ int main(int argc, char **argv )
 	id               : %d\n	      \
 	event_handler_id : %d\n	      \
 	red		 : %d\n	      \
-	flag		 : %d\n",
-	       path, hostname, port, id, event_handler_id,red,spawn_flag));
+	flag		 : %d\n	      \
+	cluster_flag	 : %d\n	      \
+	numprocs	 : %d\n",
+	       path, hostname, port, id, event_handler_id,red,spawn_flag, cluster_flag,numprocs));
 	
 	
 	char **arg1;
@@ -150,9 +139,9 @@ int main(int argc, char **argv )
 	wait(&status);
 	
 	
-	
+
         if (WIFEXITED(status)) {
-	    printf("exited, status=%d proc:%d\n", WEXITSTATUS(status),i);
+	    PRINTF(("exited, status=%d proc:%d\n", WEXITSTATUS(status),i));
 	} else if (WIFSIGNALED(status)) {
 	    printf("killed by signal %d proc:%d\n", WTERMSIG(status),i);
 	} else if (WIFSTOPPED(status)) {
@@ -251,6 +240,13 @@ char ** MCFA_read_argfile()
 	exit(-1);
     }
     fscanf(fp, "%s", arg[7]);
+
+   arg[8] = (char *) malloc (16 * sizeof(char));
+    if (NULL == arg[8]){
+        printf("ERROR: in allocating memory\n");
+        exit(-1);
+    }
+    fscanf(fp, "%s", arg[8]);
     
 /*
     arg[8] = (char *) malloc (sizeof (int)+1);

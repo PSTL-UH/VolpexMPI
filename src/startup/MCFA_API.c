@@ -33,7 +33,7 @@ int MCFA_Init()
     int id,event_handler_id;
     char *path;		
     char newpath[BUFFERSIZE] = ".";
-    int spawn_flag ;
+    int spawn_flag, cluster_flag ;
     int ret;
 
 
@@ -46,6 +46,7 @@ int MCFA_Init()
 //    fullrank		= strdup(getenv("MCFA_FULLRANK"));
     redundancy		= atoi(getenv("MCFA_REDUNDANCY"));
     spawn_flag		= atoi(getenv("MCFA_SPAWN_FLAG"));	
+    cluster_flag		= atoi(getenv("MCFA_CLUSTER_FLAG"));	
 /*    
     PRINTF(("path           : %s\n \
         hostname         : %s\n \
@@ -57,11 +58,12 @@ int MCFA_Init()
         flag             : %d\n",
         path, hostname, port, jobID, id, event_handler_id,redundancy,spawn_flag));
 */
-//    spawn_flag = CONDOR;
-    char *pos;
-    pos = strrchr(path, '/');
-    strncpy(newpath, path, pos - path +1);
-    chdir(newpath);
+    if (spawn_flag == SSH){
+	    char *pos;
+	    pos = strrchr(path, '/');
+	    strncpy(newpath, path, pos - path +1);
+	   chdir(newpath);
+    }
 	
     MCFA_printf_init(id,id);	   
 //    MCFA_printf_init(jobID,id);	   
@@ -77,8 +79,8 @@ int MCFA_Init()
     /* Add the startprocs process to the SL_array */
     SL_proc_init ( MCFA_MASTER_ID, hostname, port );
     SL_this_procid = id;
-	printf("My id is %d\n",SL_this_procid);
-            printf("My hostname is %s redundancy:%d\n",hostname,redundancy);
+	PRINTF(("My id is %d\n",SL_this_procid));
+            PRINTF(("My hostname is %s redundancy:%d, flag:%d\n",hostname,redundancy, cluster_flag));
 
 	char myhostname[512];
 	int myid;
@@ -133,21 +135,21 @@ int MCFA_Init()
     SL_init_internal();
 
 int i,comm_id;
-if(redundancy>10){
+if(cluster_flag == COMMUNICATION){
 for(i=0;i<SL_numprocs;i++){
 	SL_Recv (&comm_id , sizeof(int), MCFA_MASTER_ID, 0, 0, SL_STATUS_NULL);
 
-	SL_start_communication(comm_id);
+	SL_start_communication(msgbuf, comm_id);
 }
 
-int *commarray;
+/*int *commarray;
 commarray = (int*) malloc (SL_numprocs+1 * sizeof(int));
-if(redundancy>10){
+if(redundancy>1){
 	SL_Recv (commarray,SL_numprocs+1 * sizeof(int), MCFA_MASTER_ID, 0, 0, SL_STATUS_NULL);
 	SL_Recv (&comm_id , sizeof(int), MCFA_MASTER_ID, 0, 0, SL_STATUS_NULL);
 	
 }
-
+*/
 
 
 }
@@ -286,9 +288,9 @@ int SL_delete_proc(void *buf, int len)
         return SL_SUCCESS;
 }
 
-//int SL_start_communication(void *buf, int len)
+int SL_start_communication(void *buf, int id)
 
-int SL_start_communication(int id)
+//int SL_start_communication(int id)
 {
 	#define MAX_LEN (1024L * 1024L )
 

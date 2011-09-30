@@ -285,7 +285,7 @@ void MCFA_create_boinc_re_template(char *exe, int numprocs)
     char tfilename[50];
     char tfile[3];
     char *filename="";
-    int i=0;
+//    int i=0;
      char command[50];
     strcpy(tfile, "re_");
 
@@ -294,7 +294,7 @@ void MCFA_create_boinc_re_template(char *exe, int numprocs)
 
 //    for(i=0;i<numprocs;i++){
 //        strcpy(filename,"");
-        sprintf(filename,"%s%s.xml",tfile,tfilename,i);
+        sprintf(filename,"%s%s.xml",tfile,tfilename);
         fw = fopen(filename, "w");
 
     fprintf(fw,"<file_info>\n");
@@ -348,7 +348,7 @@ void MCFA_create_boinc_script(char *demon, char *exe, int numprocs)
 {
 
     
-    int i = 0;
+//    int i = 0;
     char command[500];
     char tdemon[50];
     char texe[50];

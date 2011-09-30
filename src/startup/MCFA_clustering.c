@@ -96,12 +96,13 @@ int** MCFA_cluster(MCFA_node *result, int redundancy, int **distmatrix, int *num
     int nclusters = 0;
     int *clusterid;
     int *numelements;
-//    int count=0;
-    int *newnodes;
     int **clusters;
     int *pos;
-    int num=0;
-    int *numelementsleft;
+
+//    int count=0;
+//    int *newnodes;
+//    int num=0;
+//    int *numelementsleft;
   
 /* this loop calculates how many clusters are to be formed
    if the distance between two nodes of a tree in more than
@@ -115,6 +116,8 @@ int** MCFA_cluster(MCFA_node *result, int redundancy, int **distmatrix, int *num
 	}
 	
     }
+	if( nclusters == 0)
+		nclusters = 1;
     printf("Numberofclusters=%d\n",nclusters);
     
     

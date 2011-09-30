@@ -234,7 +234,7 @@ int  Volpex_progress()
             ret = SL_ERR_PROC_UNREACHABLE;
             ret = SL_test_nopg(&reqlist[i].request, &flag, &mystatus, &loglength);
 
-if ((reqlist[i].flag ==1  || reqlist[i].flag==2)&& reqlist[i].recv_dup_status == 1)
+	if ((reqlist[i].flag ==1  || reqlist[i].flag==2)&& reqlist[i].recv_dup_status == 1)
             {
                 PRINTF(("[%d]: Freeing req:%d target:%d\n", SL_this_procid,i, reqlist[i].target));
                 Volpex_free_request(i);
@@ -258,13 +258,13 @@ if ((reqlist[i].flag ==1  || reqlist[i].flag==2)&& reqlist[i].recv_dup_status ==
 
                 if ( ret != SL_SUCCESS ) {
                     MPI_Request tmprequest = i;
-                    printf("[%d] 1. Error: , setting:   %d  VOLPEX_PROC_STATE_NOT_CONNECTED\n",
-                                SL_this_procid,reqlist[i].target);
+                    PRINTF(("[%d] 1. Error: , setting:   %d  VOLPEX_PROC_STATE_NOT_CONNECTED\n",
+                                SL_this_procid,reqlist[i].target));
 
                     Volpex_set_state_not_connected(reqlist[i].target);
 
                     PRINTF(("[%d]  VProgress: recv request:%d reposting Irecv to %d, since prev. op. failed \n",
-                              SL_this_procid, i, reqlist[i].header->dest ));
+                              SL_this_procid, i, reqlist[i].header->src ));
 
 
                     ret = Volpex_Irecv_ll ( reqlist[i].buffer, reqlist[i].header->len,
@@ -317,16 +317,16 @@ if ((reqlist[i].flag ==1  || reqlist[i].flag==2)&& reqlist[i].recv_dup_status ==
                                 reuseval = loglength - reqlist[i].header->reuse;
                     Volpex_insert_reuseval(reqlist[i].target, reuseval);
 
-/*
+
 		int procid;
 		int num;
 		int newtarget;
 		Volpex_proc *proc;
 			procid = Volpex_get_volpexid(reqlist[i].target);
                       if (reuseval>5 && Volpex_targets[procid].numofmsg>MAX_MSG && reqlist[i].recv_dup_status != 1 ){
-                                PRINTF(("[%d]:target : %d  tag:%d  loglength: %d  myloglength: %d, numofmsg:%d\n",
+                                printf("[%d]:target : %d  tag:%d  loglength: %d  myloglength: %d, numofmsg:%d\n",
 					SL_this_procid,reqlist[i].target, reqlist[i].header->tag,loglength, 
-					reqlist[i].header->reuse, Volpex_targets[procid].numofmsg));
+					reqlist[i].header->reuse, Volpex_targets[procid].numofmsg);
 				PRINTF(("[%d]: src:%d Numofmsg:%d, Target:%d\n", SL_this_procid,procid, 
 					Volpex_targets[procid].numofmsg,Volpex_targets[procid].target));
 				num = Volpex_numoftargets(reqlist[i].header->src, reqlist[i].header->comm, reqlist[i].target);
@@ -340,15 +340,15 @@ if ((reqlist[i].flag ==1  || reqlist[i].flag==2)&& reqlist[i].recv_dup_status ==
 				}
                         }
 
-*/
+
 
                 }
 
 }
                 else {
                     MPI_Request tmprequest = i;
-                    printf("[%d] 2. Error: , setting:    %d VOLPEX_PROC_STATE_NOT_CONNECTED\n",
-                        SL_this_procid,reqlist[i].target);
+                    PRINTF(("[%d] 2. Error: , setting:    %d VOLPEX_PROC_STATE_NOT_CONNECTED\n",
+                        SL_this_procid,reqlist[i].target));
 
                     Volpex_set_state_not_connected(reqlist[i].target);
 

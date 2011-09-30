@@ -46,27 +46,33 @@ int Volpex_dest_src_locator(int rank, int comm, char *myfullrank, int **target,
     tproc = Volpex_get_proc_byid (tplist->ids[0]);
     plist = tproc->plist;
 
+    numtargets = plist->num;
+    
 
+
+/*
     for(i=0; i< plist->num; i++){
         proc = Volpex_get_proc_bySLid (plist->SL_ids[i]);
         if (proc->state == VOLPEX_PROC_CONNECTED){
             numtargets ++;
         }
     }
-    
+*/    
     tar = (int *) malloc ( numtargets * sizeof(int));
     if ( NULL == tar ) {
         return SL_ERR_NO_MEMORY;
     }
 
     for(i=0; i<plist->num; i++){
-	proc = Volpex_get_proc_byid (proc->plist->ids[i]);
+//	proc = Volpex_get_proc_byid (proc->plist->ids[i]);
+	proc = Volpex_get_proc_byid (plist->ids[i]);
         if (proc->state == VOLPEX_PROC_CONNECTED){
 //		tar[j] = proc->plist->ids[i];
 		tar[j] = plist->SL_ids[i];
 		j++;
 	}
     }	
+
     *target = tar;
     *numoftargets = numtargets;
 
@@ -127,7 +133,7 @@ int Volpex_set_newtarget(int newtarget, int rank, int comm)
     Volpex_proc *proc=NULL ;
     Volpex_proc	*tproc=NULL; int j;
     Volpex_proclist *plist=NULL ;
-    int id,tmp,tmp_SL,new_id;
+    int id,tmp,tmp_SL,new_id=-1;
 
     communicator = Volpex_get_comm_byid ( comm );
     plist        = &communicator->plist[rank];

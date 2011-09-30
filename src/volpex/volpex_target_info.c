@@ -152,7 +152,7 @@ int Volpex_target_info_free(Volpex_proc *tproc)
 void Volpex_print_target_info(int source)
 {
 	Volpex_proc *proc;
-	int i,j=0;
+	int i;
 
 	proc = Volpex_get_proc_byid(source);
 

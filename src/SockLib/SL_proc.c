@@ -23,7 +23,6 @@ int SL_proc_init ( int proc_id, char *hostname, int port )
 {
     SL_proc *tproc=NULL;
     int pos;
-    int retval;
     char name[32];
 
     tproc = (SL_proc *) malloc (sizeof( SL_proc ));
@@ -66,7 +65,8 @@ int SL_proc_init ( int proc_id, char *hostname, int port )
     tproc->msgperf     = SL_msg_performance_init();
     tproc->netperf     = SL_network_performance_init();
 
-/*	retval = PAPI_library_init(PAPI_VER_CURRENT);
+/*      int retval;
+	retval = PAPI_library_init(PAPI_VER_CURRENT);
         if(retval != PAPI_VER_CURRENT)
         {
             printf("\nPAPI library init error!\n");
@@ -467,7 +467,7 @@ void SL_proc_handle_error ( SL_proc* proc, int err, int flag )
     
    
 	if ((flag == TRUE) && (SL_this_procid != SL_EVENT_MANAGER)){
-		printf("[%d]:Handling Event Error %d for proc %d\n",SL_this_procid, err, proc->id);
+		PRINTF(("[%d]:Handling Event Error %d for proc %d\n",SL_this_procid, err, proc->id));
 		if(proc->id == SL_EVENT_MANAGER){
          	   printf("[%d]: Server is dead no point to continue: Killing myself bye!!!\n", 
 					SL_this_procid);
@@ -484,7 +484,7 @@ void SL_proc_handle_error ( SL_proc* proc, int err, int flag )
 	
 	
     
-    printf("[%d]:Handling Error %d for proc %d\n", SL_this_procid,err, proc->id);
+    PRINTF(("[%d]:Handling Error %d for proc %d\n", SL_this_procid,err, proc->id));
 
     /* Step 1: clean up the state, socket and fdsets */
     if ( proc->state == SL_PROC_CONNECTED || proc->state == SL_PROC_CONNECT) {

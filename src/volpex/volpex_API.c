@@ -134,7 +134,7 @@ int  MPI_Init( int *argc, char ***argv )
 //if(redundancy>1)
  //  Volpex_set_target();
 //    Volpex_Barrier ( MPI_COMM_WORLD);
-//	Volpex_Complete_Barrier(MPI_COMM_WORLD);	
+	Volpex_Complete_Barrier(MPI_COMM_WORLD);	
     return MPI_SUCCESS;
 }
 

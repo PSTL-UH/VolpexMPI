@@ -2,8 +2,9 @@
 #include "MCFA_internal.h"
 #include "SL.h"
 extern struct MCFA_proc_node *procList;
+extern MCFA_create_distmatrix_func *MCFA_create_distmatrix;
 
-int MCFA_create_distmatrix(int **tarray)
+int MCFA_distmatrix_communication(int **tarray)
 {
 	int msglen;
 	int i,j;
@@ -62,7 +63,7 @@ int MCFA_create_distmatrix2(int **tarray, int **clusters, int nclusters)
 return 1;
 }
 
-int MCFA_create_distmatrix1(int **tarray)
+int MCFA_distmatrix_ipaddress(int **tarray)
 {
 	struct MCFA_proc_node *currlist1 = procList;
 	struct MCFA_proc_node *currlist2 = procList;
@@ -148,16 +149,14 @@ int MCFA_node_selection(int redundancy)
 */
 
     int **procarray;
-    int pos=0;
-    int msglen, i, j;
-    void *msgbuf;
+    int i, j;
     
     procarray = (int**) malloc (SL_numprocs * sizeof(int *));
     for(i=0; i<SL_numprocs; i++){
 	procarray[i] = (int *) malloc (SL_numprocs * sizeof(int));
     }
 
-    MCFA_create_distmatrix1(procarray);
+    MCFA_create_distmatrix(procarray);
 
 
     
