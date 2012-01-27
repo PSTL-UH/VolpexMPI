@@ -50,7 +50,7 @@ void MCFA_get_abs_path(char *arg, char **path1)
     }
 
     *path1 = strdup(path);
-    MCFA_printf("%s\n",path);
+    printf("%s\n",path);
 
 }
 
@@ -84,7 +84,7 @@ char** MCFA_allocate_func(char fileName[MAXHOSTNAMELEN], int *num)
     inputFile=fopen(fileName,"r");
 
     if (inputFile == NULL){
-        MCFA_printf("Cannot open file : %s \n",fileName);
+        printf("Cannot open file : %s \n",fileName);
         return 0;
     }
     name = (char**)malloc(100 * sizeof(char *));//******************TO BE CORRECTED********************************************

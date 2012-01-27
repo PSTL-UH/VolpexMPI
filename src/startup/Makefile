@@ -11,7 +11,6 @@ include ../../Makefile.defs
 
 OBJ =	MCFA_pack_unpack.o	\
 	MCFA_create_lists.o	\
-	MCFA_printf.o		\
 	MCFA_pack_unpack_lists.o \
 	MCFA_getID.o		\
 	MCFA_connection.o	\
@@ -24,8 +23,12 @@ OBJ =	MCFA_pack_unpack.o	\
 	MCFA_set_list.o		\
 	MCFA_boinc.o		\
 	MCFA_help.o		\
-	MCFA_API.o	
+	MCFA_API.o		\
+	MCFA_sort_cluster.o	\
+	MCFA_comm_matrix.o	\
+	mpipp.o
 	
+#	MCFA_printf.o		\
 #	MCFA_socket_comm.o	\
 #	MCFA_socket_comm.o	\
 

@@ -3,7 +3,8 @@
 #include "SL.h"
 
 
-#define THRESHOLDCUT 2
+//#define THRESHOLDCUT 600 
+#define THRESHOLDCUT 3
 
 int*** MCFA_dividedistmatrix(int **distmatrix, int redundancy, int *newnodes);
 void MCFA_print_submatrix(int ***subdistmat, int redundancy, int *newnodes);
@@ -34,6 +35,7 @@ MCFA_node*  MCFA_tree(int **distmatrix, int numprocs)
     index = malloc(nelements*sizeof(int));
     vector = malloc(nnodes*sizeof(int));
     result = malloc(nelements*sizeof(MCFA_node));
+
     for (i = 0; i < nnodes; i++) vector[i] = i;
     
     for (i = 0; i < nelements; i++)
@@ -82,7 +84,7 @@ MCFA_node*  MCFA_tree(int **distmatrix, int numprocs)
 }
 
 
-int** MCFA_cluster(MCFA_node *result, int redundancy, int **distmatrix, int *numclusters, int **numelems)
+int** MCFA_cluster(MCFA_node *result, int totprocs, int **distmatrix, int *numclusters, int **numelems)
 /* This process returns the newnode list where processes are arranged 
 	such as first n processes form team 0
 	next n processes form next team and so on
@@ -92,7 +94,8 @@ int** MCFA_cluster(MCFA_node *result, int redundancy, int **distmatrix, int *num
 */
 {
     int i=0,j=0;
-    int nnodes = SL_numprocs-1;
+//    int nnodes = SL_numprocs-1;
+    int nnodes = totprocs-1;
     int nclusters = 0;
     int *clusterid;
     int *numelements;
@@ -109,10 +112,11 @@ int** MCFA_cluster(MCFA_node *result, int redundancy, int **distmatrix, int *num
    the given THRESHOLDCUT value the that node should be assined 
    to a new cluster
 */  
-    for(i=0; i<nnodes; i++){
-	
+    for(i=1; i<nnodes; i++){
 	if (result[i].distance - result[i-1].distance > THRESHOLDCUT){
-	    nclusters = SL_numprocs + (-i);
+//	    nclusters = SL_numprocs + (-i);
+	    nclusters = totprocs + (-i);
+	    break;
 	}
 	
     }
@@ -127,11 +131,14 @@ int** MCFA_cluster(MCFA_node *result, int redundancy, int **distmatrix, int *num
 
 //    newnodes = malloc(SL_numprocs*sizeof(int));
     
-    clusterid = malloc(SL_numprocs*sizeof(int));
+//    clusterid = malloc(SL_numprocs*sizeof(int));
+    clusterid = malloc(totprocs*sizeof(int));
 
 /* This function divides the tree into diffrent clusters */
-    MCFA_cuttree (SL_numprocs, result, nclusters, clusterid);
-    for(i=0; i<SL_numprocs; i++){
+//    MCFA_cuttree (SL_numprocs, result, nclusters, clusterid);
+    MCFA_cuttree (totprocs, result, nclusters, clusterid);
+//    for(i=0; i<SL_numprocs; i++){
+    for(i=0; i<totprocs; i++){
 	numelements[clusterid[i]]++;   //calculates number of elements in each cluster
     }
     
@@ -144,7 +151,8 @@ int** MCFA_cluster(MCFA_node *result, int redundancy, int **distmatrix, int *num
 	clusters[i] = malloc (numelements[i]* sizeof(int));
     
     
-    for(i=0;i<SL_numprocs;i++){
+//    for(i=0;i<SL_numprocs;i++){
+    for(i=0;i<totprocs;i++){
 	clusters[clusterid[i]][pos[clusterid[i]]] = i;
 	pos[clusterid[i]]++;
     }
@@ -163,15 +171,252 @@ int** MCFA_cluster(MCFA_node *result, int redundancy, int **distmatrix, int *num
 //   newclusters = MCFA_sort_clusters(int *numelements, int **clusters, int nclusters); 
     
 /* Sorting ranks */
+
+/*int* MCFA_sortedlist (int ** clusters, int nclusters, int *numelements, int redundancy, int **distanceclusters
+)
+{
+
+    int *numelementsleft,i,j, num=0, *newnodes, *closeclusters;
+    int max=-1, pos=0, count=0,k,min,assignteam=0;
+    int p,q, temp, minflag=0, maxflag=0, leftprocs=0;;
+    
+    numelementsleft = malloc(nclusters*sizeof(int)); //calculates number of processes assined and number of
+    closeclusters = malloc(nclusters*sizeof(int)); //procs unassined
+    for(i=0;i<nclusters;i++){                         
+        numelementsleft[i]=numelements[i];
+    }
+    
+    
+    
+    newnodes = malloc(SL_numprocs*sizeof(int));
+    while(assignteam < redundancy){
+	for(k=0;k<nclusters;k++){
+	    if(numelementsleft[k]>max){
+		max = numelementsleft[k];
+		pos = k;
+	    }
+    	}
+	
+	for(i=0;i<nclusters;i++){
+	    closeclusters[i]=-1;
+    	}
+	
+	
+	if(num != SL_numprocs/redundancy)
+	{
+	    if(minflag==1 && maxflag==1){
+		for(k=0;k<clusterpos;k++){
+			if(numelementsleft[closeclusters[k]] >= leftprocs){
+				pos = k;
+				break;
+			}
+		}
+            }
+	    if(minflag==1 && maxflag==0){
+		pos = closeclusters[clusterpos - 1];
+	    }
+	    if(minflag==0 && maxflag==1){
+		pos = closeclusters[0];
+	    }
+		
+	    for(i=0;i<nclusters;i++)
+	    {
+		num = 0;
+		count = 0;
+		
+		for(j=0; j<numelements[pos];j++){
+		    if(clusters[pos][j]!=-1){
+			newnodes[num]=clusters[pos][j];
+			clusters[pos][j]=-1;
+			num++;
+			count++;
+			if(num==SL_numprocs/redundancy){
+			    assignteam++;
+			    break;
+			}
+		    }
+		    
+		}
+		numelementsleft[pos] = numelementsleft[pos] - count;
+		leftprocs = SL_numprocs/redundancy - count;
+		min = 2000000;
+		int oldpos=pos;
+		int clusterpos=0;
+		
+//Find the minimum distance
+		
+		for(k=0;k<nclusters;k++){
+		    if (distanceclusters[k][oldpos] <= min && numelementsleft[k] > 0){
+			min = distanceclusters[k][oldpos];
+		    }
+		}
+		
+		printf("Minum distance = %d\n",min);
+//Find how many and what all clusters are with min distance
+		
+		for(k=0;k<nclusters;k++){
+		    
+		    if (distanceclusters[k][oldpos] == min && numelementsleft[k] > 0){
+			closeclusters[clusterpos++] = k;
+			if(numelementsleft[k]<leftprocs)
+				minflag = 1;
+			if(numelementsleft[k]>leftprocs)
+				maxflag = 1;
+		    }
+		}
+		for(k=0;k<clusterpos;k++){
+		    printf("clusterpos=%d clusternum=%d\n",k, closeclusters[k]);
+		}
+//sort clusters based on the size of cluster
+		
+		for(p=0; p<clusterpos; p++){
+		    for(q=p;q<clusterpos; q++){
+			if(numelementsleft[q]>numelementsleft[p]){
+			    temp = closeclusters[p];
+			    closeclusters[p]=closeclusters[q];
+			    closeclusters[q]=temp;
+			}
+		    }
+		}
+		
+		for(k=0;k<clusterpos;k++){
+		    printf("clusterpos=%d clusternum=%d\n",k, closeclusters[k]);
+		}
+
+		printf("leftprocs = %d minflag = %d maxflag = %d\n", leftprocs,minflag,maxflag);
+		
+		exit(-1);
+	    }
+	}
+    }
+    exit(-1); 
+    return newnodes;	
+}
+*/
+/*
 int* MCFA_sortedlist (int ** clusters, int nclusters, int *numelements, int redundancy)
 {
 	int *numelementsleft,i,j, num=0, *newnodes;
     numelementsleft = malloc(nclusters*sizeof(int)); //calculates number of processes assined and number of
     for(i=0;i<nclusters;i++)			     //procs unassined
         numelementsleft[i]=numelements[i];
-    
-    
+
+
+   
+int max=-1, pos=0, count=0,k,min; 
     newnodes = malloc(SL_numprocs*sizeof(int));
+
+    for(k=0;k<nclusters;k++){
+                if(numelementsleft[k]>max){
+                        max = numelementsleft[k];
+                        pos = k;
+                }
+        }
+
+
+    for(i=0;i<nclusters;i++)
+    {
+	count = 0;
+//	max=-1; pos=0;count=0;
+//	for(k=0;k<nclusters;k++){
+//		if(numelementsleft[k]>max){
+//			max = numelementsleft[k];
+//			pos = k;
+//		}	
+//	}
+
+        if(numelementsleft[pos]>=SL_numprocs/redundancy){
+            for(j=0;j<SL_numprocs/redundancy;j++){
+                newnodes[num]=clusters[pos][j];
+                clusters[pos][j]=-1;
+		count++;
+                num++;
+            }
+            numelementsleft[pos] = numelements[pos] - SL_numprocs/redundancy;
+        
+	min = 2000000;
+        int oldpos = pos;
+	for(k=0;k<nclusters;k++){
+		if(oldpos == k)
+			continue;
+		if(oldpos > k){
+			if (distanceclusters[k][oldpos] < min){
+				min = distanceclusters[k][oldpos];
+				pos = k;
+			}
+		}
+		else{
+			if (distanceclusters[oldpos][k] < min){
+                                min = distanceclusters[oldpos][k];
+                                pos = k;
+                        }
+		}
+	}
+	}
+
+    }
+
+//number nodes in clusters<numelementsleft or
+// allocates unassined procs
+for(k=0;k<nclusters;k++){
+                if(numelementsleft[k]>max){
+                        max = numelementsleft[k];
+                        pos = k;
+                }
+        }
+
+
+    if(num != SL_numprocs)
+    {
+        for(i=0;i<nclusters;i++)
+        {
+//	    max=-1; pos=0;count=0;
+//            for(k=0;k<nclusters;k++){
+//                if(numelementsleft[k]>max){
+//                        max = numelementsleft[k];
+//                        pos = k;
+//                }
+//            }
+	    count = 0;
+            for(j=0; j<numelements[pos];j++){
+                if(clusters[pos][j]!=-1){
+                    newnodes[num]=clusters[pos][j];
+                    clusters[pos][j]=-1;
+                    num++;
+		    count++;
+                    if(num==SL_numprocs)
+                        break;
+                }
+
+            }
+	    numelementsleft[pos] = numelementsleft[pos] - count;
+
+	
+        
+
+	min = 2000000;
+	int oldpos=pos;
+        for(k=0;k<nclusters;k++){
+		if (oldpos == k)
+			continue;
+                if(oldpos > k){
+                        if (distanceclusters[k][oldpos] < min && numelementsleft[k] > 0){
+                                min = distanceclusters[k][oldpos];
+                                pos = k;
+                        }
+		}
+                else{
+                        if (distanceclusters[oldpos][k] < min && numelementsleft[k] > 0){
+                                min = distanceclusters[oldpos][k];
+                                pos = k;
+                        }
+		}
+        }
+	}
+    }
+
+
+// Not required********************
     for(i=0;i<nclusters;i++)
     {
 	if(numelementsleft[i]>=SL_numprocs/redundancy){
@@ -206,7 +451,7 @@ int* MCFA_sortedlist (int ** clusters, int nclusters, int *numelements, int redu
 
 	}
     }
-
+//end not required****************************************************
     
     
     
@@ -216,8 +461,8 @@ int* MCFA_sortedlist (int ** clusters, int nclusters, int *numelements, int redu
 	printf("%d  ", newnodes[i]);
     }
     
-    
-/*
+    exit(-1);
+//*******************
     free(numelements);
     for(i=0; i<nclusters; i++)
 	free(clusters[i]);
@@ -225,10 +470,11 @@ int* MCFA_sortedlist (int ** clusters, int nclusters, int *numelements, int redu
     free(pos);
     free(numelementsleft);
     free(clusterid);
-*/
+//***********************
     
     return newnodes;
 }
+*/
 /*
 int** MCFA_sort_clusters(int *numelements, int **clusters, int nclusters)
 {

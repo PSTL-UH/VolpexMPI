@@ -43,7 +43,6 @@ int main(int argc, char **argv )
     int pid = 10;
     int status;
     char **arg = NULL;
-
 //	arg = MCFA_read_argfile();
     
     /** For condor since same executable is used by each deamon rename the file and then use it using 
@@ -91,7 +90,7 @@ int main(int argc, char **argv )
     
     
     nextSL = 9;
-    if (spawn_flag != 0)
+    if (spawn_flag != 0 )
 	numprocs = 1;
  
     for(i=0;i<numprocs;i++){
@@ -133,7 +132,16 @@ int main(int argc, char **argv )
 	    }
 	}
     }
-    
+
+
+char *hname;
+hname = (char*) malloc (256 *sizeof(char));
+
+MCFA_get_ip(&hname);
+//  char *hname;
+//  int len;
+//  hname = (char*)malloc(256 * (sizeof(char)));
+//    gethostname(hname, len );
     for (i=0;i<numprocs;i++){
 	
 	wait(&status);
@@ -143,7 +151,7 @@ int main(int argc, char **argv )
         if (WIFEXITED(status)) {
 	    PRINTF(("exited, status=%d proc:%d\n", WEXITSTATUS(status),i));
 	} else if (WIFSIGNALED(status)) {
-	    printf("killed by signal %d proc:%d\n", WTERMSIG(status),i);
+	    printf("killed by signal %d proc:%s\n", WTERMSIG(status),hname);
 	} else if (WIFSTOPPED(status)) {
 	    printf("stopped by signal %d\n", WSTOPSIG(status));
 	}

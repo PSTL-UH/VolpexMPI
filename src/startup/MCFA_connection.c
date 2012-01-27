@@ -14,22 +14,33 @@ int MCFA_connect(int id)
 {
 
     char *hostname = NULL;
+    char *mydomainname = NULL;
     int len=256;
     SL_proc *dproc = NULL;
     int tmp,ret,terr;
     socklen_t len1=sizeof(int);
 
     hostname = (char*)malloc(256 * (sizeof(char)));
+    mydomainname = (char*)malloc(256 * (sizeof(char)));
     if(hostname == NULL){
         printf("ERROR: in allocating memory\n");
         exit(-1);
     }
 
     if ( gethostname(hostname, len ) != 0 ){
-        MCFA_printf("SERVER: could not determine my own hostname \n" );
+        printf("SERVER: could not determine my own hostname \n" );
     }
 
+    getdomainname(mydomainname,512);
+/*    char *hname;
+        hname = (char*) malloc (256 *sizeof(char));
 
+        MCFA_get_ip(&hname);
+        strcpy(hostname,hname);
+        printf("%s\n ", hostname);
+*/
+//    printf("Hostname: %s, domain name: %s\n", hostname, mydomainname);
+   
     SL_this_procid = id ;//MCFA_CONSTANT_ID;
 
 

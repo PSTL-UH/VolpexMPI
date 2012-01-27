@@ -34,15 +34,17 @@ n");
     
     printf("\t -allocation, --allocation [scheme for allocation of processes]\n");
     printf("\t\t Specify how the processes can be allocated using a given hostfile\n");
-    printf("\t\t\t\t [roundrobin] - processes are distributed in roundrobin manner for \n");
-    printf("\t\t\t\t\t  given list of hosts. This allocation strategy is also default allocation scheme\n");
-    printf("\t\t\t\t [concentrate]- processes are distributed such that maximum number "
+    printf("\t\t\t [roundrobin] - processes are distributed in roundrobin manner for \n");
+    printf("\t\t\t\t  given list of hosts. This allocation strategy is also default allocation scheme\n");
+    printf("\t\t\t [concentrate]- processes are distributed such that maximum number "
 			"of processes are on one  host\n");
-    printf("\t\t\t\t [straight] -   processes are distributed as hosts are given in "
+    printf("\t\t\t [straight] -   processes are distributed as hosts are given in "
 			"hostfile without changing the order of hosts\n\n");
+    printf("\t\t\t [random] -   processes are distributed randomly to hosts given in "
+                        "hostfile \n\n");
 
     printf("\t -cluster, --cluster [criterion to cluster given set of nodes]\n");
     printf("\t\t Specify how the nodes should be clustered \n");
-    printf("\t\t\t\t [communication] - nodes are clustered based on their communication distance\n");
-    printf("\t\t\t\t [ipaddress] - nodes are clustered based on their ip addresses\n");
+    printf("\t\t\t [communication] - nodes are clustered based on their communication distance\n");
+    printf("\t\t\t [ipaddress] - nodes are clustered based on their ip addresses\n");
 }

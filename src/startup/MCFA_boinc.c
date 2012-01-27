@@ -404,18 +404,25 @@ system("./bin/stop");
 
 char* MCFA_get_ip(char **ip)
 {
-//    char *ip;
-    char *ipp;
+    char *ipp, *temp;
     char tip[200];
     FILE *fp;
-    fp = popen("ifconfig | grep Bcast", "r");
+    int i=0;
+    fp = popen("/sbin/ifconfig | grep Bcast", "r");
+    fgets(tip, 200, fp);
                          /* Handle error */;
-    while (fgets(tip, 200, fp) != NULL)
+//    while (fgets(tip, 200, fp) != NULL)
     ipp = strchr(tip,'1');
-    strncpy(*ip,ipp,15);
 
+    temp = (char*) malloc (256 *sizeof(char));
+    while(ipp[i] != ' '){
+        temp[i] = ipp[i];
+        i++;
+    }
+//    strncpy(*ip,ipp,13);
+    strcpy (*ip, temp);
     pclose(fp);
-
+    free(temp);
     return (ip);
 
 

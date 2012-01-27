@@ -52,6 +52,9 @@ int main(int argc, char *argv[])
     SL_Recv ( msgbuf, msglen, MCFA_MASTER_ID, 0, 0, SL_STATUS_NULL);
 
     SL_numprocs = MCFA_proc_read_init(msgbuf,msglen);
+    int sbuf=1;
+    for(i=0; i<SL_numprocs; i++)
+	SL_Send(&sbuf, sizeof(int), i, 0, 0);
 
     SL_numprocs ++;
     printf(" MY ID IS :::::::::::::::::::::::::::::%d\n",SL_this_procid);

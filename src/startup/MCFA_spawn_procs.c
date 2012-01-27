@@ -418,7 +418,7 @@ struct MCFA_host_node* MCFA_set_hostlist(char *hostFile, char *hostname, int num
     {
         PRINTF(("MCFA_startprocs: adding hosts to hostlist\n"));
       if((MCFA_search_hostname(hostList,thostName[i])) == NULL){       //for each host in hostfile creating an entry in hostList
-            PRINTF(("MCFA_startprocs: Adding host : %s\n",hostName[i]));
+            PRINTF(("MCFA_startprocs: Adding host : %s\n",thostName[i]));
             newnode = MCFA_init_hostnode(thostName[i],maxprocspernode,port);
             MCFA_add_host(&hostList, newnode);
 	    MCFA_add_host(&newhostlist, newnode);

@@ -74,6 +74,16 @@ int MCFA_create_comm_matrix_sp16(int redundancy, int **appcomm)
 }
 int MCFA_create_comm_matrix_default(int redundancy, int **appcomm)
 {
+	int i,j;
+
+        for(i=0;i<SL_numprocs/redundancy;i++){
+                for(j=0;j<i;j++){
+                        if(i!=j)
+                                appcomm[i][j] = appcomm[j][i] = 8;
+                        else
+                                appcomm[i][j] = 0;
+                }
+        }
         return 1;
 }
 
