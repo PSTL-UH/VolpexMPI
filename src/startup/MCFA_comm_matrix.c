@@ -2,21 +2,10 @@
 #include "MCFA_internal.h"
 #include "SL.h"
 
-MCFA_node* MCFA_create_comm_matrix_sp(int redundancy, int **appcomm)
+int MCFA_create_comm_matrix_sp(int redundancy, int **appcomm)
 {
 	int i,j;
 
-/*        appcomm = (int**)malloc(SL_numprocs/redundancy * sizeof(int*));
-
-        for(i=0;i<SL_numprocs/redundancy;i++)
-                appcomm[i] = (int*)malloc(SL_numprocs/redundancy * sizeof(int));
-
-	for(i=0;i<SL_numprocs/redundancy;i++){
-                for(j=0;j<SL_numprocs/redundancy;j++){
-                                appcomm[i][j]=0;
-		}
-	}
-*/
 	for(i=0;i<SL_numprocs/redundancy;i++){
                 for(j=0;j<i;j++){
 			if(i!=j)
@@ -30,10 +19,61 @@ MCFA_node* MCFA_create_comm_matrix_sp(int redundancy, int **appcomm)
 	appcomm[4][0]=appcomm[5][1]=appcomm[6][1]=appcomm[7][2]=appcomm[7][3]=appcomm[8][4]=appcomm[6][5]=1;
 	appcomm[0][8]=appcomm[8][0]=1;
 
-	MCFA_node *tree;
+/*	MCFA_node *tree;
         tree = MCFA_tree(appcomm, SL_numprocs/redundancy);
 	printf("Application communication tree\n");
         MCFA_printtree(tree, SL_numprocs/redundancy);
 	return tree;
-
+*/
+	return 1;
 }
+
+int MCFA_create_comm_matrix_bt(int redundancy, int **appcomm)
+{
+	return 1;
+}
+int MCFA_create_comm_matrix_cg(int redundancy, int **appcomm)
+{
+        return 1;
+}
+int MCFA_create_comm_matrix_ep(int redundancy, int **appcomm)
+{
+        return 1;
+}
+int MCFA_create_comm_matrix_ft(int redundancy, int **appcomm)
+{
+        return 1;
+}
+int MCFA_create_comm_matrix_is(int redundancy, int **appcomm)
+{
+        return 1;
+}
+int MCFA_create_comm_matrix_bt16(int redundancy, int **appcomm)
+{
+        return 1;
+}
+int MCFA_create_comm_matrix_cg16(int redundancy, int **appcomm)
+{
+        return 1;
+}
+int MCFA_create_comm_matrix_ep16(int redundancy, int **appcomm)
+{
+        return 1;
+}
+int MCFA_create_comm_matrix_ft16(int redundancy, int **appcomm)
+{
+        return 1;
+}
+int MCFA_create_comm_matrix_is16(int redundancy, int **appcomm)
+{
+        return 1;
+}
+int MCFA_create_comm_matrix_sp16(int redundancy, int **appcomm)
+{
+        return 1;
+}
+int MCFA_create_comm_matrix_default(int redundancy, int **appcomm)
+{
+        return 1;
+}
+

@@ -27,12 +27,12 @@ typedef struct{
  int hash_asc(const void* x1,const void* x2); 
 int eval_sol(int *sol,int N,int **comm, int **arch);
 void exchange(int *sol,int i,int j);
- int gain_exchange(int *sol,int l,int m,int eval1,int N,int **comm, int **arch);
- void select_max(int *l,int *m,int **gain,int N,int *state);
+ int gain_exchange(int *sol,int l,int m,double eval1,int N,int **comm, int **arch);
+ void select_max(int *l,int *m,double **gain,int N,int *state);
 int *generate_random_sol(int N,int level,int seed);
-void compute_gain(int *sol,int N,int **gain,int **comm, int **arch);
+void compute_gain(int *sol,int N,double **gain,int **comm, int **arch);
  void map_MPIPP(int nb_seed,int N,int *Value,int **comm, int **arch);
-int print_sol(int N,int *Value,int **comm, int **arch);
+double print_sol(int N,int *Value,int **comm, int **arch);
 void free_topology(tm_topology_t *topology);
 
  int hash_asc(const void* x1,const void* x2){ 
@@ -47,7 +47,7 @@ void free_topology(tm_topology_t *topology);
 } 
 
 int eval_sol(int *sol,int N,int **comm, int **arch){
-  int res;
+  double res;
   int i,j;
    int a,c;
 
@@ -56,7 +56,7 @@ int eval_sol(int *sol,int N,int **comm, int **arch){
      for (j=i+1;j<N;j++){
        c=comm[i][j];
        a=arch[sol[i]][sol[j]];
-       res+=c*a;
+       res+=(double)c*(double)a;
     }
    }
    return res;
@@ -69,8 +69,8 @@ void exchange(int *sol,int i,int j){
    sol[j]=tmp;
  }
 
- int gain_exchange(int *sol,int l,int m,int eval1,int N,int **comm, int **arch){
-   int eval2;
+ int gain_exchange(int *sol,int l,int m,double eval1,int N,int **comm, int **arch){
+   double eval2;
    if(l==m)
      return 0;
    exchange(sol,l,m);
@@ -79,9 +79,9 @@ void exchange(int *sol,int i,int j){
    return eval1-eval2;
  }
 
- void select_max(int *l,int *m,int **gain,int N,int *state){
+ void select_max(int *l,int *m,double **gain,int N,int *state){
    int i,j;
-   int max;
+   double max;
    max=-DBL_MAX;
 
    for(i=0;i<N;i++){
@@ -128,7 +128,7 @@ int *generate_random_sol(int N,int level,int seed){
   return sol;
  }
 
-void compute_gain(int *sol,int N,int **gain,int **comm, int **arch){
+void compute_gain(int *sol,int N,double **gain,int **comm, int **arch){
    int i,j;
    int eval1;
    eval1=eval_sol(sol,N,comm,arch);
@@ -144,16 +144,16 @@ void compute_gain(int *sol,int N,int **gain,int **comm, int **arch){
  void map_MPIPP(int nb_seed,int N,int *Value,int **comm, int **arch){
    int *sol;
    int *state;
-   int **gain;
+   double **gain;
    int **history;
-   int *temp;
+   double *temp;
    int i,j,t,l=0,m=0,loop=0,seed=0;
-   int max,sum,best_eval,eval;
+   double max,sum,best_eval,eval;
 
 
-   gain=(int**)malloc(sizeof(int*)*N);
+   gain=(double**)malloc(sizeof(double*)*N);
    for(i=0;i<N;i++){
-     gain[i]=(int*)malloc(sizeof(int)*N);
+     gain[i]=(double*)malloc(sizeof(double)*N);
      if(!gain[i]){
      }
    }
@@ -162,7 +162,7 @@ void compute_gain(int *sol,int N,int **gain,int **comm, int **arch){
      history[i]=(int*)malloc(sizeof(int)*3);
 
    state=(int*)malloc(sizeof(int)*N);
-   temp=(int*)malloc(sizeof(int)*N);
+   temp=(double*)malloc(sizeof(double)*N);
 
 //   sol=generate_random_sol(topology,N,topology->nb_levels-1,seed++);
    sol=generate_random_sol(N,0,seed++);
@@ -180,13 +180,20 @@ while(seed<=nb_seed){
        }
        printf("\n");
        compute_gain(sol,N,gain,comm,arch);
+
+/*	for(i=0;i<N;i++){
+             for(j=0;j<N;j++){
+                printf("%d ",comm[i][j]);
+        }
+        printf("\n");
+        }
 	for(i=0;i<N;i++){
              for(j=0;j<N;j++){
-     //           printf("%6.1f ",gain[i][j]);
+                printf("%6.1f ",gain[i][j]);
         }
-//    	printf("\n");
+    	printf("\n");
         }
-
+*/
 //      display_tab(gain,N);
       //exit(-1);
        for(i=0;i<N/2;i++){
@@ -242,8 +249,8 @@ for(i=0;i<N;i++){
 
  }
 
-int print_sol(int N,int *Value,int **comm, int **arch){
-  int sol;
+double print_sol(int N,int *Value,int **comm, int **arch){
+  double sol;
   int i,j;
   int a,c;
 
@@ -253,7 +260,7 @@ int print_sol(int N,int *Value,int **comm, int **arch){
        c=comm[i][j];
        a=arch[Value[i]][Value[j]];
       printf("T_%d_%d %f/%f=%f\n",i,j,c,a,c/a);
-       sol+=c/a;
+       sol+=(double)c/(double)a;
      }
    }
    for (i = 0; i < N; i++) {

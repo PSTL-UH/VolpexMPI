@@ -173,3 +173,26 @@ int* MCFA_sortedlist (int ** clusters, int nclusters, int *numelements, int redu
 
 	return newnodes;
 }
+
+int MCFA_map(int **values, int *newnodes, int redundancy)
+{
+	int i,j,k,temp;
+	int N= SL_numprocs/redundancy;
+	for(i=0;i<redundancy;i++){
+
+                for(j=0;j<N;j++){
+                	for(k=j;k<N;k++){
+                         	if(values[i][k] < values[i][j]){
+                                	temp = newnodes[i*N+k];
+                                        newnodes[i*N+k] = newnodes[i*N+j];
+                                        newnodes[i*N+j] = temp;
+
+					temp = values[i][j];
+                                        values[i][j] = values[i][k];
+                                        values[i][k] = temp;
+                                        }
+
+                         }
+                }
+        }
+}
