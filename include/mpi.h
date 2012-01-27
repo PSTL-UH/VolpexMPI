@@ -48,8 +48,9 @@
 
 #define CK_LEN  (int)(5*sizeof(int))
 
-#define MAX_MSG	1
-#define MAX_MSG_TIME 50000000
+#define MAX_MSG 1	
+//#define MAX_MSG_TIME 00000000
+#define MAX_MSG_TIME 10 
 #define MAX_MSG_REPEAT 30000000000
 #define VOLPEX_PROC_CONNECTED     1
 #define VOLPEX_PROC_NOT_CONNECTED 0

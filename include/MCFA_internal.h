@@ -14,6 +14,8 @@
 #include <time.h>
 #include <errno.h>
 #include <math.h>
+#include <float.h>
+#include <ctype.h>
 #include "SL_event_handling.h"
 #include "SL_proc.h"
 #include "SL_msg.h"
@@ -57,6 +59,7 @@
 #define	CONDOR		1
 #define SSH		0
 #define BOINC		2
+#define RANDOM		3
 
 char *BOINCDIR;
 
@@ -272,6 +275,25 @@ struct MCFA_proc_node* MCFA_set_listsconcentrate(int initid,char **hostName, cha
                                                         int jobID, int numprocs,int hostCount, int redundancy);
 
 
+struct MCFA_proc_node* MCFA_set_listsrandom(int initid,char **hostName, char *path, int port,
+							int jobID, int numprocs,int hostCount, int redundancy);
+
+/*******Function to use communication matrix for NAS_parallel benchmark******/
+typedef int MCFA_create_comm_matrix_func(int redundancy, int **appcomm);
+int MCFA_create_comm_matrix_default(int redundancy, int **appcomm);
+int MCFA_create_comm_matrix_bt(int redundancy, int **appcomm);
+int MCFA_create_comm_matrix_cg(int redundancy, int **appcomm);
+int MCFA_create_comm_matrix_ep(int redundancy, int **appcomm);
+int MCFA_create_comm_matrix_ft(int redundancy, int **appcomm);
+int MCFA_create_comm_matrix_is(int redundancy, int **appcomm);
+int MCFA_create_comm_matrix_sp(int redundancy, int **appcomm);
+
+int MCFA_create_comm_matrix_bt16(int redundancy, int **appcomm);
+int MCFA_create_comm_matrix_cg16(int redundancy, int **appcomm);
+int MCFA_create_comm_matrix_ep16(int redundancy, int **appcomm);
+int MCFA_create_comm_matrix_ft16(int redundancy, int **appcomm);
+int MCFA_create_comm_matrix_is16(int redundancy, int **appcomm);
+int MCFA_create_comm_matrix_sp16(int redundancy, int **appcomm);
 
 
 
@@ -341,7 +363,9 @@ void MCFA_cuttree (int nelements, MCFA_node* tree, int nclusters, int clusterid[
 ]);
 //int* MCFA_cluster(MCFA_node *result, int red, int **mat);
 int** MCFA_cluster(MCFA_node *result, int red, int **mat, int *numcluster, int **numelms);
-int* MCFA_sortedlist (int ** clusters, int nclusters, int *numelements, int redundancy);
+//int* MCFA_sortedlist (int ** clusters, int nclusters, int *numelements, int redundancy);
+int* MCFA_sortedlist (int ** clusters, int nclusters, int *numelements, int redundancy, int **);
+
 void MCFA_printtree(MCFA_node* result, int nnodes);
 void MCFA_printclusterdist(int *clusterid);
 MCFA_node** MCFA_create_subtree(int ***subdistmat, int redundancy, int *newnodes
