@@ -329,7 +329,7 @@ int Volpex_init_send(int commid)
                 SL_this_procid, comm->plist[j].ids[k],  CK_TAG, commid, i));
 
 		ret = SL_recv_post(&reqlist[i].returnheader, sizeof(Volpex_msg_header), comm->plist[j].ids[k],
-                           CK_TAG, commid, SL_ACCEPT_INFINITE_TIME, &reqlist[i].request);
+                           CK_TAG, commid, SL_ACCEPT_MAX_TIME, &reqlist[i].request);
 		if(ret != SL_SUCCESS){
 	            printf("[%d] VIsend Error: After SL_recv_post in Volpex_Send, setting "
                     "VOLPEX_PROC_STATE_NOT_CONNECTED for process : %d\n", SL_this_procid,comm->plist[j].ids[k]);

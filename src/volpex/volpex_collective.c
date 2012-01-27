@@ -307,8 +307,7 @@ int Volpex_Complete_Barrier ( MPI_Comm comm)
             err = SL_Test ( &reqs[i], &flag, &stats[i]);
             SL_msg_progress();
             if ( flag ) {
-                PRINTF(("[%d]:Volpex_Complete_Barrier: operation to %d finished ret=%d\n", SL_this_procid,
-                        i, err ));
+                PRINTF(("[%d]:Volpex_Complete_Barrier: operation to %d finished ret=%d\n", SL_this_procid,i, err ));
                 local_comp++;
             }
         }

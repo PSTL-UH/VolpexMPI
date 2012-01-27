@@ -16,10 +16,10 @@ int Volpex_insert_reuseval(int procid,int reuseval)
 {
 	Volpex_proc *proc=NULL;
 	
-	proc = Volpex_get_proc_byid(procid);
+	proc = Volpex_get_proc_bySLid(procid);
 	proc->reuseval = reuseval;
 //	if (reuseval>10)
-//	printf("[%d]:Reuseval :%d for proc %d\n", SL_this_procid,reuseval, proc->id);
+	PRINTF(("[%d]:Reuseval :%d for proc %d\n", SL_this_procid,reuseval, proc->id));
 	return 0;
 }
 
@@ -99,7 +99,7 @@ int Volpex_change_target(int rank, int comm)
     proc = Volpex_get_proc_byid(tmp);
   
 
-    PRINTF(("[%d]: Volpex_change_target: changing target from %d to %d\n", SL_this_procid,proc->plist->ids[0], proc->plist->ids[1]));
+    PRINTF(("[%d]: Volpex_change_target: changing target from %d to %d\n", SL_this_procid,proc->plist->SL_ids[0], proc->plist->SL_ids[1]));
     tmp = proc->plist->ids[0];
     tmp_SL = proc->plist->SL_ids[0];
     for (i=1; i<proc->plist->num; i++)
@@ -123,7 +123,7 @@ int Volpex_change_target(int rank, int comm)
  }   
 
 //    Volpex_print_procplist();
-    return proc->plist->ids[0];   
+    return proc->plist->SL_ids[0];   
 }
 
 int Volpex_set_newtarget(int newtarget, int rank, int comm)

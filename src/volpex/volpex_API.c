@@ -32,19 +32,67 @@ static void volpex_preconnect(void)
     int size = Volpex_numprocs;
     int rank = SL_this_procid;
     int sbuf=1, rbuf=1;
+//    SL_Request *reqs;
     SL_Request reqs[2];
+    SL_Request sendreq;
     int sendto, recvfrom;
+    int sendrecv;
 
-
+/*
     for ( step=1; step< size+1; step++ ) {
         sendto = (rank + step) % size;
         recvfrom = (rank + size - step ) % size;
+	printf("[%d]: Sending to:%d, Recieving from:%d\n", SL_this_procid, sendto, recvfrom);
 
         SL_Isend (&sbuf, sizeof(int), sendto, 0, 0, &reqs[0]);
         SL_Irecv (&rbuf, sizeof(int), recvfrom, 0, 0, &reqs[1]);
         SL_Waitall ( 2, reqs, SL_STATUS_IGNORE);
     }
+*/
 
+
+	for ( step=0; step< size; step++ ) {
+                sendrecv = (size-rank+step)%size;
+		PRINTF(("[%d]: communicating with proc:%d iteration:%d\n", SL_this_procid, sendrecv, step));
+		if (SL_this_procid == sendrecv)
+                        continue;
+                if (SL_this_procid<sendrecv){
+                        SL_Isend (&sbuf, sizeof(int), sendrecv, 0, 0, &reqs[0] );
+                        SL_Irecv (&rbuf, sizeof(int), sendrecv, 0, 0, &reqs[1]);
+                }
+                else{
+                        SL_Irecv (&rbuf, sizeof(int), sendrecv, 0, 0, &reqs[1]);
+                        SL_Isend (&sbuf, sizeof(int), sendrecv, 0, 0, &reqs[0] );
+                }
+
+		SL_Waitall ( 2, reqs, SL_STATUS_IGNORE);
+	}
+
+/*	int j;
+	int count = 0 ;
+	reqs = (SL_Request *) malloc (size-1 * sizeof(SL_Request ));
+
+	for ( step=0; step< size; step++ ) {
+         //       sendrecv = (size-rank+step)%size;
+                printf("[%d]: communicating with \n", SL_this_procid);
+		count = 0;
+                if (rank == step){
+			for(j=0;j<size; j++){
+				if(SL_this_procid == j)
+					continue;
+				printf("[%d]: communicating with %d\n", SL_this_procid, j);
+                        	SL_Isend (&sbuf, sizeof(int),j , 0, 0, &reqs[count] );
+				count++;
+			}
+			
+			SL_Waitall ( size-1, reqs, SL_STATUS_IGNORE);
+                }
+                else{
+                        SL_Irecv (&rbuf, sizeof(int), step, 0, 0, &sendreq);
+			SL_Wait(&sendreq, SL_STATUS_IGNORE);
+                }
+        }
+*/
     return;
 }
 
@@ -79,13 +127,14 @@ int  MPI_Init( int *argc, char ***argv )
     next_avail_comm = 3;
     int maxrank;
     Volpex_numcomms = 0;
-    PRINTF(("Moving into MCFA_Init\n"));
+    PRINTF(("[%d]:Moving into MCFA_Init\n",SL_this_procid));
     MCFA_Init();
     GM_allocate_global_data();
     GM_host_ip();
-    PRINTF(("Hostname: %s\n", hostname));
-    PRINTF(("HostIP: %s\n", hostip));
+    PRINTF(("[%d]:Hostname: %s\n", SL_this_procid, hostname));
+    PRINTF(("[%d]:HostIP: %s\n", SL_this_procid, hostip));
     Volpex_get_fullrank(fullrank);
+//    printf("[%d]:fullrank: %s\n", SL_this_procid,fullrank);
 
 /** max rank is needed in case we add a new process
 	total number of process = Volpex_numprocs
@@ -123,18 +172,18 @@ int  MPI_Init( int *argc, char ***argv )
 
     GM_tagreuse_init();
 
-    PRINTF(("My full rank is %s\n", fullrank));
+    PRINTF(("[%d]:My full rank is %s\n", SL_this_procid,fullrank));
     head = insertpt = curr = Volpex_send_buffer_init();
-    init_msg_time = SL_papi_time();
-    repeat_msg_time = SL_papi_time();
     Volpex_dest_source_select = Volpex_dest_src_locator;
 
- //  volpex_preconnect();
+   volpex_preconnect();
 //   Volpex_Redundancy_Barrier ( MPI_COMM_WORLD, hdata[MPI_COMM_WORLD].myrank );
 //if(redundancy>1)
  //  Volpex_set_target();
 //    Volpex_Barrier ( MPI_COMM_WORLD);
-	Volpex_Complete_Barrier(MPI_COMM_WORLD);	
+//	Volpex_Complete_Barrier(MPI_COMM_WORLD);	
+    init_msg_time = SL_papi_time();
+    repeat_msg_time = SL_papi_time();
     return MPI_SUCCESS;
 }
 

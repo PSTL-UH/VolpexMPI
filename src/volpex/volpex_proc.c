@@ -519,7 +519,7 @@ int Volpex_insert_purgelist(int procid, Request_List req, int id)
 	curr->cancel_request = header;
 	curr->next = NULL;
 
-	MCFA_printf(" Inserted %d %d %d %d %d %d %d\n",SL_MSG_CMD_P2P,req.target,SL_this_procid,req.header->comm,req.header->len,req.header->reuse,req.header->tag,id);
+	PRINTF((" Inserted %d %d %d %d %d %d %d\n",SL_MSG_CMD_P2P,req.target,SL_this_procid,req.header->comm,req.header->len,req.header->reuse,req.header->tag,id));
 	if (proc->purgelist == NULL)
 	{
 //		curr->id = 0;

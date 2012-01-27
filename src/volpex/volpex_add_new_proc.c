@@ -169,7 +169,7 @@ int Volpex_init_send_newproc(Volpex_comm *tcomm,int procid,int rank)
 
 
         SL_recv_post(&reqlist[istart].returnheader, sizeof(Volpex_msg_header), procid,
-                           CK_TAG, tcomm->id,SL_ACCEPT_INFINITE_TIME, &reqlist[istart].request);
+                           CK_TAG, tcomm->id,SL_ACCEPT_MAX_TIME, &reqlist[istart].request);
         return MPI_SUCCESS;
 }
 

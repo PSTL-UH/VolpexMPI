@@ -83,7 +83,7 @@ int  Volpex_progress()
                                                 tcurr->rheader.target, CK_TAG, temp->header->comm, 0);
 
                         ret = SL_recv_post(&reqlist[istart].returnheader, sizeof(Volpex_msg_header), tcurr->rheader.target,
-                           CK_TAG, temp->header->comm,SL_ACCEPT_INFINITE_TIME, &reqlist[istart].request);
+                           CK_TAG, temp->header->comm,SL_ACCEPT_MAX_TIME, &reqlist[istart].request);
 
 
 
@@ -166,7 +166,7 @@ int  Volpex_progress()
                                                 reqlist[i].target, CK_TAG, temp->header->comm, 0);
 
                         ret = SL_recv_post(&reqlist[istart].returnheader, sizeof(Volpex_msg_header), reqlist[i].target,
-                           CK_TAG, temp->header->comm,SL_ACCEPT_INFINITE_TIME, &reqlist[istart].request);
+                           CK_TAG, temp->header->comm,SL_ACCEPT_MAX_TIME, &reqlist[istart].request);
 
 
                         if ( ret != SL_SUCCESS ) {
@@ -324,17 +324,19 @@ int  Volpex_progress()
 		Volpex_proc *proc;
 			procid = Volpex_get_volpexid(reqlist[i].target);
                       if (reuseval>5 && Volpex_targets[procid].numofmsg>MAX_MSG && reqlist[i].recv_dup_status != 1 ){
-                                printf("[%d]:target : %d  tag:%d  loglength: %d  myloglength: %d, numofmsg:%d\n",
+                                PRINTF(("[%d]:target : %d  tag:%d  loglength: %d  myloglength: %d, numofmsg:%d\n",
 					SL_this_procid,reqlist[i].target, reqlist[i].header->tag,loglength, 
-					reqlist[i].header->reuse, Volpex_targets[procid].numofmsg);
+					reqlist[i].header->reuse, Volpex_targets[procid].numofmsg));
 				PRINTF(("[%d]: src:%d Numofmsg:%d, Target:%d\n", SL_this_procid,procid, 
 					Volpex_targets[procid].numofmsg,Volpex_targets[procid].target));
 				num = Volpex_numoftargets(reqlist[i].header->src, reqlist[i].header->comm, reqlist[i].target);
 				if (num>0){	
                                 	newtarget = Volpex_change_target(reqlist[i].header->src, reqlist[i].header->comm);
-					printf("[%d]: Newtarget=%d\n", SL_this_procid,newtarget);
-					proc = Volpex_get_proc_byid(newtarget);
-					proc->recvpost = 1;
+					proc = Volpex_get_proc_bySLid(newtarget);
+				//	proc->recvpost = 1;
+					proc->recvpost ++;
+					printf("[%d]: oldtarget:%d Newtarget=%d recvpost:%d\n", 
+					SL_this_procid,reqlist[i].target,newtarget,proc->recvpost ++);
 					Volpex_targets[procid].target = newtarget;
 					
 				}

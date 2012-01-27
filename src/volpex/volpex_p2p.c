@@ -69,7 +69,7 @@ int Volpex_numoftargets(int rank, int comm, int target)
     for (i=0; i<plist->num; i++)
     {
 	    tproc = Volpex_get_proc_byid(plist->ids[i]);
-            if (tproc->id == target){
+            if (tproc->SL_id == target){
                 reuseval = tproc->reuseval;
 		PRINTF(("[%d]: REUSEVAl=%d TARGET=%d actualtarget=%d\n",SL_this_procid,reuseval,tproc->id,target));
 	    }
@@ -80,9 +80,11 @@ int Volpex_numoftargets(int rank, int comm, int target)
     {
 
         proc = Volpex_get_proc_byid(plist->ids[i]);
-	 printf("[%d]: id=%d target=%d recvpost=%d reuseval=%d\n", SL_this_procid, proc->id, proc->plist->ids[i],
-                                                                        proc->recvpost,proc->reuseval);
-        if (proc->reuseval< reuseval)
+	 PRINTF(("[%d]: SLid=%d volpexid=%d recvpost=%d proc_reuseval=%d reuseval=%d\n", 
+					SL_this_procid, proc->SL_id, proc->plist->ids[i],
+                                        proc->recvpost,proc->reuseval, reuseval));
+        if ((proc->reuseval< reuseval) && (proc->recvpost) < 2)
+//	 if ((proc->reuseval < reuseval))
 		
                 numoftargets++ ;
     }
@@ -182,13 +184,13 @@ int  Volpex_Wait(MPI_Request *request, MPI_Status *status)
                         }
 
                         Volpex_targets[procid].target = finaltarget;
-                        printf("####[%d]: Setting target:%d for source:%d numofmsg:%d\n", SL_this_procid,
+                        PRINTF(("####[%d]: Setting target:%d for source:%d numofmsg:%d request:%d\n", SL_this_procid,
                                 Volpex_targets[procid].target,reqlist[newrequest].header->src, 
-					Volpex_targets[procid].numofmsg);
+					Volpex_targets[procid].numofmsg, newrequest));
 
+				SL_proc_dumpall();
 
                                 Volpex_set_newtarget(finaltarget,reqlist[newrequest].header->src, MPI_COMM_WORLD);
-
 
 
 
@@ -529,7 +531,7 @@ int  Volpex_Isend(void *buf, int count, MPI_Datatype datatype, int dest, int tag
 
         ret = SL_recv_post(&reqlist[i].returnheader, sizeof(Volpex_msg_header), targets[j],
                            reqlist[i].cktag, comm,
-                           SL_ACCEPT_INFINITE_TIME, &reqlist[i].request);
+                           SL_ACCEPT_MAX_TIME, &reqlist[i].request);
 
 
         Volpex_set_recvpost(comm, targets[j]);
@@ -712,9 +714,9 @@ for(p = 0; p < numoftargets; p++){
 	for(q = 0; q < numoftargets; q++)
 		reqlist[assoc_recv[p]].assoc_recv[q] = assoc_recv[q];
 }
-	PRINTF(("[%d]: checking proc:%d numofmsg:%d time:%f\n", SL_this_procid, procid, Volpex_targets[procid].numofmsg, 
-				SL_papi_time()-init_msg_time));
-	if ((MAX_MSG_TIME<SL_papi_time()-init_msg_time) && (Volpex_targets[procid].numofmsg == 0  )){
+	PRINTF(("[%d]: checking proc:%d numofmsg:%d time:%f\n", SL_this_procid, procid, 
+		Volpex_targets[procid].numofmsg, SL_papi_time()-init_msg_time));
+	if ((MAX_MSG_TIME<SL_papi_time()-init_msg_time) && (Volpex_targets[procid].numofmsg < MAX_MSG  )){
 		PRINTF(("[%d]: Incrementing proc:%d numofmsg:%d\n", SL_this_procid, procid, Volpex_targets[procid].numofmsg));
 		Volpex_targets[procid].numofmsg++;
 
