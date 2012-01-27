@@ -59,6 +59,7 @@ int SL_msgq_append ( SL_msgq_head *head, SL_qitem *elem )
 {
 
     if ( NULL == head || NULL == elem ) {
+//	SL_msgq_delete(head);
 	return SL_ERR_GENERAL;
     }
 
@@ -150,7 +151,14 @@ int SL_msgq_move ( SL_msgq_head *head1, SL_msgq_head *head2, SL_qitem *elem )
 /*    PRINTF(("[%d]:SL_msgq_move: moving elem %d from %s to %s len %d time %f\n", SL_this_procid,elem->id, 
 	 head1->name, head2->name , elem->iov[1].iov_len, elem->endtime-elem->starttime));*/
     SL_msgq_remove ( head1, elem );
-    
+	
+    if(head2 == NULL && SL_this_procid == SL_PROXY_SERVER){
+	free ( elem->iov[0].iov_base );
+	free ( elem->iov[1].iov_base );
+	free(elem);
+	return SL_SUCCESS;
+    }
+	 
     return SL_msgq_append ( head2, elem );
 }
 

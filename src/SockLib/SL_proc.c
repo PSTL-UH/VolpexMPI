@@ -218,7 +218,7 @@ void SL_proc_close ( SL_proc * proc )
  //   FD_CLR ( proc->sock, &SL_recv_fdset );
    // proc->state = SL_PROC_NOT_CONNECTED;
     
-    if ( proc->sock > 0 && proc->sock != SL_proxy_server_socket) {
+    if ( proc->sock > 0 && proc->sock != SL_proxy_server_socket && SL_this_procid != SL_EVENT_MANAGER) {
         SL_socket_close ( proc->sock );
 	FD_CLR ( proc->sock, &SL_send_fdset );
     	FD_CLR ( proc->sock, &SL_recv_fdset );
@@ -281,6 +281,27 @@ int SL_proc_init_conn ( SL_proc * proc )
     return SL_SUCCESS;
 }
 
+int SL_compare_subnet(SL_proc *proc)
+{
+	SL_proc *dproc;
+	int subnet1[4], subnet2[4];
+	dproc = (SL_proc *) SL_array_get_ptr_by_id ( SL_proc_array, SL_this_procid );
+	
+	sscanf(proc->hostname,"%d.%d.%d.%d",&subnet1[0],&subnet1[1],&subnet1[2],&subnet1[3]);
+        sscanf(dproc->hostname,"%d.%d.%d.%d",&subnet2[0],&subnet2[1],&subnet2[2],&subnet2[3]);
+	if(subnet1[0]==subnet2[0] && subnet1[1]== subnet2[1]){
+                PRINTF(("[%d]:Same subnet Connect directly proc:%d %s:%s\n\n", 
+			SL_this_procid, proc->id, proc->hostname, dproc->hostname));
+		return 1;
+	}
+        else{
+                PRINTF(("[%d]:different subnet Connect through proxy proc:%d %s:%s\n\n",
+			SL_this_procid, proc->id, proc->hostname, dproc->hostname));
+		return 0;
+	}
+		
+	
+}
 
 int SL_proc_init_conn_nb ( SL_proc * proc, double timeout ) 
 {
@@ -296,8 +317,28 @@ int SL_proc_init_conn_nb ( SL_proc * proc, double timeout )
     */
 
 	int tmp = proc->sock;
+	int ret = SL_SUCCESS;
+	SL_proc *tproc;
+	int tret=0;
 	PRINTF(("[%d]:SL_proc_init_conn_nb: Into function for process :%d\n",
                 SL_this_procid,proc->id));
+	
+	if(proc->id != -2 && proc->id != -1 && SL_this_procid != -1 && SL_this_procid != -2){
+		tret = SL_compare_subnet(proc);
+		if(tret == 0){
+			proc->sendfunc = ( SL_msg_comm_fnct *) SL_msg_send_newmsg;
+		        proc->recvfunc = ( SL_msg_comm_fnct *) SL_msg_recv_newmsg;
+			proc->state    = SL_PROC_CONNECTED;
+			tproc  = (SL_proc *) SL_array_get_ptr_by_id ( SL_proc_array, SL_PROXY_SERVER );
+			proc->sock     = tproc->sock;
+			PRINTF(("[%d]:SL_msg_connect_proxy:already connected  to proc %d on sock %d\n",
+		                SL_this_procid, proc->id, proc->sock));
+			return SL_SUCCESS;
+
+		}
+
+	}
+
 
     if ( proc->state == SL_PROC_UNREACHABLE ) {
 	return SL_ERR_PROC_UNREACHABLE;
@@ -307,21 +348,13 @@ int SL_proc_init_conn_nb ( SL_proc * proc, double timeout )
     {       
 
 	if ( proc->id < SL_this_procid ) {
-	    SL_open_socket_conn_nb ( &proc->sock, proc->hostname, proc->port );
-//	    if(proc->id < 0 && SL_this_procid > -2){
+	    ret = SL_open_socket_conn_nb ( &proc->sock, proc->hostname, proc->port );
 	    proc->sendfunc = ( SL_msg_comm_fnct *) SL_msg_connect_newconn;
 	    proc->recvfunc = ( SL_msg_comm_fnct *) SL_msg_connect_newconn;
-//	    }
-/*	    else{
+	    proc->state = SL_PROC_CONNECT;
 
-	    proc->sendfunc = ( SL_msg_comm_fnct *) SL_msg_connect_proxy;
-	    proc->recvfunc = ( SL_msg_comm_fnct *) SL_msg_connect_proxy;
-	    }
-*/
-		   proc->state = SL_PROC_CONNECT;
-
-	    PRINTF(("[%d]:1SL_proc_init_conn_nb:Changing socket from %d to %d proc id:%d\n",
-                        SL_this_procid,tmp, proc->sock,proc->id));
+	    PRINTF(("[%d]:1SL_proc_init_conn_nb:Changing socket from %d to %d proc id:%d ret:%d\n",
+                        SL_this_procid,tmp, proc->sock,proc->id, ret));
 	    
 	    /* set the read and write fd sets */
 	    FD_SET ( proc->sock, &SL_send_fdset );
@@ -335,23 +368,6 @@ int SL_proc_init_conn_nb ( SL_proc * proc, double timeout )
 	}
 	else {
 
-/*            if(proc->id >-1 && SL_this_procid > -1){
-	    SL_open_socket_conn_nb ( &proc->sock, proc->hostname, proc->port );
-            proc->sendfunc = ( SL_msg_comm_fnct *) SL_msg_connect_proxy;
-            proc->recvfunc = ( SL_msg_comm_fnct *) SL_msg_connect_proxy;
-		proc->state = SL_PROC_CONNECT;
-		FD_SET ( proc->sock, &SL_send_fdset );
-	        FD_SET ( proc->sock, &SL_recv_fdset );
-		PRINTF(("[%d]:SL_proc_init_conn_nb:Changing socket from %d to %d proc id:%d\n",
-                        SL_this_procid,tmp, proc->sock,proc->id));
-        	if ( proc->sock > SL_fdset_lastused ) {
-                	SL_fdset_lastused = proc->sock;
-            	}
-
-            }
-
-	    else{
-*/
 
 	    proc->sendfunc = ( SL_msg_comm_fnct *) SL_msg_accept_newconn;
 	    proc->recvfunc = ( SL_msg_comm_fnct *) SL_msg_accept_newconn;
@@ -361,7 +377,6 @@ int SL_proc_init_conn_nb ( SL_proc * proc, double timeout )
 	    proc->sock  = SL_this_listensock;
 	    proc->state = SL_PROC_ACCEPT;
 	
-//	   }
 
 	}
 	if ( proc->connect_attempts == 0 ) {
@@ -378,7 +393,7 @@ int SL_proc_init_conn_nb ( SL_proc * proc, double timeout )
 	SL_proc_establishing_connection++;
     }
 
-//    SL_proc_dumpall();
+    SL_proc_dumpall();
     return SL_SUCCESS;
 }
 
@@ -421,8 +436,8 @@ int SL_proc_read_and_set ( char *filename )
 
 void SL_proc_set_connection ( SL_proc *dproc, int sd )
 {
-    PRINTF(("[%d]:SL_proc_set_connection: connection established to proc %d on sock %d\n",
-	    SL_this_procid, dproc->id, sd ));
+    PRINTF(("[%d]:SL_proc_set_connection: connection established to proc %d on sock %d time:%lf\n",
+	    SL_this_procid, dproc->id, sd, SL_Wtime()-dproc->connect_start_tstamp) );
     
    
 	SL_proxy_numprocs++; 
@@ -452,8 +467,8 @@ void SL_proc_dumpall ( )
 
     for ( i=0; i<size; i++ ) {
 	proc = (SL_proc*)SL_array_get_ptr_by_pos ( SL_proc_array, i );
-	PRINTF(("[%d]:id:%d, port:%d, hostname:%s, state:%d sock:%d\n",SL_this_procid, 
-				proc->id,proc->port, proc->hostname, proc->state, proc->sock));
+	PRINTF(("[%d]:id:%d, port:%d, hostname:%s, state:%d sock:%d timeout:%f\n",SL_this_procid, 
+				proc->id,proc->port, proc->hostname, proc->state, proc->sock, proc->timeout));
 }
     return;
 }
@@ -473,6 +488,13 @@ void SL_proc_handle_error ( SL_proc* proc, int err, int flag )
 					SL_this_procid);
             	   exit(-1);
         	}
+
+
+		if(proc->sock == SL_proxy_server_socket ){
+			printf("[%d]: Proxy Server is dead no point to continue: Killing myself bye!!!\n",
+                                        SL_this_procid);
+                   exit(-1);
+		}
 		
 		header = (SL_event_msg_header*)malloc(sizeof(SL_event_msg_header));
 		header->cmd = SL_CMD_DELETE_PROC;
@@ -570,7 +592,8 @@ double SL_papi_time()
 	double time;
 
 //	 time = ((double)PAPI_get_real_usec());
-	time = SL_Wtime()*1000000;
+//	time = SL_Wtime()*1000000;
+	time = SL_Wtime();
 
 	return time;
 }

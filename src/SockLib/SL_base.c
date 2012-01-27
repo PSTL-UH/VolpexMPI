@@ -163,7 +163,7 @@ int SL_open_socket_conn ( int *handle, const char *as_host, int port )
 	*/
 	if ( conn_ret < 0 )
         {
-	    fprintf(stderr, "SL_open_socket_conn: Connect %d failed to host %s on "
+	    printf("SL_open_socket_conn: Connect %d failed to host %s on "
 		    "port %d \n",
 		    reconn, as_host, port );
 	    SL_socket_close ( *handle);
@@ -187,6 +187,7 @@ int SL_open_socket_conn ( int *handle, const char *as_host, int port )
 	printf("[%d]:SL_open_socket_conn: failed to open connection with port %d",SL_this_procid,port);
 	return -1;
     }
+
 
     return SL_SUCCESS;
 }
@@ -244,6 +245,8 @@ int SL_open_socket_conn_nb ( int *handle, const char *as_host, int port )
 	return errno;
     }
 #endif    
+	PRINTF(("[%d]:SL_open_socket_conn: open connection with socket:%d %d\n", 
+			SL_this_procid, *handle, errno));
     return SL_SUCCESS;
 }
 
@@ -371,6 +374,8 @@ int SL_socket_write ( int hdl, char *buf, int num, double timeout )
 	if ( a == -1 ) {
 	    if ( errno == EINTR || errno == EAGAIN || errno == EINPROGRESS ||
 		 errno == EWOULDBLOCK ) {
+		printf("[%d]:SL_socket_write: noerror while writing to socket %d %s\n", SL_this_procid,hdl,
+                        strerror(errno));
 	    }
 	    else {
 		printf("[%d]:SL_socket_write: error while writing to socket %d %s\n", SL_this_procid,hdl,
