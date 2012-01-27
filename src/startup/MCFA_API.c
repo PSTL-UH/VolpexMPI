@@ -15,6 +15,7 @@ extern SL_array_t *Volpex_comm_array;
 extern int Volpex_numprocs;
 extern int redundancy;
 extern int Volpex_this_procid;
+extern int SL_proxy_server_socket;
 int MCFA_proc_read_init(char *msgbuf,int len);
 struct MCFA_init_nodes{
 	double timeval;
@@ -58,14 +59,14 @@ int MCFA_Init()
         flag             : %d\n",
         path, hostname, port, jobID, id, event_handler_id,redundancy,spawn_flag));
 */
-    if (spawn_flag == SSH){
+    if (spawn_flag == SSH || spawn_flag == RANDOM){
 	    char *pos;
 	    pos = strrchr(path, '/');
 	    strncpy(newpath, path, pos - path +1);
 	   chdir(newpath);
     }
-	
-    MCFA_printf_init(id,id);	   
+//    spawn_flag = CONDOR;	
+//    MCFA_printf_init(id,id);	   
 //    MCFA_printf_init(jobID,id);	   
 
     SL_array_init ( &(SL_proc_array), "SL_proc_array", 32 );
@@ -79,19 +80,29 @@ int MCFA_Init()
     /* Add the startprocs process to the SL_array */
     SL_proc_init ( MCFA_MASTER_ID, hostname, port );
     SL_this_procid = id;
-	PRINTF(("My id is %d\n",SL_this_procid));
-            PRINTF(("My hostname is %s redundancy:%d, flag:%d\n",hostname,redundancy, cluster_flag));
+    PRINTF(("My id is %d\n",SL_this_procid));
+    PRINTF(("My hostname is %s redundancy:%d, flag:%d\n",hostname,redundancy, cluster_flag));
 
 	char myhostname[512];
+	char mydomainname[512];
 	int myid;
+	char *hname;
 	struct SL_event_msg_header header;
-    SL_msg_request *req;
+        SL_msg_request *req;
 
 
 	/*CONDOR*/
-	if(spawn_flag == 1 || spawn_flag == 2){
-		gethostname(myhostname, 512);
-//		myhostname = MCFA_get_ip_client();
+	if(spawn_flag == 1 || spawn_flag == 2 || spawn_flag == RANDOM){
+        	hname = (char*) malloc (256 *sizeof(char));
+
+        	MCFA_get_ip(&hname);
+        	strcpy(myhostname,hname);
+//	myhostname = MCFA_get_ip_client();
+
+/*		gethostname(myhostname, 512);
+		getdomainname(mydomainname,512);
+		printf("Hostname: %s, domain name: %s\n", myhostname, mydomainname);
+*/
 		ret = MCFA_connect(-64);
 		if (ret != SL_SUCCESS){
          	   printf("Could not recieve correct id\n");
@@ -134,6 +145,8 @@ int MCFA_Init()
 
     SL_init_internal();
 
+    SL_proc_init ( MCFA_PROXY_ID, hostname, 828282 );
+
 int i,comm_id;
 if(cluster_flag == COMMUNICATION){
 for(i=0;i<SL_numprocs;i++){
@@ -157,13 +170,48 @@ if(redundancy>1){
 
 	Volpex_numprocs = MCFA_proc_read_volpex_procs(msgbuf,msglen);
 
-    SL_proc_init ( MCFA_PROXY_ID, hostname, 828282 );
+	int rbuf;
+	SL_proc *proc;
+	SL_Recv ( &rbuf, sizeof(int), MCFA_PROXY_ID, 0, 0, SL_STATUS_NULL);
+	proc  = (SL_proc *) SL_array_get_ptr_by_id ( SL_proc_array, SL_PROXY_SERVER );
+	SL_proxy_server_socket = proc->sock;
 
+//    SL_proxy_connect();
 //    free(msgbuf);	
     return MCFA_SUCCESS;
 }
 
+SL_proxy_connect()
+{
+	SL_proc *proc;
+	int ret;
+	int tmp;
+	int terr=0;
 
+    	socklen_t len=sizeof(int);
+
+	proc  = (SL_proc *) SL_array_get_ptr_by_id ( SL_proc_array, SL_PROXY_SERVER );
+        if(proc->state != SL_PROC_CONNECTED){
+        	SL_proc_init_conn_nb ( proc, proc->timeout );
+        }
+
+	getsockopt (proc->sock, SOL_SOCKET, SO_ERROR, &terr, &len);
+        printf("[%d]:SL_msg_connect_proxy: terr = 0. Trying handshake to proxy %d\n",SL_this_procid,
+                proc->id);
+        ret = SL_socket_write ( proc->sock, (char *) &SL_this_procid, sizeof(int),
+                                proc->timeout );
+	PRINTF(("[%d]: SL_msg_connect_proxy: in SL_socket_read socket %d procid %d\n",
+                    SL_this_procid, proc->sock, proc->id));
+        ret = SL_socket_read ( proc->sock, ( char *) &tmp, sizeof(int),
+                               SL_READ_MAX_TIME);
+
+	proc->state = SL_PROC_CONNECTED;
+	SL_proxy_server_socket = proc->sock;
+	FD_SET ( proc->sock, &SL_send_fdset );
+        FD_SET ( proc->sock, &SL_recv_fdset );
+	proc->sendfunc = SL_msg_send_newmsg;
+        proc->recvfunc = SL_msg_recv_newmsg;
+}
 
 int MCFA_Finalize ( void )
 {
@@ -278,7 +326,7 @@ int SL_delete_proc(void *buf, int len)
 	PRINTF(("[%d]:MCFA_API: Handling error for proc %d\n",SL_this_procid,dproc->id));
 	if (dproc->id == SL_this_procid){
 		printf("[%d]:Bye!!!! I am signing off", SL_this_procid);
-		MCFA_printf_finalize();
+//		MCFA_printf_finalize();
 		exit(-1);
 	}
     	SL_proc_handle_error ( dproc, SL_ERR_PROC_UNREACHABLE,FALSE);	
@@ -317,6 +365,7 @@ int SL_start_communication(void *buf, int id)
                         tottime += etime-stime;
 
                 }
+		tottime = tottime*1000000;
                 PRINTF(("[%d]:Recv time for proc:%d = %f \n", SL_this_procid, i,tottime));
 
                 timeval[i].timeval = tottime;
