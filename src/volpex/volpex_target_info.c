@@ -21,21 +21,10 @@ int Volpex_init_targetlist()
 	Volpex_proc *proc;
         Volpex_targets = (Volpex_target_list*)malloc(Volpex_numprocs/redundancy * sizeof(Volpex_target_list));
         for(i=0;i<Volpex_numprocs/redundancy;i++){
-/*                if (i == (SL_this_procid % (Volpex_numprocs/redundancy)))
-                {
-                        Volpex_targets[i].numofmsg = MAX_MSG+1;
-                        Volpex_targets[i].volpex_id = i;
-                        Volpex_targets[i].target = SL_this_procid;
-
-                }
-                else{
-*/
                 Volpex_targets[i].numofmsg = 0;
                 Volpex_targets[i].volpex_id = i;
 		proc = Volpex_get_proc_byid(i);
 		Volpex_targets[i].target = proc->plist->ids[0];
-//                Volpex_targets[i].target = -1;
-//                }
 
         }
         return MPI_SUCCESS;

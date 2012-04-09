@@ -188,7 +188,6 @@ int  Volpex_Wait(MPI_Request *request, MPI_Status *status)
                                 Volpex_targets[procid].target,reqlist[newrequest].header->src, 
 					Volpex_targets[procid].numofmsg, newrequest));
 
-				SL_proc_dumpall();
 
                                 Volpex_set_newtarget(finaltarget,reqlist[newrequest].header->src, MPI_COMM_WORLD);
 

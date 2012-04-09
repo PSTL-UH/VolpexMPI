@@ -34,21 +34,8 @@ static void volpex_preconnect(void)
     int sbuf=1, rbuf=1;
 //    SL_Request *reqs;
     SL_Request reqs[2];
-    SL_Request sendreq;
-    int sendto, recvfrom;
     int sendrecv;
 
-/*
-    for ( step=1; step< size+1; step++ ) {
-        sendto = (rank + step) % size;
-        recvfrom = (rank + size - step ) % size;
-	printf("[%d]: Sending to:%d, Recieving from:%d\n", SL_this_procid, sendto, recvfrom);
-
-        SL_Isend (&sbuf, sizeof(int), sendto, 0, 0, &reqs[0]);
-        SL_Irecv (&rbuf, sizeof(int), recvfrom, 0, 0, &reqs[1]);
-        SL_Waitall ( 2, reqs, SL_STATUS_IGNORE);
-    }
-*/
 
 
 	for ( step=0; step< size; step++ ) {
@@ -68,31 +55,6 @@ static void volpex_preconnect(void)
 		SL_Waitall ( 2, reqs, SL_STATUS_IGNORE);
 	}
 
-/*	int j;
-	int count = 0 ;
-	reqs = (SL_Request *) malloc (size-1 * sizeof(SL_Request ));
-
-	for ( step=0; step< size; step++ ) {
-         //       sendrecv = (size-rank+step)%size;
-                printf("[%d]: communicating with \n", SL_this_procid);
-		count = 0;
-                if (rank == step){
-			for(j=0;j<size; j++){
-				if(SL_this_procid == j)
-					continue;
-				printf("[%d]: communicating with %d\n", SL_this_procid, j);
-                        	SL_Isend (&sbuf, sizeof(int),j , 0, 0, &reqs[count] );
-				count++;
-			}
-			
-			SL_Waitall ( size-1, reqs, SL_STATUS_IGNORE);
-                }
-                else{
-                        SL_Irecv (&rbuf, sizeof(int), step, 0, 0, &sendreq);
-			SL_Wait(&sendreq, SL_STATUS_IGNORE);
-                }
-        }
-*/
     return;
 }
 
@@ -128,13 +90,13 @@ int  MPI_Init( int *argc, char ***argv )
     int maxrank;
     Volpex_numcomms = 0;
     PRINTF(("[%d]:Moving into MCFA_Init\n",SL_this_procid));
+//    MCFA_Init(*argc, *argv);
     MCFA_Init();
     GM_allocate_global_data();
     GM_host_ip();
     PRINTF(("[%d]:Hostname: %s\n", SL_this_procid, hostname));
     PRINTF(("[%d]:HostIP: %s\n", SL_this_procid, hostip));
     Volpex_get_fullrank(fullrank);
-//    printf("[%d]:fullrank: %s\n", SL_this_procid,fullrank);
 
 /** max rank is needed in case we add a new process
 	total number of process = Volpex_numprocs

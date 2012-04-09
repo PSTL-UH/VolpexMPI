@@ -406,7 +406,7 @@ int Volpex_set_state_not_connected(int target)
 {
     int i;
     Volpex_proc *dproc = NULL, *tproc=NULL;
-    int tmp,j,tnum, tmp_SL, target_SL;
+    int tmp,j,tnum, tmp_SL, target_SL=-1;
    Volpex_proclist *plist=NULL;
     dproc = Volpex_get_proc_byid(target);
 
