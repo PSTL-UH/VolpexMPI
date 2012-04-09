@@ -187,6 +187,8 @@ void  SL_proc_closeall ( void )
 
 
 
+
+
 void SL_proc_close ( SL_proc * proc )
 {
     SL_msg_header *header, header2;
@@ -197,23 +199,34 @@ void SL_proc_close ( SL_proc * proc )
        the possibility to remove themselves from the fdsets correctly. 
     */
     if ( proc->id < SL_this_procid || proc->id == SL_EVENT_MANAGER || proc->id == -2) {
-	SL_socket_write ( proc->sock, (char *) header, sizeof  (SL_msg_header), 1);
+	SL_socket_write ( proc->sock, (char *) header, sizeof  (SL_msg_header), 2);
 //			  proc->timeout );
 	PRINTF(("[%d]:Sending CLOSE request to proc %d\n", SL_this_procid,proc->id ));
-	SL_socket_read  ( proc->sock, (char *) &header2, sizeof ( SL_msg_header), 1);
+	if(proc->sock != SL_proxy_server_socket && proc->id != -2){
+	SL_socket_read  ( proc->sock, (char *) &header2, sizeof ( SL_msg_header), 2);
 //			  proc->timeout);
 	PRINTF(("[%d]:Got CLOSE reply from  proc %d\n",SL_this_procid, proc->id ));
+       }
 
 	
     }
     else {
-	SL_socket_read  ( proc->sock, (char *) &header2, sizeof ( SL_msg_header), 1);
+	if(proc->sock != SL_proxy_server_socket ){
+	SL_socket_read  ( proc->sock, (char *) &header2, sizeof ( SL_msg_header), 2);
 //			  proc->timeout );
+	}
 	PRINTF(("[%d]:Got CLOSE request from  proc %d\n", SL_this_procid,proc->id ));
-	SL_socket_write ( proc->sock, (char *) header, sizeof  (SL_msg_header), 1);
+	SL_socket_write ( proc->sock, (char *) header, sizeof  (SL_msg_header), 2);
 //			  proc->timeout );
 	PRINTF(("[%d]:Sending CLOSE reply to proc %d\n", SL_this_procid,proc->id ));
     }
+
+
+/*	if(SL_this_procid == SL_PROXY_SERVER && header.to == SL_PROXY_SERVER){
+
+                SL_proxy_numprocs--;
+        }
+*/
 //    FD_CLR ( proc->sock, &SL_send_fdset );
  //   FD_CLR ( proc->sock, &SL_recv_fdset );
    // proc->state = SL_PROC_NOT_CONNECTED;
@@ -224,7 +237,15 @@ void SL_proc_close ( SL_proc * proc )
     	FD_CLR ( proc->sock, &SL_recv_fdset );
     	proc->state = SL_PROC_NOT_CONNECTED;
     }
- if(proc->id == -2){
+
+if (SL_this_procid == SL_EVENT_MANAGER && proc->id == -2){
+    SL_socket_close (proc->sock);
+    FD_CLR ( proc->sock, &SL_send_fdset );
+    FD_CLR ( proc->sock, &SL_recv_fdset );
+    proc->state = SL_PROC_NOT_CONNECTED;
+ }
+
+ if(proc->id == -2 && SL_this_procid != SL_EVENT_MANAGER){
 		SL_socket_close (SL_proxy_server_socket);
 		FD_CLR ( proc->sock, &SL_send_fdset );
     FD_CLR ( proc->sock, &SL_recv_fdset );
@@ -316,12 +337,12 @@ int SL_proc_init_conn_nb ( SL_proc * proc, double timeout )
          a stronger request.
     */
 
-	int tmp = proc->sock;
 	int ret = SL_SUCCESS;
 	SL_proc *tproc;
 	int tret=0;
 	PRINTF(("[%d]:SL_proc_init_conn_nb: Into function for process :%d\n",
                 SL_this_procid,proc->id));
+#ifdef PROXY
 	
 	if(proc->id != -2 && proc->id != -1 && SL_this_procid != -1 && SL_this_procid != -2){
 		tret = SL_compare_subnet(proc);
@@ -338,7 +359,7 @@ int SL_proc_init_conn_nb ( SL_proc * proc, double timeout )
 		}
 
 	}
-
+#endif
 
     if ( proc->state == SL_PROC_UNREACHABLE ) {
 	return SL_ERR_PROC_UNREACHABLE;
@@ -507,6 +528,14 @@ void SL_proc_handle_error ( SL_proc* proc, int err, int flag )
 	
     
     PRINTF(("[%d]:Handling Error %d for proc %d\n", SL_this_procid,err, proc->id));
+
+	if(SL_this_procid == -2){
+		 SL_proxy_numprocs--;
+
+                PRINTF(("[%d]:SL_msg_recv_newmsg: Procs closed :%d for proc:%d \n",
+                        SL_this_procid, SL_proxy_numprocs, proc->id));
+	}
+
 
     /* Step 1: clean up the state, socket and fdsets */
     if ( proc->state == SL_PROC_CONNECTED || proc->state == SL_PROC_CONNECT) {

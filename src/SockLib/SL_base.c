@@ -374,12 +374,13 @@ int SL_socket_write ( int hdl, char *buf, int num, double timeout )
 	if ( a == -1 ) {
 	    if ( errno == EINTR || errno == EAGAIN || errno == EINPROGRESS ||
 		 errno == EWOULDBLOCK ) {
-		printf("[%d]:SL_socket_write: noerror while writing to socket %d %s\n", SL_this_procid,hdl,
-                        strerror(errno));
+		PRINTF(("[%d]:SL_socket_write: noerror while writing to socket %d %s\n", SL_this_procid,hdl,
+                        strerror(errno)));
+		
 	    }
 	    else {
-		printf("[%d]:SL_socket_write: error while writing to socket %d %s\n", SL_this_procid,hdl,
-			strerror(errno));
+		PRINTF(("[%d]:SL_socket_write: error while writing to socket %d %s\n", SL_this_procid,hdl,
+			strerror(errno)));
 		return errno;
 	    }
 	    lcount++;
@@ -543,8 +544,8 @@ int SL_socket_read_nb ( int hdl, char *buf, int num, int* numread )
 	    ret = SL_SUCCESS;
 	}
 	else {
-	    PRINTF(("[%d]:SL_socket_read_nb: error while reading from socket %d %s\n", SL_this_procid,
-		    hdl, strerror(errno)));
+	    printf("[%d]:SL_socket_read_nb: error while reading from socket %d %s\n", SL_this_procid,
+		    hdl, strerror(errno));
 	    return errno;
 #endif
 	}
