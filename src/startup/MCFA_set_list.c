@@ -296,12 +296,12 @@ struct MCFA_proc_node* MCFA_set_listsrandom(int initid,char **hostName, char *pa
 
 
 
-	rand_array = (int *) malloc (numprocs * sizeof(int));
-	for(i=0;i<numprocs;i++)
+	rand_array = (int *) malloc (hostCount * sizeof(int));
+	for(i=0;i<hostCount;i++)
         {	rand_array[i] = i; }
-	MCFA_shuffle(rand_array,numprocs);
+	MCFA_shuffle(rand_array,hostCount);
 
-	for(i=0;i<numprocs;i++)
+	for(i=0;i<hostCount;i++)
         {
 		printf("%d  ", rand_array[i]);
 	}

@@ -125,7 +125,8 @@ int MCFA_event_addprocs(SL_event_msg_header *header, int numprocs)
 
     spawn_flag = 0;	//should be modified(hardcoded as of now)
     cluster_flag = 0;
-    MCFA_spawn_processes(start_host,path,port,jobID,newnumprocs,hostCount,redundancy,spawn_flag,cluster_flag,list);  
+    char *argg = NULL;
+    MCFA_spawn_processes(start_host,path,argg,port,jobID,newnumprocs,hostCount,redundancy,spawn_flag,cluster_flag,list);  
     return MCFA_SUCCESS;
 }
 

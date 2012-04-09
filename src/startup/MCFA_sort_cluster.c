@@ -5,8 +5,8 @@
 
 int MCFA_sort_cluster(int **clusters, int numcluster, int *numelements, int **distmatrix)
 {
-        int i,j,k,temp1, temp2,p;
-        int **newcluster, min, val, p1,p2, count=0;
+        int i,j,k,temp1=0, temp2=0,p;
+	int **newcluster, min, val, p1=0,p2=0, count=0;
 	int node1,node2;
 
 
@@ -78,7 +78,7 @@ int* MCFA_sortedlist (int ** clusters, int nclusters, int *numelements, int redu
 )
 {
 
-    int *numelementsleft,i,j, num=0, *newnodes, *closeclusters;
+    int *numelementsleft,i, num=0, *newnodes, *closeclusters;
     int max=-1, pos=0, count=0,k,min=2000000,assignteam=0;
     int p,q, temp, minflag=0, maxflag=0, leftprocs=0;;
     int nextelem=0;
@@ -142,7 +142,7 @@ int* MCFA_sortedlist (int ** clusters, int nclusters, int *numelements, int redu
 	
         	        for(p=0; p<clusterpos; p++){
                 	    for(q=p;q<clusterpos; q++){
-                        	if(numelementsleft[q]>numelementsleft[p]){
+                        	if(numelementsleft[closeclusters[q]]<numelementsleft[closeclusters[p]]){
                             		temp = closeclusters[p];
                             		closeclusters[p]=closeclusters[q];
                             		closeclusters[q]=temp;
@@ -195,4 +195,5 @@ int MCFA_map(int **values, int *newnodes, int redundancy)
                          }
                 }
         }
+	return 1;
 }

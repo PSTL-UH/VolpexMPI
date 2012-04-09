@@ -43,6 +43,12 @@ int main(int argc, char **argv )
     int pid = 10;
     int status;
     char **arg = NULL;
+
+char *hname;
+hname = (char*) malloc (256 *sizeof(char));
+
+MCFA_get_ip(&hname);
+
 //	arg = MCFA_read_argfile();
     
     /** For condor since same executable is used by each deamon rename the file and then use it using 
@@ -74,12 +80,11 @@ int main(int argc, char **argv )
 	
     }
     int i;
-    printf ("Total number of arguments:%d\n",argc);
-    for(i=0;i<argc;i++)
+    PRINTF( ("Total number of arguments:%d\n",argc));
+    for(i=9;i<argc;i++)
     {
 	PRINTF(("%d.  %s\n",i,argv[i]));
     }
-    
     
     
     
@@ -110,16 +115,24 @@ int main(int argc, char **argv )
 	numprocs	 : %d\n",
 	       path, hostname, port, id, event_handler_id,red,spawn_flag, cluster_flag,numprocs));
 	
-	
+   }
+
+	for(i=0;i<numprocs;i++){	
 	char **arg1;
-        arg1 = (char **) malloc (2*sizeof(char*));
+	int numarguments = argc-nextSL+2;
+        arg1 = (char **) malloc (numarguments*sizeof(char*));
 	if(arg1 == NULL){
 	    printf("ERROR: in allocating memory");
 	    exit(-1);
 	}
 	
+	
         arg1[0] = strdup(path);
-        arg1[1] = NULL;
+        int j=1;
+	for(i=nextSL;i<argc;i++)
+		arg1[j++] = strdup(argv[i]);
+
+        arg1[j] = NULL;
 	
 	
 //	execv(path,arg1);
@@ -127,21 +140,12 @@ int main(int argc, char **argv )
 	
 	if (pid == 0){
 	    if(-1 ==  execv(path, arg1)){
-        	printf("Error!! in spawning the program\n");
+        	printf("Error!! in spawning the program:%s\n", hname);
 		return 0;
 	    }
 	}
     }
 
-
-char *hname;
-hname = (char*) malloc (256 *sizeof(char));
-
-MCFA_get_ip(&hname);
-//  char *hname;
-//  int len;
-//  hname = (char*)malloc(256 * (sizeof(char)));
-//    gethostname(hname, len );
     for (i=0;i<numprocs;i++){
 	
 	wait(&status);

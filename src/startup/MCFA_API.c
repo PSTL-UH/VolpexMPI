@@ -25,7 +25,7 @@ typedef struct MCFA_init_nodes MCFA_init_nodes;
 
 int MCFA_time_sort(MCFA_init_nodes *a, int size);
 int MCFA_update_slprocid(int oldid, int newid);
-int MCFA_Init()
+int MCFA_Init(int argc, char **argv)
 {
     char *hostname;
     char  *msgbuf = NULL;
@@ -41,14 +41,12 @@ int MCFA_Init()
     path 		= strdup(getenv("MCFA_PATH"));
     hostname 		= strdup(getenv("MCFA_HOSTNAME"));
     port 		= atoi(getenv("MCFA_PORT"));
-//    jobID 		= atoi(getenv("MCFA_JOBID"));
     id 			= atoi(getenv("MCFA_ID"));
     event_handler_id    = atoi(getenv("MCFA_EVENT_HANDLER"));
-//    fullrank		= strdup(getenv("MCFA_FULLRANK"));
     redundancy		= atoi(getenv("MCFA_REDUNDANCY"));
     spawn_flag		= atoi(getenv("MCFA_SPAWN_FLAG"));	
     cluster_flag		= atoi(getenv("MCFA_CLUSTER_FLAG"));	
-/*    
+    
     PRINTF(("path           : %s\n \
         hostname         : %s\n \
         port             : %d\n \
@@ -58,16 +56,15 @@ int MCFA_Init()
         red              : %d\n \
         flag             : %d\n",
         path, hostname, port, jobID, id, event_handler_id,redundancy,spawn_flag));
-*/
+
+
+
     if (spawn_flag == SSH || spawn_flag == RANDOM){
 	    char *pos;
 	    pos = strrchr(path, '/');
 	    strncpy(newpath, path, pos - path +1);
 	   chdir(newpath);
     }
-//    spawn_flag = CONDOR;	
-//    MCFA_printf_init(id,id);	   
-//    MCFA_printf_init(jobID,id);	   
 
     SL_array_init ( &(SL_proc_array), "SL_proc_array", 32 );
     SL_array_init ( &(Volpex_proc_array), "Volpex_proc_array", 32 );
@@ -84,7 +81,6 @@ int MCFA_Init()
     PRINTF(("My hostname is %s redundancy:%d, flag:%d\n",hostname,redundancy, cluster_flag));
 
 	char myhostname[512];
-	char mydomainname[512];
 	int myid;
 	char *hname;
 	struct SL_event_msg_header header;
@@ -97,12 +93,6 @@ int MCFA_Init()
 
         	MCFA_get_ip(&hname);
         	strcpy(myhostname,hname);
-//	myhostname = MCFA_get_ip_client();
-
-/*		gethostname(myhostname, 512);
-		getdomainname(mydomainname,512);
-		printf("Hostname: %s, domain name: %s\n", myhostname, mydomainname);
-*/
 		ret = MCFA_connect(-64);
 		if (ret != SL_SUCCESS){
          	   printf("Could not recieve correct id\n");
@@ -145,7 +135,8 @@ int MCFA_Init()
 
     SL_init_internal();
 
-    SL_proc_init ( MCFA_PROXY_ID, hostname, 828282 );
+//    SL_proc_init ( MCFA_PROXY_ID, hostname, 6262 );
+//    sleep(5);
 
 int i,comm_id;
 if(cluster_flag == COMMUNICATION){
@@ -170,18 +161,19 @@ if(redundancy>1){
 
 	Volpex_numprocs = MCFA_proc_read_volpex_procs(msgbuf,msglen);
 
+#ifdef PROXY	
 	int rbuf;
 	SL_proc *proc;
 	SL_Recv ( &rbuf, sizeof(int), MCFA_PROXY_ID, 0, 0, SL_STATUS_NULL);
 	proc  = (SL_proc *) SL_array_get_ptr_by_id ( SL_proc_array, SL_PROXY_SERVER );
 	SL_proxy_server_socket = proc->sock;
+#endif
 
-//    SL_proxy_connect();
-//    free(msgbuf);	
+    free(msgbuf);	
     return MCFA_SUCCESS;
 }
 
-SL_proxy_connect()
+int SL_proxy_connect()
 {
 	SL_proc *proc;
 	int ret;
@@ -211,6 +203,8 @@ SL_proxy_connect()
         FD_SET ( proc->sock, &SL_recv_fdset );
 	proc->sendfunc = SL_msg_send_newmsg;
         proc->recvfunc = SL_msg_recv_newmsg;
+
+	return MCFA_SUCCESS;
 }
 
 int MCFA_Finalize ( void )

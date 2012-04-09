@@ -99,13 +99,11 @@ void exchange(int *sol,int i,int j){
 
  }
 
-//int *generate_random_sol(tm_topology_t *topology,int N,int level,int seed){
 int *generate_random_sol(int N,int level,int seed){
    hash_t *hash_tab;
    int *sol,i;
    int *nodes_id;
 
-//   nodes_id=topology->node_id[level];
    nodes_id=(int*)malloc(sizeof(int)*N);
    for(i=0;i<N;i++)
    	nodes_id[i]=i;
@@ -140,7 +138,6 @@ void compute_gain(int *sol,int N,double **gain,int **comm, int **arch){
  }
 
 
- //void map_MPIPP(tm_topology_t *topology,int nb_seed,int N,int *Value,int **comm, int **arch){
  void map_MPIPP(int nb_seed,int N,int *Value,int **comm, int **arch){
    int *sol;
    int *state;
@@ -164,7 +161,6 @@ void compute_gain(int *sol,int N,double **gain,int **comm, int **arch){
    state=(int*)malloc(sizeof(int)*N);
    temp=(double*)malloc(sizeof(double)*N);
 
-//   sol=generate_random_sol(topology,N,topology->nb_levels-1,seed++);
    sol=generate_random_sol(N,0,seed++);
    for(i=0;i<N;i++)
      Value[i]=sol[i];
@@ -176,9 +172,9 @@ while(seed<=nb_seed){
 
        for(i=0;i<N;i++){
          state[i]=0;
-         printf("%d ",sol[i]);
+         PRINTF(("%d ",sol[i]));
        }
-       printf("\n");
+       PRINTF(("\n"));
        compute_gain(sol,N,gain,comm,arch);
 
 /*	for(i=0;i<N;i++){
@@ -198,13 +194,13 @@ while(seed<=nb_seed){
       //exit(-1);
        for(i=0;i<N/2;i++){
          select_max(&l,&m,gain,N,state);
-         printf("%d: %d <=> %d : %f\n",i,l,m,gain[l][m]);
+         PRINTF(("%d: %d <=> %d : %f\n",i,l,m,gain[l][m]));
          state[l]=1;state[m]=1;
          exchange(sol,l,m);
 	 for(j=0;j<N;j++){
-                printf("%d ",sol[j]);
+                PRINTF(("%d ",sol[j]));
        }
-	printf("\n");
+	PRINTF(("\n"));
          history[i][1]=l;history[i][2]=m;
          temp[i]=gain[l][m];
          compute_gain(sol,N,gain,comm,arch);
@@ -221,31 +217,47 @@ while(seed<=nb_seed){
          }
        }
        for(j=0;j<=t;j++)
-         printf("exchanging: %d with %d for gain: %f\n",history[j][1],history[j][2],temp[j]); 
+         PRINTF(("exchanging: %d with %d for gain: %f\n",history[j][1],history[j][2],temp[j])); 
        for(j=t+1;j<N/2;j++){
          exchange(sol,history[j][1],history[j][2]);
-         printf("Undoing: %d with %d for gain: %f\n",history[j][1],history[j][2],temp[j]);
+         PRINTF(("Undoing: %d with %d for gain: %f\n",history[j][1],history[j][2],temp[j]));
        }
-       printf("max=%f\n",max);
-for(i=0;i<N;i++){
-         printf("%d ",sol[i]);
+       PRINTF(("max=%f\n",max));
+      for(i=0;i<N;i++){
+         PRINTF(("%d ",sol[i]));
          }
-         printf("\n");
+         PRINTF(("\n"));
        eval=eval_sol(sol,N,comm,arch);
        if(eval<best_eval){
          best_eval=eval;
          for(i=0;i<N;i++)
            Value[i]=sol[i];
-//         print_sol(N);
        }
 
 
      }while(max>0);
 
-//     sol=generate_random_sol(topology,N,topology->nb_levels-1,seed++);
      sol=generate_random_sol(N,0,seed++);
 
    }
+
+   if (NULL != gain){
+        for (i =0; i< N; i++){
+            if (gain[i] != NULL){
+                free(gain[i]);
+            }
+        }
+        free(gain);
+    }
+    if (NULL != history){
+        for (i =0; i< N; i++){
+            if (history[i] != NULL){
+                free(history[i]);
+            }
+        }
+        free(history);
+    }
+
 
  }
 
@@ -259,7 +271,7 @@ double print_sol(int N,int *Value,int **comm, int **arch){
     for (j=i+1;j<N;j++){
        c=comm[i][j];
        a=arch[Value[i]][Value[j]];
-      printf("T_%d_%d %f/%f=%f\n",i,j,c,a,c/a);
+      printf("T_%d_%d %d/%d=%f\n",i,j,c,a,(double)c/a);
        sol+=(double)c/(double)a;
      }
    }
@@ -288,7 +300,7 @@ void display_tab(int **mat,int N){
 int i,j;
 	for(i=0;i<N;i++){
              for(j=0;j<N;j++){
-                printf("%6.1f ",mat[i][j]);
+                printf("%6d ",mat[i][j]);
         }
      printf("\n");
         }

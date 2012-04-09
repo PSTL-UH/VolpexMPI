@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
     FD_ZERO( &SL_send_fdset );
     FD_ZERO( &SL_recv_fdset );
 
-    SL_this_procport = 828282;
+    SL_this_procport = 6262;
     if ( gethostname(hostname, len ) != 0 ) {
         printf("SERVER: could not determine my own hostname \n" );
     }

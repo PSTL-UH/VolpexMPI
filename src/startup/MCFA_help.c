@@ -21,7 +21,8 @@ n");
     printf("\t\t Specify the redundancy level for processes\n\n");
 
     printf("\t -hostfile, --hostfile [name]\n");
-    printf("\t\t Specify the name of hostfile\n\n");
+    printf("\t\t Specify the name of hostfile. \n");
+    printf("\t\t In hostfile please list the IP addresses/hostname where you would like to execute your application\n\n");
 
     printf("\t -help, --help\n");
     printf("\t\t displays a list of options supported by startprocs\n\n");
