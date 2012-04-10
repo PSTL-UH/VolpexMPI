@@ -6,15 +6,15 @@
 #
 # $HEADER$
 #
-VOLPEX_DIR      = /home/rakhi/VolpexMPI/trunk
+VOLPEX_DIR      = /home/rakhi/trunk
 VOLPEX_LIB_DIR  = $(VOLPEX_DIR)/lib
 VOLPEX_INC_DIR  = $(VOLPEX_DIR)/include
 
 VOLPEX_LIB      = libvolpex.a
 
 CC	    = cc
-#CFLAGS      = -g -O0 -Wall -I$(VOLPEX_INC_DIR) -I. 
-CFLAGS      = -O3 -Wall -I$(VOLPEX_INC_DIR) -I.  
+CFLAGS      = -g -O0 -Wall -I$(VOLPEX_INC_DIR) -I. -DPRINTF 
+#CFLAGS      = -O3 -Wall -I$(VOLPEX_INC_DIR) -I.  
 #CFLAGS      = -DDEBUG -g -O0 -Wall -I$(VOLPEX_INC_DIR)  
 #LDFLAGS     =  $(VOLPEX_LIB_DIR)/$(VOLPEX_LIB) -static -ldl -L/usr/lib64 -lgsl -L/opt/papi-3.7.2/lib -lpapi -lm  -L/home/rakhi/lib -lefence -lpthread
 

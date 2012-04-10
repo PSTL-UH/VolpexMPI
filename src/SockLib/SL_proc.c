@@ -374,8 +374,8 @@ int SL_proc_init_conn_nb ( SL_proc * proc, double timeout )
 	    proc->recvfunc = ( SL_msg_comm_fnct *) SL_msg_connect_newconn;
 	    proc->state = SL_PROC_CONNECT;
 
-	    PRINTF(("[%d]:1SL_proc_init_conn_nb:Changing socket from %d to %d proc id:%d ret:%d\n",
-                        SL_this_procid,tmp, proc->sock,proc->id, ret));
+	    PRINTF(("[%d]:1SL_proc_init_conn_nb:Changing socket from to %d proc id:%d ret:%d\n",
+                        SL_this_procid,proc->sock,proc->id, ret));
 	    
 	    /* set the read and write fd sets */
 	    FD_SET ( proc->sock, &SL_send_fdset );

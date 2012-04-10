@@ -323,7 +323,7 @@ int MCFA_print_distmatrix(int **procarray, int size)
     PRINTF(("\n      "));
     for(i=0; i<size; i++)
 	PRINTF(("[%6d] ", i));
-    PRINTF("\n");
+    PRINTF(("\n"));
     for(i=0; i<size; i++){
 	PRINTF(("[%2d]: ", i));
 	for(j=0; j<size; j++){

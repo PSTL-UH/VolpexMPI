@@ -19,8 +19,6 @@ int main(int argc, char *argv[])
     printf("ID : %d, Rank : %d\n", SL_this_procid, myid);
 
 
-if(SL_this_procid == 1)
-	exit(-1);
 
 
 

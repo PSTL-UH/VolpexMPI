@@ -50,12 +50,11 @@ int MCFA_Init(int argc, char **argv)
     PRINTF(("path           : %s\n \
         hostname         : %s\n \
         port             : %d\n \
-        jobID            : %d\n \
         id               : %d\n \
         event_handler_id : %d\n \
         red              : %d\n \
         flag             : %d\n",
-        path, hostname, port, jobID, id, event_handler_id,redundancy,spawn_flag));
+        path, hostname, port, id, event_handler_id,redundancy,spawn_flag));
 
 
 
