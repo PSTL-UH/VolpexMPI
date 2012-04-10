@@ -224,7 +224,7 @@ int MCFA_connect_stage2();
 
 
 
-struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, int port, int jobID, 
+struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, char *argg, int port, int jobID, 
 			int numprocs,int hostCount, int redundancy, int condor_flag,
 			int cluster_flag, struct MCFA_proc_node *newproclist);
 
@@ -254,8 +254,8 @@ int MCFA_event_printallhoststatus(SL_event_msg_header *header);
 
 
 
-char ** MCFA_set_args(int id,char *hostName, char *path, int port, int jobID, int numprocs,
-			int hostCount, int redundancy, int flag, int cluster_flag);
+//char ** MCFA_set_args(int id,char *hostName, char *path, int port, int jobID, int numprocs,
+//			int hostCount, int redundancy, int flag, int cluster_flag);
 /*****Function to spawn processes with diffrent allocation strategies*************/
 /***1. Round Robin
     2. Concentrate- to maximize locality
@@ -335,8 +335,8 @@ typedef struct MCFA_node MCFA_node;
 
 int MCFA_node_selection(int redundancy);
 int MCFA_sort(MCFA_nodes *a, int size);
-void MCFA_update_fullrank(int *newnodes, int redundancy, int **cluster);
-void MCFA_update_fullrank1(int *newnodes, int redundancy );
+//void MCFA_update_fullrank(int *newnodes, int redundancy, int **cluster);
+void MCFA_update_fullrank(int *newnodes, int redundancy );
 void MCFA_print_cluster(int **cluster, int redundancy);
 int* MCFA_pick_nodes(MCFA_nodes *a, int size, int redundancy, int ***tcluster);
 void MCFA_search_next_node(MCFA_nodes *a,int size,int node1,int node2, int *val1, int *val2, int *pos);
@@ -355,7 +355,7 @@ int MCFA_distmatrix_ipaddress(int **tarray);
 
 
 
-/*--------------------MCFA_clusturing--------------------*/
+/*--------------------MCFA_clustering--------------------*/
 
 MCFA_node* MCFA_tree(int **procarray, int numprocs);
 int MCFA_nodecompare(const void* a, const void* b);
@@ -374,8 +374,8 @@ int* MCFA_create_mapping(MCFA_node *mpitree, MCFA_node *coretree, int nnodes);
 int*** MCFA_dividedistmatrix(int **distmatrix, int redundancy, int *newnodes);
 void MCFA_print_submatrix(int ***subdistmat, int redundancy, int *newnodes);
 
-
-
+int MCFA_map(int **values, int *newnodes, int redundancy);
+void map_MPIPP(int nb_seed,int N,int *Value,int **comm, int **arch);
 
 /*-----------------------MCFA_BOINC-------------------*/
 void MCFA_create_boinc_wu_template(char *demon, char *exe);
