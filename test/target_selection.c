@@ -10,7 +10,6 @@ int main(int argc, char *argv[])
     MPI_Status status[2];
    
     int buf; 
-//sleep(10);
     MPI_Init(&argc,&argv);
     MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
     MPI_Comm_rank(MPI_COMM_WORLD, &myid);
