@@ -6,6 +6,19 @@
 #
 # $HEADER$
 #
+
+
+# The structure of this header file follows the mpif.h header file of the 
+# MPICH disitribution in the 1.1.x series. It has been adapted to VolpexMPI
+# Here is the copyright of the MPICH 1.1.x series.
+
+C
+C  
+C  (C) 1993 by Argonne National Laboratory and Mississipi State University.
+C      All rights reserved.  See COPYRIGHT in top-level directory.
+C
+C
+
 ! include file for MPI FORTRAN programs
 !
 ! return codes 
