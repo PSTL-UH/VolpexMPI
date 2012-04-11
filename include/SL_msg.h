@@ -1,3 +1,11 @@
+#
+# Copyright (c) 2006-2012      University of Houston. All rights reserved.
+# $COPYRIGHT$
+#
+# Additional copyrights may follow
+#
+# $HEADER$
+#
 #ifndef __SL_MSG__
 #define __SL_MSG__
 
@@ -49,4 +57,3 @@ void SL_msg_header_dump ( SL_msg_header *header );
 int SL_get_loglength(int len, int dest, int tag ,int context_id);
 
 #endif
-

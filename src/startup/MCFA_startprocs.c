@@ -1,3 +1,11 @@
+#
+# Copyright (c) 2006-2012      University of Houston. All rights reserved.
+# $COPYRIGHT$
+#
+# Additional copyrights may follow
+#
+# $HEADER$
+#
 //extern "C"{
 #include "MCFA.h"
 #include "MCFA_internal.h"

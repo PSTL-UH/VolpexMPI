@@ -1,3 +1,11 @@
+#
+# Copyright (c) 2006-2012      University of Houston. All rights reserved.
+# $COPYRIGHT$
+#
+# Additional copyrights may follow
+#
+# $HEADER$
+#
 ! include file for MPI FORTRAN programs
 !
 ! return codes 
@@ -184,4 +192,3 @@
 !     The attribute copy/delete subroutines are symbols that can be passed
 !     to MPI routines
 !     EXTERNAL MPI_NULL_COPY_FN, MPI_NULL_DELETE_FN, MPI_DUP_FN
-

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2008-2009      University of Houston. All rights reserved.
+# Copyright (c) 2008-2012      University of Houston. All rights reserved.
 # $COPYRIGHT$
 #
 # Additional copyrights may follow

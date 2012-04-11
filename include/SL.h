@@ -1,3 +1,11 @@
+#
+# Copyright (c) 2006-2012      University of Houston. All rights reserved.
+# $COPYRIGHT$
+#
+# Additional copyrights may follow
+#
+# $HEADER$
+#
 #ifndef __SL_H__
 #define __SL_H__
 
@@ -69,4 +77,3 @@ int SL_Cancel  ( SL_Request *req, int *flag );
 
 
 #endif
-

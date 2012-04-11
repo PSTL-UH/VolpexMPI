@@ -1,9 +1,20 @@
+#
+# Copyright (c) 2006-2012      University of Houston. All rights reserved.
+# $COPYRIGHT$
+#
+# Additional copyrights may follow
+#
+# $HEADER$
+#
+
 #include "MCFA.h"
 #include "MCFA_internal.h"
 #include "SL.h"
+
 extern struct MCFA_proc_node *procList;
 extern MCFA_create_distmatrix_func *MCFA_create_distmatrix;
 extern MCFA_create_comm_matrix_func *MCFA_create_comm_matrix; 
+
 int MCFA_distmatrix_communication(int **tarray)
 {
     int msglen;
