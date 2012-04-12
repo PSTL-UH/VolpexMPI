@@ -18,7 +18,6 @@ OBJ =	MCFA_pack_unpack.o	\
 	MCFA_event_handling.o	\
 	MCFA_eventcontrol.o	\
 	MCFA_spawn_procs.o	\
-	MCFA_node_selection.o   \
         MCFA_clustering.o	\
 	MCFA_set_list.o		\
 	MCFA_boinc.o		\
@@ -26,14 +25,15 @@ OBJ =	MCFA_pack_unpack.o	\
 	MCFA_API.o		\
 	MCFA_sort_cluster.o	\
 	MCFA_comm_matrix.o	\
-	mpipp.o
+	MCFA_distance_matrix.o
+#	MCFA_node_selection.o   \
 	
 #	MCFA_printf.o		\
 #	MCFA_socket_comm.o	\
 #	MCFA_socket_comm.o	\
 
 .SUFFIXES: .o.c
-
+ifeq ($(PROXY),1)
 all:    
 	make $(VOLPEX_LIB) 
 	make MCFA_startprocs
@@ -41,6 +41,13 @@ all:
 #	make MCFA_monitor
 	make MCFA_startup_d
 	make MCFA_proxy
+else
+all:
+	make $(VOLPEX_LIB)
+	make MCFA_startprocs
+	make MCFA_startup_d
+endif
+
 
 $(VOLPEX_LIB): $(HEADER) $(OBJ) 
 	$(AR) $(AR_FLAGS) $(VOLPEX_LIB_DIR)/$(VOLPEX_LIB) $(OBJ)
@@ -50,8 +57,14 @@ $(OBJ):	$(HEADER)
 .c.o:	$(HEADER)
 	$(CC) $(CFLAGS)  -c $<
 
+ifeq ($(CLUSTER), 1)
+MCFA_startprocs: $(HEADER)  $(OBJ)
+	$(CC) $(CFLAGS) -o mcfarun MCFA_startprocs.c $(LDFLAGS) -DCLUSTER
+else
 MCFA_startprocs: $(HEADER)  $(OBJ)
 	$(CC) $(CFLAGS) -o mcfarun MCFA_startprocs.c $(LDFLAGS)
+endif
+
 
 MCFA_control: $(HEADER) $(OBJ)
 	$(CC) $(CFLAGS) -o mcfacontrol MCFA_control.c $(LDFLAGS)

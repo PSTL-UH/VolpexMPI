@@ -1,3 +1,4 @@
+/*
 #
 # Copyright (c) 2006-2012      University of Houston. All rights reserved.
 # $COPYRIGHT$
@@ -6,6 +7,7 @@
 #
 # $HEADER$
 #
+*/
 #include "MCFA.h"
 #include "MCFA_internal.h"
 #include "SL.h"
@@ -13,7 +15,7 @@
 
 int MCFA_sort_cluster(int **clusters, int numcluster, int *numelements, int **distmatrix)
 {
-        int i,j,k,temp1=0, temp2=0,p;
+        int i,j=0,k,temp1=0, temp2=0,p;
 	int **newcluster, min, val, p1=0,p2=0, count=0;
 	int node1,node2;
 
@@ -29,14 +31,6 @@ int MCFA_sort_cluster(int **clusters, int numcluster, int *numelements, int **di
 		while(count<numelements[i]){
                         min=1000;
 			
-                /*      temp1=clusters[i][j];
-                        temp2=clusters[i][j+1];
-
-                        if(clusters[i][j] > clusters[i][j+1])
-                                min = distmatrix[clusters[i][j]][clusters[i][j+1]];
-                        else
-                                min = distmatrix[clusters[i][j+1]][clusters[i][j]];
-                */
                   for(p=0;p<numelements[i];p++){
 			if(clusters[i][p]==-1)
 				continue;

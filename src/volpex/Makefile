@@ -31,9 +31,7 @@ OBJ = 	volpex_API.o		\
 	volpex_debug.o		\
 	volpex_target_info.o    \
 	volpex_hybrid.o		\
-	volpex_network_target_sel.o \
 	volpex_add_new_proc.o	\
-	volpex_loglength_target_sel.o	\
 	volpex_fAPI.o		
 
 .SUFFIXES: .o.c
@@ -48,19 +46,6 @@ $(OBJ): $(HEADER)
 .c.o:   $(HEADER)
 	$(CC) $(CFLAGS) -DVOLPEXFORTRAN -c $<
 
-#winclib:
-#	mingw32-make winclean
-#	gcc $(WCFLAGS) $(SRC) -I$(W_INC_DIR)
-#	gcc $(WCDLLFLAGS) $(OBJ) -lws2_32
-#	copy ..\lib\vc.dll ..\..\vc.dll
-#	mingw32-make winclean
-#
-#winflib:
-#	mingw32-make winclean
-#	gcc $(WFFLAGS) $(SRC) -I$(W_INC_DIR)
-#	gcc $(WFDLLFLAGS) $(OBJ) -lws2_32
-#	copy ..\lib\vf.dll ..\..\vf.dll
-#	mingw32-make winclean
 
 clean:
 	$(RM) $(RMFLAGS) *.o *~

@@ -1,3 +1,4 @@
+/*
 #
 # Copyright (c) 2006-2012      University of Houston. All rights reserved.
 # $COPYRIGHT$
@@ -6,6 +7,7 @@
 #
 # $HEADER$
 #
+*/
 #include "mpi.h"
 #include "MCFA_internal.h"
 #include "SL.h"
@@ -142,8 +144,10 @@ int MCFA_Init(int argc, char **argv)
 
     SL_init_internal();
 
-//    SL_proc_init ( MCFA_PROXY_ID, hostname, 6262 );
-//    sleep(5);
+#ifdef PROXY
+    SL_proc_init ( MCFA_PROXY_ID, hostname, 6262 );
+    sleep(5);
+#endif
 
 int i,comm_id;
 if(cluster_flag == COMMUNICATION){
@@ -153,14 +157,6 @@ for(i=0;i<SL_numprocs;i++){
 	SL_start_communication(msgbuf, comm_id);
 }
 
-/*int *commarray;
-commarray = (int*) malloc (SL_numprocs+1 * sizeof(int));
-if(redundancy>1){
-	SL_Recv (commarray,SL_numprocs+1 * sizeof(int), MCFA_MASTER_ID, 0, 0, SL_STATUS_NULL);
-	SL_Recv (&comm_id , sizeof(int), MCFA_MASTER_ID, 0, 0, SL_STATUS_NULL);
-	
-}
-*/
 
 
 }

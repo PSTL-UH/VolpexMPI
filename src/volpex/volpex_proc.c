@@ -1,3 +1,4 @@
+/*
 #
 # Copyright (c) 2006-2012      University of Houston. All rights reserved.
 # $COPYRIGHT$
@@ -6,6 +7,7 @@
 #
 # $HEADER$
 #
+*/
 #include "mpi.h"
 #include "SL_proc.h"
 #include "SL_msg.h"
@@ -48,8 +50,6 @@ int Volpex_init_proc(int id, int SL_id, char *hostname, int port, char *fullrank
 	tproc->msgnum		= 0;
 	tproc->recvpost		= 0;
 	tproc->reuseval		= 0;
-	tproc->msgperf		= Volpex_msg_performance_init();
-	tproc->netperf		= Volpex_net_performance_init();
         
         tproc->target_info      = Volpex_target_info_init();
 

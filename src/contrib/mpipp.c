@@ -1,3 +1,4 @@
+/*
 #
 # Copyright (c) 2006-2012      University of Houston. All rights reserved.
 # $COPYRIGHT$
@@ -6,15 +7,9 @@
 #
 # $HEADER$
 #
-/*#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <float.h>
-#include <ctype.h>
-#include <math.h>
-#include <assert.h>
+# Ref: H.Chen, W.Chen, J Huang, and H.Kuhn.MPIPP: an automatic profile-guided parallel process placement toolset for SMP clusters and multiclusters. In Proceedings of the 20th annual international conference on Supercomputing
 */
+
 #include "MCFA.h"
 #include "MCFA_internal.h"
 #include "SL.h"

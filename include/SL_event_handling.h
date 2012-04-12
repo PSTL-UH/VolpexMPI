@@ -1,3 +1,4 @@
+/*
 #
 # Copyright (c) 2006-2012      University of Houston. All rights reserved.
 # $COPYRIGHT$
@@ -6,6 +7,8 @@
 #
 # $HEADER$
 #
+*/
+
 #include "SL_internal.h"
  
 #define SL_CMD_ADD_PROC			1

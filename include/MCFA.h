@@ -1,3 +1,5 @@
+/*
+
 #
 # Copyright (c) 2006-2012      University of Houston. All rights reserved.
 # $COPYRIGHT$
@@ -6,6 +8,8 @@
 #
 # $HEADER$
 #
+*/
+
 #ifndef __MCFA_H__
 #define __MCFA_H__
 

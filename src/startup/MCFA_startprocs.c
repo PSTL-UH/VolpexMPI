@@ -1,3 +1,4 @@
+/*
 #
 # Copyright (c) 2006-2012      University of Houston. All rights reserved.
 # $COPYRIGHT$
@@ -6,6 +7,7 @@
 #
 # $HEADER$
 #
+*/
 //extern "C"{
 #include "MCFA.h"
 #include "MCFA_internal.h"
@@ -36,7 +38,7 @@ int main(int argc, char *argv[])
 {
     int		i=0;			//intializing loop iterators
     int 	flag=0;				//intializing value to false for -hostfile option
-    int 	pathflag=0;			//intializing value to false for -wdir option
+//    int 	pathflag=0;			//intializing value to false for -wdir option
     int 	jobID=1; 
     int 	numprocs=-1;			//total number of clients
     char 	**hostName=NULL;		//contains all names of all hosts which are available
@@ -549,9 +551,11 @@ struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, char *a
         SL_Send(buf, msglen, curr->procdata->id, 0, 0 );
 	curr = curr->next;
     }	
-    
+
+#ifdef CLUSTER    
     if(cluster_flag != 0 && numprocs/redundancy > 1)
 	MCFA_node_selection(redundancy);
+#endif
     
     buf = MCFA_pack_proclist(procList, &msglen);
     printf("MCFA_startprocs:Total number of processes spawned %d\n",numprocs);
@@ -572,14 +576,6 @@ struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, char *a
     
     
 
- /*   for (i=0; i<12;i++){
-    	if(NULL != arg[i])
-        	free(arg[i]);
-        }
-        if(NULL != arg)
-                free(arg);
-
-   */ 
     free(buf);
 
     return newproclist;

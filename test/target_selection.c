@@ -8,15 +8,12 @@ int main(int argc, char *argv[])
     int myid, numprocs,i,j;
     MPI_Request request[2];
     MPI_Status status[2];
-   
     int buf; 
     MPI_Init(&argc,&argv);
     MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
     MPI_Comm_rank(MPI_COMM_WORLD, &myid);
 
-   
     printf("ID : %d, Rank : %d\n", SL_this_procid, myid);
-
 
 
 
@@ -24,7 +21,7 @@ int main(int argc, char *argv[])
 double stime, etime;
 stime = SL_Wtime();
 
-for(i=0;i<10;i++){
+for(i=0;i<1;i++){
 
 	for(j=0; j<numprocs; j++){
 	if(j != myid){
@@ -39,7 +36,7 @@ for(i=0;i<10;i++){
 }
 
 etime = SL_Wtime();
-printf("Total time taken = %f \n", etime-stime);
+printf("[%d]:Total time taken = %f \n", SL_this_procid,etime-stime);
 
 MPI_Finalize();
 	return 0;

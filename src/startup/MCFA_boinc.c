@@ -1,3 +1,4 @@
+/*
 #
 # Copyright (c) 2006-2012      University of Houston. All rights reserved.
 # $COPYRIGHT$
@@ -6,6 +7,7 @@
 #
 # $HEADER$
 #
+*/
 #include "MCFA.h"
 #include "MCFA_internal.h"
 #include "SL.h"
@@ -410,7 +412,7 @@ system("./bin/stop");
 }
 
 
-char* MCFA_get_ip(char **ip)
+int MCFA_get_ip(char **ip)
 {
     char *ipp, *temp;
     char tip[200];
@@ -431,8 +433,7 @@ char* MCFA_get_ip(char **ip)
     strcpy (*ip, temp);
     pclose(fp);
     free(temp);
-    return (ip);
 
-
+    return 1;
 
 }

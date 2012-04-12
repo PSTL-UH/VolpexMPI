@@ -1,3 +1,4 @@
+/*
 #
 # Copyright (c) 2006-2012      University of Houston. All rights reserved.
 # $COPYRIGHT$
@@ -6,6 +7,8 @@
 #
 # $HEADER$
 #
+*/
+
 #ifndef __MCFA_INTERNAL__
 #define __MCFA_INTERNAL__
 
@@ -391,7 +394,7 @@ void MCFA_create_boinc_re_template(char *exe,int numprocs);
 void MCFA_create_boinc_script(char *demon, char *exe, int numprocs);
 void MCFA_set_boinc_dir();
 void MCFA_create_volpex_job(char *deomon, char *exe, int numprocs);
-char* MCFA_get_ip(char **ip);
+int MCFA_get_ip(char **ip);
 
 
 

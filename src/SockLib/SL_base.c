@@ -1,3 +1,4 @@
+/*
 #
 # Copyright (c) 2006-2012      University of Houston. All rights reserved.
 # $COPYRIGHT$
@@ -6,7 +7,7 @@
 #
 # $HEADER$
 #
-
+*/
 #include "SL.h"
 
 extern int SL_this_procid;

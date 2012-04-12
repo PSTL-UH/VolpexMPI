@@ -1,3 +1,4 @@
+/*
 #
 # Copyright (c) 2006-2012      University of Houston. All rights reserved.
 # $COPYRIGHT$
@@ -6,6 +7,7 @@
 #
 # $HEADER$
 #
+*/
 #include "MCFA.h"
 #include "MCFA_internal.h"
 
@@ -61,7 +63,6 @@ MCFA_get_ip(&hname);
     
     /** For condor since same executable is used by each deamon rename the file and then use it using 
 	system( 'rename volpex.* volpex' );*/ 
-//    sleep(10);
     
     if (argc > 1){
 	
@@ -105,12 +106,32 @@ MCFA_get_ip(&hname);
     nextSL = 9;
     if (spawn_flag != 0 )
 	numprocs = 1;
+
+    int *ids;
+    ids = (int*)malloc(numprocs*sizeof(int));
+    for(i=0;i<numprocs;i++){
+	ids[i] = atoi(argv[nextSL]);
+	nextSL++;
+    }
  
+    char **arg1;
+        int numarguments = argc-nextSL+2;
+        arg1 = (char **) malloc (numarguments*sizeof(char*));
+        if(arg1 == NULL){
+            printf("ERROR: in allocating memory");
+            exit(-1);
+        }
+    arg1[0] = strdup(path);
+        int j=1;
+        for(i=nextSL;i<argc;i++)
+                arg1[j++] = strdup(argv[i]);
+
+        arg1[j] = NULL;
+
     for(i=0;i<numprocs;i++){
 	
-	id = atoi(argv[nextSL]);
+	id = ids[i];
 	MCFA_set_env(path, hostname, port, id, event_handler_id, red, spawn_flag, cluster_flag);
-	nextSL++;
 	
 	PRINTF(("path           : %s\n \
 	hostname         : %s\n	      \
@@ -123,27 +144,7 @@ MCFA_get_ip(&hname);
 	numprocs	 : %d\n",
 	       path, hostname, port, id, event_handler_id,red,spawn_flag, cluster_flag,numprocs));
 	
-   }
-
-	for(i=0;i<numprocs;i++){	
-	char **arg1;
-	int numarguments = argc-nextSL+2;
-        arg1 = (char **) malloc (numarguments*sizeof(char*));
-	if(arg1 == NULL){
-	    printf("ERROR: in allocating memory");
-	    exit(-1);
-	}
 	
-	
-        arg1[0] = strdup(path);
-        int j=1;
-	for(i=nextSL;i<argc;i++)
-		arg1[j++] = strdup(argv[i]);
-
-        arg1[j] = NULL;
-	
-	
-//	execv(path,arg1);
 	pid = fork();
 	
 	if (pid == 0){
@@ -168,14 +169,6 @@ MCFA_get_ip(&hname);
 	    printf("stopped by signal %d\n", WSTOPSIG(status));
 	}
     }
-/*    
-    for (i=0; i<MAXARGUMENTS;i++){
-	if(NULL != arg[i])
-	    free(arg[i]);
-    }
-    if(NULL != arg)
-	free(arg);
-*/    
     
     return 1;
 }

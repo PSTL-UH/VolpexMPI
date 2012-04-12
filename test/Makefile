@@ -4,6 +4,14 @@
 #
 include ../Makefile.defs
 
+rama:rama.c
+	$(CC) $(CFLAGS) -o rama rama.c $(LDFLAGS)
+
+
+nbodypipenew:nbodypipenew.c
+	echo 'Hello World'
+	$(CC) $(CFLAGS) -o nbodypipenew nbodypipenew.c $(LDFLAGS)
+
 latency:latency.c
 	$(CC) $(CFLAGS) -o latency latency.c $(LDFLAGS)
 

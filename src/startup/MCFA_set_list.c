@@ -1,3 +1,4 @@
+/*
 #
 # Copyright (c) 2006-2012      University of Houston. All rights reserved.
 # $COPYRIGHT$
@@ -6,6 +7,7 @@
 #
 # $HEADER$
 #
+*/
 #include "MCFA.h"
 #include "MCFA_internal.h"
 #include "SL.h"
@@ -34,8 +36,6 @@ struct MCFA_proc_node* MCFA_set_liststraight(int initid,char **hostName, char *p
 */
 
         struct      MCFA_host *node=NULL;
-//        struct      MCFA_host_node *currhost=NULL;
-//        struct      MCFA_process *proc=NULL;
         int         i,id, j=0;
         char        fullrank[16];
         char        level = 'A';
@@ -43,17 +43,10 @@ struct MCFA_proc_node* MCFA_set_liststraight(int initid,char **hostName, char *p
         struct    MCFA_proc_node *newproclist = NULL;
         char    newlevel;
 
-/*        node = MCFA_search_hostname(hostList,starthost);
-        currhost = hostList;
-        while(strcmp(currhost->hostdata->hostname,node->hostname)){
-                currhost = currhost->next;
-        }
-*/
         for(i=0;i<numprocs;i++)
         {
             id = MCFA_get_nextID();
             node = MCFA_search_hostname(hostList,hostName[j]);
-//          node = currhost->hostdata;
             if(node != NULL){
                 node->id[node->numofProcs].procID = id;
                 node->id[node->numofProcs].jobID = jobID;
@@ -86,12 +79,6 @@ struct MCFA_proc_node* MCFA_set_liststraight(int initid,char **hostName, char *p
             if (j==hostCount){
                 j=0;
            }
-/*
-            if(currhost->next == NULL)
-                currhost = hostList;
-            else
-                currhost = currhost->next;
-*/
 
     }/* end for */
         return(newproclist);
@@ -131,10 +118,7 @@ struct MCFA_proc_node* MCFA_set_listsroundrobin(int initid,char **hostName, char
         for(i=0;i<numprocs;i++)
         {
             id = MCFA_get_nextID();
-//            node = MCFA_search_hostname(hostList,hostName[j]);
           node = currhost->hostdata;
-//	  if ( node == NULL)
-//		node = hostList;
 
             if(node != NULL){
                 node->id[node->numofProcs].procID = id;
@@ -165,12 +149,6 @@ struct MCFA_proc_node* MCFA_set_listsroundrobin(int initid,char **hostName, char
             PRINTF(("MCFA_startprocs: Adding proc %d with jobid %d hostname %s to processList\n",id,jobID,hostname));
             MCFA_add_proc(&procList, id, node->hostname,port, jobID,-1, 1,path,fullrank);    //for each process adding it process list
             MCFA_add_proc(&newproclist, id, node->hostname,port, jobID,-1, 1,path,fullrank);
-//            j++;
-
-//		currhost = currhost->next;
-//            if (j==hostCount){
-//                j=0;
-//           }
 
             if(currhost->next == NULL)
                 currhost = hostList;
@@ -213,10 +191,7 @@ struct MCFA_proc_node* MCFA_set_listsconcentrate(int initid,char **hostName, cha
         for(i=0;i<numprocs;i++)
         {
             id = MCFA_get_nextID();
-//            node = MCFA_search_hostname(hostList,hostName[j]);
           node = currhost->hostdata;
-//        if ( node == NULL)
-//              node = hostList;
 
             if(node != NULL){
                 node->id[node->numofProcs].procID = id;
@@ -249,14 +224,11 @@ struct MCFA_proc_node* MCFA_set_listsconcentrate(int initid,char **hostName, cha
             MCFA_add_proc(&newproclist, id, node->hostname,port, jobID,-1, 1,path,fullrank);
             j++;
 
-//              currhost = currhost->next;
             if (j==numprocs/redundancy){
 		currhost = currhost->next;
 
             if(currhost == NULL)
                 currhost = hostList;
-//            else
-//                currhost = currhost->next;
 }
 
     }/* end for */
@@ -350,12 +322,6 @@ struct MCFA_proc_node* MCFA_set_listsrandom(int initid,char **hostName, char *pa
             if (j==hostCount){
                 j=0;
            }
-/*
-            if(currhost->next == NULL)
-                currhost = hostList;
-            else
-                currhost = currhost->next;
-*/
 
     }/* end for */
         return(newproclist);

@@ -1,3 +1,4 @@
+/*
 #
 # Copyright (c) 2006-2012      University of Houston. All rights reserved.
 # $COPYRIGHT$
@@ -6,6 +7,7 @@
 #
 # $HEADER$
 #
+*/
 #include "mpi.h"
 #include "SL_msg.h"
 
@@ -315,9 +317,6 @@ int  Volpex_progress()
 
 
 			if(reqlist[i].header!= NULL){
-                        if (reqlist[i].header->len> MTU){
-                            Volpex_msg_performance_insert(reqlist[i].time, reqlist[i].header->len,reqlist[i].target);
-                        }
 			
 
                         int reuseval = 0;

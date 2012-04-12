@@ -10,15 +10,24 @@ include Makefile.defs
 
 HEADER = $(VOLPEX_INC_DIR)/SL.h
 
-
+ifeq ($(CLUSTER),1)
 all:
 	cd src/SockLib ; make 
 	cd src/volpex ; make
+	cd src/contrib; make
 	cd src/startup; make
+else
+all:
+	cd src/SockLib ; make
+	cd src/volpex ; make
+	cd src/startup; make
+endif
+
 
 clean:
 	cd src/SockLib ; make clean
 	cd src/volpex ; make clean
+	cd src/contrib; make clean
 	cd src/startup; make clean
 
 	$(RM) $(RMFLAGS) *~ $(VOLPEX_INC_DIR)/*~ *.out 

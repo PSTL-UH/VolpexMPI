@@ -6,23 +6,27 @@
 #
 # $HEADER$
 #
-VOLPEX_DIR      = /home/rakhi/trunk
+VOLPEX_DIR      = /home/rakhi/VolpexMPI/trunk
 VOLPEX_LIB_DIR  = $(VOLPEX_DIR)/lib
 VOLPEX_INC_DIR  = $(VOLPEX_DIR)/include
 
 VOLPEX_LIB      = libvolpex.a
 
+PROXY		= 0
+CLUSTER		= 0
+
+
+
+
 CC	    = cc
-CFLAGS      = -g -O0 -Wall -I$(VOLPEX_INC_DIR) -I. -DPRINTF 
-#CFLAGS      = -O3 -Wall -I$(VOLPEX_INC_DIR) -I.  
-#CFLAGS      = -DDEBUG -g -O0 -Wall -I$(VOLPEX_INC_DIR)  
-#LDFLAGS     =  $(VOLPEX_LIB_DIR)/$(VOLPEX_LIB) -static -ldl -L/usr/lib64 -lgsl -L/opt/papi-3.7.2/lib -lpapi -lm  -L/home/rakhi/lib -lefence -lpthread
+#CFLAGS      = -g -O0 -Wall -I$(VOLPEX_INC_DIR) -I. -DPRINTF 
+ifeq ($(PROXY),1 )  
+CFLAGS      = -O3 -Wall -I$(VOLPEX_INC_DIR) -I.  -DPROXY 
+else
+CFLAGS      = -O3 -Wall -I$(VOLPEX_INC_DIR) -I. 	
+endif
 
-#LDFLAGS     =  $(VOLPEX_LIB_DIR)/$(VOLPEX_LIB) -ldl -L/usr/lib64 -L/opt/papi-3.7.2/lib -lpapi -lm  -L/home/rakhi/lib -lefence -lpthread
 
-
-#LDFLAGS     =  $(VOLPEX_LIB_DIR)/$(VOLPEX_LIB) -ldl  -lm -L/opt/papi-3.7.2/lib -lpapi
-#LDFLAGS     =  $(VOLPEX_LIB_DIR)/$(VOLPEX_LIB) -static -ldl  -lm -L/opt/papi-3.7.2/lib -lpapi
 LDFLAGS     =  $(VOLPEX_LIB_DIR)/$(VOLPEX_LIB) -ldl  -lm -static 
 FC	    = gfortran
 #FFLAGS      = -g -O0 -Wall -I$(VOLPEX_INC_DIR) -I. -pg
