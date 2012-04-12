@@ -12,7 +12,7 @@ VOLPEX_INC_DIR  = $(VOLPEX_DIR)/include
 
 VOLPEX_LIB      = libvolpex.a
 
-PROXY		= 0
+PROXY		= 1
 CLUSTER		= 0
 
 
@@ -20,7 +20,7 @@ CLUSTER		= 0
 
 CC	    = cc
 #CFLAGS      = -g -O0 -Wall -I$(VOLPEX_INC_DIR) -I. -DPRINTF 
-ifeq ($(PROXY),1 )  
+ifeq ($(PROXY), 1)  
 CFLAGS      = -O3 -Wall -I$(VOLPEX_INC_DIR) -I.  -DPROXY 
 else
 CFLAGS      = -O3 -Wall -I$(VOLPEX_INC_DIR) -I. 	
