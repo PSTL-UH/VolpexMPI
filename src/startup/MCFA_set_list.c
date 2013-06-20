@@ -72,7 +72,7 @@ struct MCFA_proc_node* MCFA_set_liststraight(int initid,char **hostName, char *p
 
 
             port = node->lastPortUsed ;
-            PRINTF(("MCFA_startprocs: Adding proc %d with jobid %d hostname %s to processList\n",id,jobID,hostname));
+            PRINTF(("MCFA_startprocs: Adding proc %d with jobid %d hostname %s to processList\n",id,jobID,node->hostname));
             MCFA_add_proc(&procList, id, node->hostname,port, jobID,-1, 1,path,fullrank);    //for each process adding it process list
             MCFA_add_proc(&newproclist, id, node->hostname,port, jobID,-1, 1,path,fullrank);
             j++;

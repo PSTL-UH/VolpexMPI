@@ -51,8 +51,6 @@ int SL_msg_connect_newconn( SL_proc *dproc, int fd );
 int SL_msg_accept_stage2 ( SL_proc *dproc, int fd );
 int SL_msg_connect_stage2 ( SL_proc *dproc, int fd );
 int SL_msg_closed         ( SL_proc *dproc, int fd );
-int SL_msg_connect_proxy ( SL_proc *dproc, int fd );
-int SL_msg_connect_proxy2 ( SL_proc *dproc, int fd );
 void SL_msg_set_nullstatus ( SL_Status *status );
 void SL_msg_header_dump ( SL_msg_header *header );
 

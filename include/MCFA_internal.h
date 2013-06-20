@@ -32,21 +32,6 @@
 #include "SL_msg.h"
 #include "SL_msgqueue.h"
 
-
-/*#define MCFA_CMD_PRINT_PROCS		1
-#define MCFA_CMD_ADD_PROCS 		2
-#define MCFA_CMD_ADD_JOB		3
-#define MCFA_CMD_DELETE_JOB 		4
-#define MCFA_CMD_DELETE_PROC  		5
-#define MCFA_CMD_PRINT_JOBSTATUS	6
-#define MCFA_CMD_PRINT_PROCSTATUS	7
-#define MCFA_CMD_PRINT_HOSTSTATUS	8
-#define MCFA_CMD_PRINT_ALLJOBSTATUS	9
-#define MCFA_CMD_PRINT_ALLPROCSTATUS	10
-#define MCFA_CMD_PRINT_ALLHOSTSTATUS	11*/
-
-#define MCFA_PROXY_ID -2
-
 #define MCFA_MASTER_ID  	-1
 #define SL_STATUS_NULL  	0
 #define MCFA_FILE_PER_PROC 	1
@@ -67,14 +52,13 @@
 #define COMMUNICATION   1
 #define IPADDRESS	2
 
-#define	CONDOR		1
 #define SSH		0
+#define	CONDOR		1
 #define BOINC		2
 #define RANDOM		3
+#define HPX             4
 
 char *BOINCDIR;
-
-
 
 char  *MCFA_HOSTNAME;
 char  *MCFA_PORT;
@@ -97,7 +81,6 @@ struct MCFA_host{
         int 	numofProcs;
         int 	lastPortUsed;
 	struct 	MCFA_ID *id;
-//        char 	executable[MAXNAMELEN];
         int 	status;
         };
 
@@ -111,13 +94,11 @@ struct MCFA_process{
         int 	id;
 	int volpex_id;
 	char 	*hostname;
-//        char 	hostname[MAXHOSTNAMELEN];
         int 	portnumber;
         int 	jobid;
         int 	sock;
 	int 	status;
 	char 	*executable;
-//	char  	executable[MAXNAMELEN];
 	char    fullrank[MAXRANK];
         };
 
@@ -126,26 +107,6 @@ struct MCFA_proc_node{
         struct MCFA_proc_node *next;
         struct MCFA_process *procdata;
         };
-
-
-
-/*struct MCFA_header{
-		int 	cmd; 
-		int 	jobid;
-		int 	procid;
-		int 	numprocs;
-		int 	id;
-                char  	executable[MAXHOSTNAMELEN];   
-		char 	hostfile[MAXHOSTNAMELEN];
-		char 	hostname[MAXHOSTNAMELEN];
-};*/
-
-
-
-
-//struct MCFA_host_node *hostList;
-//struct MCFA_proc_node *procList;
-
 
 int MCFA_dump_info_host(char *host,struct MCFA_host_node *hostList);
 int MCFA_dump_info_jobID(int id, struct MCFA_host_node *hostList);
@@ -265,8 +226,6 @@ int MCFA_event_printallhoststatus(SL_event_msg_header *header);
 
 
 
-//char ** MCFA_set_args(int id,char *hostName, char *path, int port, int jobID, int numprocs,
-//			int hostCount, int redundancy, int flag, int cluster_flag);
 /*****Function to spawn processes with diffrent allocation strategies*************/
 /***1. Round Robin
     2. Concentrate- to maximize locality
@@ -341,12 +300,8 @@ struct MCFA_node{
 typedef struct MCFA_node MCFA_node;
 
 
-
-
-
 int MCFA_node_selection(int redundancy);
 int MCFA_sort(MCFA_nodes *a, int size);
-//void MCFA_update_fullrank(int *newnodes, int redundancy, int **cluster);
 void MCFA_update_fullrank(int *newnodes, int redundancy );
 void MCFA_print_cluster(int **cluster, int redundancy);
 int* MCFA_pick_nodes(MCFA_nodes *a, int size, int redundancy, int ***tcluster);
@@ -372,9 +327,7 @@ MCFA_node* MCFA_tree(int **procarray, int numprocs);
 int MCFA_nodecompare(const void* a, const void* b);
 void MCFA_cuttree (int nelements, MCFA_node* tree, int nclusters, int clusterid[
 ]);
-//int* MCFA_cluster(MCFA_node *result, int red, int **mat);
 int** MCFA_cluster(MCFA_node *result, int red, int **mat, int *numcluster, int **numelms);
-//int* MCFA_sortedlist (int ** clusters, int nclusters, int *numelements, int redundancy);
 int* MCFA_sortedlist (int ** clusters, int nclusters, int *numelements, int redundancy, int **);
 
 void MCFA_printtree(MCFA_node* result, int nnodes);

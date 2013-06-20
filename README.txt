@@ -9,7 +9,6 @@ To compile VolpexMPI
    FC           = compiler to compile fortran code, default is gfortran
    FFLAGS       = add optimization flags for Fortran code, deafult is O3
 
-   PROXY	= 1 (to enable proxy server), default is 0
    CLUSTER	= 1 (to enable clustering), default is 0
    In order to enable debug options
    add -DPRINTF -O0 -g options to CFLAGS

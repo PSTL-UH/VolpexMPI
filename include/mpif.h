@@ -1,18 +1,18 @@
-/*
-#
-# Copyright (c) 2006-2012      University of Houston. All rights reserved.
-# $COPYRIGHT$
-#
-# Additional copyrights may follow
-#
-# $HEADER$
-#
-
-
-# The structure of this header file follows the mpif.h header file of the 
-# MPICH disitribution in the 1.1.x series. It has been adapted to VolpexMPI
-# Here is the copyright of the MPICH 1.1.x series.
-*/
+!/*
+!#
+!# Copyright (c) 2006-2012      University of Houston. All rights reserved.
+!# $COPYRIGHT$
+!#
+!# Additional copyrights may follow
+!#
+!# $HEADER$
+!#
+!
+!
+!# The structure of this header file follows the mpif.h header file of the 
+!# MPICH disitribution in the 1.1.x series. It has been adapted to VolpexMPI
+!# Here is the copyright of the MPICH 1.1.x series.
+!*/
 
 C
 C  

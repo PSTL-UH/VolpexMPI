@@ -47,17 +47,16 @@ int main(int argc, char **argv )
     int port;
     int id,event_handler_id;
     char *path;
-//    char *rank;
     int red,numprocs;
     int spawn_flag, cluster_flag;
     int pid = 10;
     int status;
     char **arg = NULL;
 
-char *hname;
-hname = (char*) malloc (256 *sizeof(char));
+    char *hname;
+    hname = (char*) malloc (256 *sizeof(char));
 
-MCFA_get_ip(&hname);
+    MCFA_get_ip(&hname);
 
 //	arg = MCFA_read_argfile();
     
@@ -83,9 +82,9 @@ MCFA_get_ip(&hname);
 	port                = atoi ( arg[3] );
 	event_handler_id    = atoi (arg[4]);
 	red                 = atoi (arg[5]);
-        spawn_flag                = atoi (arg[6]);
-	cluster_flag		= atoi(arg[7]);
-	numprocs                = atoi (argv[8]);
+        spawn_flag          = atoi (arg[6]);
+	cluster_flag        = atoi(arg[7]);
+	numprocs            = atoi (argv[8]);
 	
     }
     int i;
@@ -95,14 +94,7 @@ MCFA_get_ip(&hname);
 	PRINTF(("%d.  %s\n",i,argv[i]));
     }
     
-    
-    
-    
-    
-    
     int nextSL;
-    
-    
     nextSL = 9;
     if (spawn_flag != 0 )
 	numprocs = 1;
@@ -145,16 +137,17 @@ MCFA_get_ip(&hname);
 	       path, hostname, port, id, event_handler_id,red,spawn_flag, cluster_flag,numprocs));
 	
 	
-	pid = fork();
 	
+	pid = fork();
+	  
 	if (pid == 0){
-	    if(-1 ==  execv(path, arg1)){
-        	printf("Error!! in spawning the program:%s\n", hname);
-		return 0;
-	    }
+	  if(-1 ==  execv(path, arg1)){
+	    printf("Error!! in spawning the program:%s\n", hname);
+	    return 0;
+	  }
 	}
     }
-
+    
     for (i=0;i<numprocs;i++){
 	
 	wait(&status);

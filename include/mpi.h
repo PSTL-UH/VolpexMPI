@@ -433,6 +433,12 @@ enum {
 	MPI_MAX_ERROR_STRING	= 256
 };
 
+
+#if defined(c_plusplus) || defined(__cplusplus)
+extern "C" {
+#endif
+
+
 int  MPI_Init(int *argc, char ***argv );
 int  MPI_Finalize(void);
 int  MPI_Comm_size(MPI_Comm, int *);
@@ -494,6 +500,10 @@ int  PMPI_Unpack( void* inbuf, int insize, int *position, void* outbuf, int outc
 int  PMPI_Pack(void* inbuf, int count, MPI_Datatype datatype, void* outbuf,
                 int outsize, int *position, MPI_Comm comm);
 int  PMPI_Type_size ( MPI_Datatype dat, int *size );
+
+#if defined(c_plusplus) || defined(__cplusplus)
+}
+#endif
 
                                                                                         
 /* Prototypes of the Volpex Counterparts */

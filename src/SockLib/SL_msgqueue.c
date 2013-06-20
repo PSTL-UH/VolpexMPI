@@ -159,24 +159,7 @@ SL_qitem* SL_msgq_find (SL_msgq_head *head, int id )
 
 int SL_msgq_move ( SL_msgq_head *head1, SL_msgq_head *head2, SL_qitem *elem )
 {
-/*    PRINTF(("[%d]:SL_msgq_move: moving elem %d from %s to %s len %d time %f\n", SL_this_procid,elem->id, 
-	 head1->name, head2->name , elem->iov[1].iov_len, elem->endtime-elem->starttime));*/
-		
-
     SL_msgq_remove ( head1, elem );
-	
-    if(head2 == NULL && SL_this_procid == SL_PROXY_SERVER){
-	if(NULL != elem->iov[0].iov_base )
-		free ( elem->iov[0].iov_base );
-	if(NULL != elem->iov[1].iov_base )
-		free ( elem->iov[1].iov_base );
-	if(NULL != elem)
-		free(elem);
-
-	return SL_SUCCESS;
-    }
-
-	 
     return SL_msgq_append ( head2, elem );
 }
 

@@ -42,11 +42,8 @@ static void volpex_preconnect(void)
     int size = Volpex_numprocs;
     int rank = SL_this_procid;
     int sbuf=1, rbuf=1;
-//    SL_Request *reqs;
     SL_Request reqs[2];
     int sendrecv;
-
-
 
 	for ( step=0; step< size; step++ ) {
                 sendrecv = (size-rank+step)%size;
@@ -99,11 +96,12 @@ int  MPI_Init( int *argc, char ***argv )
     next_avail_comm = 3;
     int maxrank;
     Volpex_numcomms = 0;
+
     PRINTF(("[%d]:Moving into MCFA_Init\n",SL_this_procid));
-//    MCFA_Init(*argc, *argv);
-    MCFA_Init();
+    MCFA_Init(NULL, NULL);
     GM_allocate_global_data();
     GM_host_ip();
+
     PRINTF(("[%d]:Hostname: %s\n", SL_this_procid, hostname));
     PRINTF(("[%d]:HostIP: %s\n", SL_this_procid, hostip));
     Volpex_get_fullrank(fullrank);
@@ -148,12 +146,8 @@ int  MPI_Init( int *argc, char ***argv )
     head = insertpt = curr = Volpex_send_buffer_init();
     Volpex_dest_source_select = Volpex_dest_src_locator;
 
-   volpex_preconnect();
+//   volpex_preconnect();
 //   Volpex_Redundancy_Barrier ( MPI_COMM_WORLD, hdata[MPI_COMM_WORLD].myrank );
-//if(redundancy>1)
- //  Volpex_set_target();
-//    Volpex_Barrier ( MPI_COMM_WORLD);
-//	Volpex_Complete_Barrier(MPI_COMM_WORLD);	
     init_msg_time = SL_papi_time();
     repeat_msg_time = SL_papi_time();
     return MPI_SUCCESS;
