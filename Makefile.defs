@@ -6,7 +6,7 @@
 #
 # $HEADER$
 #
-VOLPEX_DIR      = /home/hadi/newVolpexMPI/trunk
+VOLPEX_DIR      = /home/hadi/VolpexMPI/trunk
 VOLPEX_LIB_DIR  = $(VOLPEX_DIR)/lib
 VOLPEX_INC_DIR  = $(VOLPEX_DIR)/include
 

@@ -7,6 +7,7 @@
   #
   #
 */
+
 #include "mpi.h"
 #include "MCFA_internal.h"
 #include "SL.h"
@@ -62,7 +63,6 @@ int MCFA_Init(int argc, char **argv)
   redundancy          = atoi (arg[5]);
   spawn_flag          = atoi (arg[6]);
   cluster_flag        = atoi (arg[7]);
-  //#endif
 #else
   path 		 = strdup(getenv("MCFA_PATH"));
   hostname 	 = strdup(getenv("MCFA_HOSTNAME"));
@@ -169,6 +169,14 @@ int MCFA_Init(int argc, char **argv)
   SL_Recv ( msgbuf, msglen, MCFA_MASTER_ID, 0, 0, SL_STATUS_NULL);
   Volpex_numprocs = MCFA_proc_read_volpex_procs(msgbuf,msglen);
   
+
+  //free(hname);
+  /*for(i=0; i<8; i++){
+    free(arg[i]);
+  }
+  free(arg);
+  */
+
   free(msgbuf);	
   return MCFA_SUCCESS;
 }
@@ -331,6 +339,13 @@ int SL_start_communication(void *buf, int id)
       SL_Send (buf1, MAX_LEN,id, 0, 0 );
     }
   }
+
+  
+  //free(buf1);
+  //free(initialnodes);
+  //free(buffer);
+
+
   return MCFA_SUCCESS;
 }
 

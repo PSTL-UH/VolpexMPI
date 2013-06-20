@@ -15,6 +15,7 @@
 
 extern char *BOINCDIR;
 
+
 void MCFA_set_boinc_dir()
 {
   BOINCDIR = (char*)malloc(50 * sizeof(char));
@@ -22,14 +23,15 @@ void MCFA_set_boinc_dir()
   
 }
 
+
 void MCFA_delete_from_workunit()
 {
-  
   system ("mysql -h localhost VCP");
   system("select name from workunit>file");
   system("exit");
-  
 }
+
+
 void MCFA_create_boinc_wu_template(char *demon, char *exe)
 {
   FILE *fw;
@@ -42,7 +44,6 @@ void MCFA_create_boinc_wu_template(char *demon, char *exe)
   
   MCFA_get_exec_name(exe,tfilename);
   
-  //        strcat("wu", filename);
   sprintf(filename,"%s%s.xml",tfile,tfilename);
   fw = fopen(filename, "w");
   
@@ -74,15 +75,10 @@ void MCFA_create_boinc_wu_template(char *demon, char *exe)
   fprintf(fw,"<rsc_fpops_est>7e15</rsc_fpops_est>\n");
   fprintf(fw,"<rsc_disk_bound>100000000</rsc_disk_bound>\n");
   
-  
   fprintf(fw,"</workunit>\n");
   fclose(fw);
   char command[50];
-  //    sprintf(command ,"cp %s %s/templates/%s", filename, BOINCDIR,filename);
-  
-  //    printf("%s\n",command);
   sprintf(command ,"%s/templates/%s", BOINCDIR,filename);
-  //    system(command);
   rename(filename, command);
 }
 
@@ -247,30 +243,21 @@ void MCFA_create_volpex_job(char *deomon, char *exe, int numprocs)
   char command[50];
   sprintf(command ,"%s/%s", BOINCDIR, filename);
   rename(filename, command);
-  
-  
 }
-
-
-
 
 
 void MCFA_create_boinc_re_template(char *exe, int numprocs)
 {
-  
   FILE *fw;
   char tfilename[50];
   char tfile[3];
   char *filename="";
-  //    int i=0;
   char command[50];
   strcpy(tfile, "re_");
   
   filename = (char*) malloc (500*sizeof(char));
   MCFA_get_exec_name(exe,tfilename);
   
-  //    for(i=0;i<numprocs;i++){
-  //        strcpy(filename,"");
   sprintf(filename,"%s%s.xml",tfile,tfilename);
   fw = fopen(filename, "w");
   
@@ -296,36 +283,25 @@ void MCFA_create_boinc_re_template(char *exe, int numprocs)
   fprintf(fw,"\t\t<open_name>dump_volpex</open_name>\n");
   fprintf(fw,"\t</file_ref>\n");
   
-  
   fprintf(fw,"<result>\n");
   fprintf(fw,"\t<file_ref>\n");
   fprintf(fw,"\t\t<file_name><OUTFILE_%d/></file_name>\n",1);
   fprintf(fw,"\t\t<open_name>output</open_name>\n");
   fprintf(fw,"\t</file_ref>\n");
   
-  
   fprintf(fw,"</result>\n");
-  
   
   fflush(fw);
   fclose(fw);
-  //     sprintf(command ,"cp %s %s/templates", filename, BOINCDIR);
-  //     printf("%s\n",command);
-  //     system(command);
+
   sprintf(command ,"%s/templates/%s", BOINCDIR, filename);
   rename(filename, command);
   fflush(stdout);
-  //    }
 }
-
-
 
 
 void MCFA_create_boinc_script(char *demon, char *exe, int numprocs)
 {
-  
-  
-  //    int i = 0;
   char command[500];
   char tdemon[50];
   char texe[50];
@@ -341,41 +317,12 @@ void MCFA_create_boinc_script(char *demon, char *exe, int numprocs)
   sprintf(command, "./bin/volpex_submit "
           "MPI_volpex%s.xml", texe);
   
-  
-  /*    for(i=0; i<numprocs; i++){
-        
-        sprintf(command, "./bin/create_work  -assign_host 319"
-        "  -appname %s "
-        "-wu_name asgn_wu_%s_%d_%d "
-        "-wu_template ./templates/wu_%s.xml "
-        "-result_template ./templates/re_%s.xml "
-        "-min_quorum 1 "
-        "-target_nresults 1 volpex.%d %s \n", 
-        tdemon, texe, i, i,texe, texe,0,  texe);
-        
-        printf("%s\n",command);
-        system (command);
-        
-        sprintf(command, "./bin/create_work -assign_host 53"
-        "  -appname %s "
-        "-wu_name asgn_wu_%s_%d "
-        "-wu_template ./templates/wu_%s.xml "
-        "-result_template ./templates/re_%s.xml "
-        "-min_quorum 1 "
-        "-target_nresults 1 volpex.%d %s \n",
-        tdemon, texe, i,texe, texe,i,  texe);
-  */                                      
-  
   printf("%s\n",command);
   system (command);    
-  
-  
-  //    }
   
   system("./bin/stop");
   system( "./bin/start");
   system("./bin/status");
-  
 }
 
 
@@ -401,5 +348,4 @@ int MCFA_get_ip(char **ip)
   free(temp);
   
   return 1;
-  
 }
