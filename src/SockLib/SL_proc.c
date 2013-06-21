@@ -174,9 +174,6 @@ void  SL_proc_closeall ( void )
 }
 
 
-
-
-
 void SL_proc_close ( SL_proc * proc )
 {
   SL_msg_header *header, header2;
@@ -235,10 +232,9 @@ int SL_proc_init_conn ( SL_proc * proc )
   if ( proc->sock > SL_fdset_lastused ) {
     SL_fdset_lastused = proc->sock;
   }
-  
-  
   return SL_SUCCESS;
 }
+
 
 int SL_compare_subnet(SL_proc *proc)
 {
@@ -258,9 +254,8 @@ int SL_compare_subnet(SL_proc *proc)
 			SL_this_procid, proc->id, proc->hostname, dproc->hostname));
     return 0;
   }
-  
-  
 }
+
 
 int SL_proc_init_conn_nb ( SL_proc * proc, double timeout ) 
 {
@@ -276,46 +271,43 @@ int SL_proc_init_conn_nb ( SL_proc * proc, double timeout )
   */
   
   int ret = SL_SUCCESS;
-  SL_proc *tproc;
-  int tret=0;
   PRINTF(("[%d]:SL_proc_init_conn_nb: Into function for process :%d\n",
           SL_this_procid,proc->id));
   if ( proc->state == SL_PROC_UNREACHABLE ) {
 	return SL_ERR_PROC_UNREACHABLE;
   }
   
-  if(proc->state == SL_PROC_NOT_CONNECTED)
-    {       
-      if ( proc->id < SL_this_procid ) {
-	    ret = SL_open_socket_conn_nb ( &proc->sock, proc->hostname, proc->port );
-	    proc->sendfunc = ( SL_msg_comm_fnct *) SL_msg_connect_newconn;
-	    proc->recvfunc = ( SL_msg_comm_fnct *) SL_msg_connect_newconn;
-	    proc->state = SL_PROC_CONNECT;
-        
-	    PRINTF(("[%d]:1SL_proc_init_conn_nb:Changing socket from to %d proc id:%d ret:%d\n",
-                SL_this_procid,proc->sock,proc->id, ret));
-        
-	    /* set the read and write fd sets */
-	    FD_SET ( proc->sock, &SL_send_fdset );
-	    FD_SET ( proc->sock, &SL_recv_fdset );
-	    if ( proc->sock > SL_fdset_lastused ) {
-          SL_fdset_lastused = proc->sock;
-	    }
+  if(proc->state == SL_PROC_NOT_CONNECTED) {       
+    if ( proc->id < SL_this_procid ) {
+      ret = SL_open_socket_conn_nb ( &proc->sock, proc->hostname, proc->port );
+      proc->sendfunc = ( SL_msg_comm_fnct *) SL_msg_connect_newconn;
+      proc->recvfunc = ( SL_msg_comm_fnct *) SL_msg_connect_newconn;
+      proc->state = SL_PROC_CONNECT;
+      
+      PRINTF(("[%d]:1SL_proc_init_conn_nb:Changing socket from to %d proc id:%d ret:%d\n",
+              SL_this_procid,proc->sock,proc->id, ret));
+      
+      /* set the read and write fd sets */
+      FD_SET ( proc->sock, &SL_send_fdset );
+      FD_SET ( proc->sock, &SL_recv_fdset );
+      if ( proc->sock > SL_fdset_lastused ) {
+        SL_fdset_lastused = proc->sock;
       }
-      else {
-	    proc->sendfunc = ( SL_msg_comm_fnct *) SL_msg_accept_newconn;
-	    proc->recvfunc = ( SL_msg_comm_fnct *) SL_msg_accept_newconn;
-        
-	    PRINTF(("[%d]Changing socket from %d to listen socket %d\n", 
-                SL_this_procid, proc->sock, SL_this_listensock));
-	    proc->sock  = SL_this_listensock;
-	    proc->state = SL_PROC_ACCEPT;
-      }
-      if ( proc->connect_attempts == 0 ) {
-	    proc->connect_start_tstamp = SL_Wtime();
-      }
-      proc->timeout = timeout;	
     }
+    else {
+      proc->sendfunc = ( SL_msg_comm_fnct *) SL_msg_accept_newconn;
+      proc->recvfunc = ( SL_msg_comm_fnct *) SL_msg_accept_newconn;
+      
+      PRINTF(("[%d]Changing socket from %d to listen socket %d\n", 
+              SL_this_procid, proc->sock, SL_this_listensock));
+      proc->sock  = SL_this_listensock;
+      proc->state = SL_PROC_ACCEPT;
+    }
+    if ( proc->connect_attempts == 0 ) {
+      proc->connect_start_tstamp = SL_Wtime();
+    }
+    proc->timeout = timeout;	
+  }
   proc->connect_attempts++;
   if(timeout != SL_ACCEPT_INFINITE_TIME){
 	if ( timeout < proc->timeout ||
@@ -344,7 +336,6 @@ int SL_proc_read_and_set ( char *filename )
 	printf ("[%d]:Could not open configuration file %s\n", SL_this_procid,filename );
 	exit ( -1 );
   }
-  
   fscanf ( fp, "%d", &SL_numprocs );
   fscanf ( fp, "%d", &red );
   PRINTF (("[%d]:SL_proc_read_and_set: number of processes: %d\n", 
@@ -361,10 +352,10 @@ int SL_proc_read_and_set ( char *filename )
              host, port ));
 	SL_proc_init ( rank, host, port );
   }
-  
   fclose ( fp );
   return SL_SUCCESS;
 }
+
 
 void SL_proc_set_connection ( SL_proc *dproc, int sd )
 {
@@ -389,6 +380,7 @@ void SL_proc_set_connection ( SL_proc *dproc, int sd )
   
   return;
 }
+
 
 void SL_proc_dumpall ( )
 {

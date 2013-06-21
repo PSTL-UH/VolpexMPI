@@ -20,9 +20,9 @@ extern SL_array_t *SL_proc_array;
 extern int SL_numprocs;
 extern int SL_this_procid;
 
+
 int MCFA_connect(int id)
 {
-  
   char *hostname = NULL;
   char *mydomainname = NULL;
   int len=256;
@@ -75,16 +75,17 @@ int MCFA_connect(int id)
   ret = SL_socket_write ( dproc->sock, (char *) &SL_this_procid, sizeof(int),
                           dproc->timeout );
   
-  
   PRINTF(("Receiving newID\n"));
   ret = SL_socket_write ( dproc->sock,  hostname, MAXHOSTNAMELEN,dproc->timeout );
   if ( SL_SUCCESS != ret ) {
     return ret;
   }
   
+  free(mydomainname);
   free(hostname);
   return MCFA_SUCCESS;
 }
+
 
 int MCFA_connect_stage2()
 {
@@ -100,13 +101,10 @@ int MCFA_connect_stage2()
     return ret;
   }
   
-  ret = SL_socket_read ( dproc->sock, ( char *) &port, sizeof(int),
-                         -1);
+  ret = SL_socket_read ( dproc->sock, ( char *) &port, sizeof(int), -1);
   if ( SL_SUCCESS != ret ) {
     return ret;
   }
-  
   SL_this_procport = port;
   return newid;
-  
 }

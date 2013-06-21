@@ -279,7 +279,7 @@ int main(int argc, char *argv[])
         hostName[i]=NULL;
       }
     }
-    free ( hostName );
+    free (hostName);
   }
   
   SL_finalize_eventq();
@@ -514,7 +514,7 @@ struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, char *a
         curr = curr->next;
       }
   }    
-  
+    
   free(buf);
   return newproclist;
 }

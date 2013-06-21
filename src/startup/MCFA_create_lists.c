@@ -19,28 +19,28 @@ int MCFA_initHostList(struct MCFA_host_node **hostList)
   return MCFA_SUCCESS;
 }
 
+
 struct MCFA_host* MCFA_search_hostname(struct MCFA_host_node *hostList, char *host)
 {
   struct MCFA_host_node *curr = hostList;
-  while(curr!=NULL)
-    {
-      if (strcmp(curr -> hostdata->hostname, host)==0)
-        return (curr -> hostdata);
-      curr = curr ->next;
-    }
+  while(curr!=NULL) {
+    if (strcmp(curr -> hostdata->hostname, host)==0)
+      return (curr -> hostdata);
+    curr = curr ->next;
+  }
   return NULL;
 }
+
 
 struct MCFA_host* MCFA_init_hostnode(char *hostname,int maxprocs, int port)
 {
   struct MCFA_host *node;
   int i;
   node = (struct MCFA_host*) malloc (sizeof(struct MCFA_host));
-  if (node == NULL)
-    {
-      printf("ERROR: in allocating memory\n");
-      exit(-1);
-    }
+  if (node == NULL) {
+    printf("ERROR: in allocating memory\n");
+    exit(-1);
+  }
   strcpy(node->hostname,hostname);
   node->numofProcs = 0;
   node->lastPortUsed = port;
@@ -51,12 +51,11 @@ struct MCFA_host* MCFA_init_hostnode(char *hostname,int maxprocs, int port)
     exit(-1);
   }
   
-  for(i=0;i<maxprocs;i++)
-	{
-      node->id[i].procID = 0;
-      node->id[i].jobID = 0;
-      strcpy(node->id[i].exec,"");
-	}
+  for(i=0;i<maxprocs;i++){
+    node->id[i].procID = 0;
+    node->id[i].jobID = 0;
+    strcpy(node->id[i].exec,"");
+  }
   return node;
 }
 
@@ -66,18 +65,15 @@ void MCFA_free_hostlist(struct MCFA_host_node *hostList)
   struct MCFA_host_node *currhost = NULL, *currnext = NULL;
   currhost = hostList;
   if (hostList !=NULL){
-    do{
+    do {
       currnext = currhost->next;
       if (NULL != currhost->hostdata->id)
         free(currhost->hostdata->id);
       free(currhost);
       currhost = currnext;
-      
-    }while(currhost !=NULL);
+    } while(currhost !=NULL);
   }
 }
-
-
 
 
 int MCFA_add_host(struct MCFA_host_node **hostList,struct MCFA_host *node)
@@ -91,35 +87,29 @@ int MCFA_add_host(struct MCFA_host_node **hostList,struct MCFA_host *node)
     return(-1);
   
   curr->next=NULL;
-  //   curr->hostdata = *node;
   
   curr->hostdata = node;
-  if (*hostList == NULL)
-    {
+  if (*hostList == NULL) {
+    *hostList=curr;
+  }
+  else {
+    next=*hostList;
+    prev=NULL;
+    
+    while(next != NULL) {
+      prev=next;
+      next=next->next;
+    }
+    /* Now have a spot to insert */
+    if (prev == NULL) {
       *hostList=curr;
+      curr->next=next;
     }
-  else
-    {
-      next=*hostList;
-      prev=NULL;
-      
-      while(next != NULL )
-        {
-          prev=next;
-          next=next->next;
-        }
-      /* Now have a spot to insert */
-      if (prev == NULL)
-        {
-          *hostList=curr;
-          curr->next=next;
-        }
-      else
-        {
-          curr->next = prev->next;
-          prev->next=curr;
-        }
+    else {
+      curr->next = prev->next;
+      prev->next=curr;
     }
+  }
   return MCFA_SUCCESS;
 }
 
@@ -144,34 +134,30 @@ int MCFA_add_hostname(struct MCFA_host_node **hostList, char *hostname,int numof
   curr->next=NULL;
   curr->hostdata=newhost;
   
-  if (*hostList == NULL)
-    {
+  if (*hostList == NULL) {
+    *hostList=curr;
+  }
+  else {
+    next=*hostList;
+    prev=NULL;
+    
+    while(next != NULL ) {
+      prev=next;
+      next=next->next;
+    }
+    /* Now have a spot to insert */
+    if (prev == NULL) {
       *hostList=curr;
+      curr->next=next;
     }
-  else
-    {
-      next=*hostList;
-      prev=NULL;
-      
-      while(next != NULL )
-        {
-          prev=next;
-          next=next->next;
-        }
-      /* Now have a spot to insert */
-      if (prev == NULL)
-        {
-          *hostList=curr;
-          curr->next=next;
-        }
-      else
-        {
-          curr->next = prev->next;
-          prev->next=curr;
-        }
+    else {
+      curr->next = prev->next;
+      prev->next=curr;
     }
+  }
   return MCFA_SUCCESS;
 }
+
 
 int MCFA_get_total_hosts(struct MCFA_host_node *hostList)
 {
@@ -179,13 +165,13 @@ int MCFA_get_total_hosts(struct MCFA_host_node *hostList)
   int count = 0;
   
   curr = hostList;
-  while(curr != NULL)
-    {
-      count++;
-      curr = curr->next;
-    }
+  while(curr != NULL) {
+    count++;
+    curr = curr->next;
+  }
   return count;
 }
+
 
 int MCFA_printHostlist(struct MCFA_host_node *hostList)
 {
@@ -200,33 +186,30 @@ int MCFA_printHostlist(struct MCFA_host_node *hostList)
   printf("executable\t\t\t");
   printf("Status\n");
   
-  while(curr !=NULL)
-    {
-      printf("%s\t\t ",curr ->hostdata->hostname);
-      printf("%d\t\t",curr ->hostdata->numofProcs);
-      printf("%d\t\t",curr ->hostdata->lastPortUsed);
-      for(i=0;i<curr ->hostdata->numofProcs;i++)
-        {
-          printf("%d ",curr ->hostdata->id[i].procID);
-        }
-      
-      printf("%c\t\t",' ');
-      for(i=0;i<curr ->hostdata->numofProcs;i++)
-        {
-          printf("%d ",curr ->hostdata->id[i].jobID);
-        }
-      printf("%c\t\t",' ');
-      for(i=0;i<curr ->hostdata->numofProcs;i++)
-        {
-          printf("%s, ",curr ->hostdata->id[i].exec);
-        }
-      printf("\t\t");
-      printf("%d  ",curr ->hostdata->status);
-      curr = curr->next;
-      printf("\n");
+  while(curr !=NULL) {
+    printf("%s\t\t ",curr ->hostdata->hostname);
+    printf("%d\t\t",curr ->hostdata->numofProcs);
+    printf("%d\t\t",curr ->hostdata->lastPortUsed);
+    for(i=0;i<curr ->hostdata->numofProcs;i++) {
+      printf("%d ",curr ->hostdata->id[i].procID);
     }
+    
+    printf("%c\t\t",' ');
+    for(i=0;i<curr ->hostdata->numofProcs;i++) {
+      printf("%d ",curr ->hostdata->id[i].jobID);
+    }
+    printf("%c\t\t",' ');
+    for(i=0;i<curr ->hostdata->numofProcs;i++) {
+      printf("%s, ",curr ->hostdata->id[i].exec);
+    }
+    printf("\t\t");
+    printf("%d  ",curr ->hostdata->status);
+    curr = curr->next;
+    printf("\n");
+  }
   return MCFA_SUCCESS;
 }
+
 
 int MCFA_remove_host(struct MCFA_host_node **hostList, char *hostname)
 {
@@ -234,57 +217,56 @@ int MCFA_remove_host(struct MCFA_host_node **hostList, char *hostname)
   struct MCFA_host_node *previous= NULL;
   struct MCFA_host_node *temp = NULL;
   
-  while(strcmp(curr->hostdata->hostname,hostname)==0)
-	{
-      previous = curr;
-      curr = curr->next;
-	}
-  if(curr!=NULL)
-	{
-      if (curr == *hostList){
-        temp = *hostList;
-        *hostList = temp->next;
-        free(temp);
-      }
-      else{
-        previous->next = curr ->next;
-        free(curr);
-      }
+  while(strcmp(curr->hostdata->hostname,hostname)==0) {
+    previous = curr;
+    curr = curr->next;
+  }
+  if(curr!=NULL) {
+    if (curr == *hostList) {
+      temp = *hostList;
+      *hostList = temp->next;
+      free(temp);
     }
+    else {
+      previous->next = curr ->next;
+      free(curr);
+    }
+  }
   return MCFA_SUCCESS;
 }
+
 
 int MCFA_initProcList(struct MCFA_proc_node **procList)
 {
   *procList = NULL;
   return MCFA_SUCCESS;
 }
+
+
 int MCFA_get_total_procs(struct MCFA_proc_node *procList)
 {
   struct MCFA_proc_node *curr = NULL;
   int count = 0;
   
   curr = procList;
-  while(curr != NULL)
-    {
-      count++;
-      curr = curr->next;
-    }
+  while(curr != NULL) {
+    count++;
+    curr = curr->next;
+  }
   return count;
 }
+
 
 struct MCFA_process* MCFA_search_proc(struct MCFA_proc_node *procList, int procID)
 {
   struct MCFA_proc_node *curr = procList;
-  while(curr !=NULL)
-    {
-      if (curr -> procdata->id == procID )
-        return (curr -> procdata);
-      curr = curr ->next;
-    }
+  while(curr !=NULL) {
+    if (curr -> procdata->id == procID )
+      return (curr -> procdata);
+    curr = curr ->next;
+  }
   return NULL;
 }
-
 
 
 int MCFA_add_proc(struct MCFA_proc_node **procList, int procID ,char *host, int portNumber,
@@ -315,34 +297,30 @@ int MCFA_add_proc(struct MCFA_proc_node **procList, int procID ,char *host, int 
   curr->next=NULL;
   curr->procdata=newproc;
   
-  if (*procList == NULL)
-    {
+  if (*procList == NULL) {
+    *procList=curr;
+  }
+  else {
+    next=*procList;
+    prev=NULL;
+    
+    while(next != NULL ) {
+      prev=next;
+      next=next->next;
+    }
+    /* Now have a spot to insert */
+    if (prev == NULL) {
       *procList=curr;
+      curr->next=next;
     }
-  else
-    {
-      next=*procList;
-      prev=NULL;
-      
-      while(next != NULL )
-        {
-          prev=next;
-          next=next->next;
-        }
-      /* Now have a spot to insert */
-      if (prev == NULL)
-        {
-          *procList=curr;
-          curr->next=next;
-        }
-      else
-        {
-          curr->next = prev->next;
-          prev->next=curr;
-        }
+    else {
+      curr->next = prev->next;
+      prev->next=curr;
     }
+  }
   return MCFA_SUCCESS;
 }
+
 
 int MCFA_printProclist(struct MCFA_proc_node *procList)
 {
@@ -357,19 +335,18 @@ int MCFA_printProclist(struct MCFA_proc_node *procList)
   printf("Executable\n");
   
   struct MCFA_proc_node *curr = procList;
-  while(curr !=NULL)
-    {
-      printf("%4d\t\t  ",curr ->procdata->id);
-      printf("%4d\t\t  ",curr ->procdata->volpex_id);
-      printf("%s\t  ",curr ->procdata->hostname);
-      printf("%d\t\t  ",curr ->procdata->portnumber);
-      printf("%d\t  ",curr ->procdata->jobid);
-      printf("%d\t  ",curr ->procdata->sock);
-      printf("%d\t  ",curr ->procdata->status);
-      printf("%s\t\n  ",curr->procdata->fullrank);
-      curr = curr->next;
-      printf("\n");
-    }
+  while(curr !=NULL) {
+    printf("%4d\t\t  ",curr ->procdata->id);
+    printf("%4d\t\t  ",curr ->procdata->volpex_id);
+    printf("%s\t  ",curr ->procdata->hostname);
+    printf("%d\t\t  ",curr ->procdata->portnumber);
+    printf("%d\t  ",curr ->procdata->jobid);
+    printf("%d\t  ",curr ->procdata->sock);
+    printf("%d\t  ",curr ->procdata->status);
+    printf("%s\t\n  ",curr->procdata->fullrank);
+    curr = curr->next;
+    printf("\n");
+  }
   return MCFA_SUCCESS;
 }
 
@@ -381,27 +358,25 @@ int MCFA_remove_proc(struct MCFA_proc_node **procList, int procid)
   struct MCFA_proc_node *temp = NULL;
   
   curr = *procList;
-  while(curr->procdata->id != procid)
-    {	
-      previous = curr;
-      curr = curr->next;
+  while(curr->procdata->id != procid) {	
+    previous = curr;
+    curr = curr->next;
+  }
+  
+  if(curr != NULL) {
+    if (curr == *procList){ 	      //	deleting from head
+      temp = *procList;
+      *procList = temp->next;
+      free(temp);
     }
-  
-  if(curr != NULL)
-	{
-      if (curr == *procList){ 	      //	deleting from head
-        temp = *procList;
-        *procList = temp->next;
-        free(temp);
-      }
-      else{
-        previous->next = curr ->next;
-        free(curr);
-      }
-	}
+    else {
+      previous->next = curr ->next;
+      free(curr);
+    }
+  }
   return MCFA_SUCCESS;
-  
 }
+
 
 int MCFA_print_proc(struct MCFA_process *proc)
 {
@@ -422,7 +397,6 @@ int MCFA_print_proc(struct MCFA_process *proc)
 int MCFA_print_host(struct MCFA_host *host)
 {
   int j;
-  
   printf("\nHostname\t");
   printf("Numof Procs\t");
   printf("lastportused\t");
@@ -430,7 +404,7 @@ int MCFA_print_host(struct MCFA_host *host)
   printf("JobIDs\t\t");
   printf("executable\t\t\t");
   printf("Status\n");
-  
+
   printf("%s\t\t  %d\t\t  %d\t\t  ",host->hostname, host->numofProcs, host->lastPortUsed);
   
   for(j=0;j<host->numofProcs;j++)
@@ -447,11 +421,11 @@ int MCFA_print_host(struct MCFA_host *host)
     printf("%s ",host->id[j].exec);
 
   printf("\t");
-
   printf(" %d\n \n",host->status );
   
   return MCFA_SUCCESS;
 }
+
 
 struct MCFA_process* MCFA_getlast_proc(struct MCFA_proc_node *procList)
 {
@@ -461,21 +435,22 @@ struct MCFA_process* MCFA_getlast_proc(struct MCFA_proc_node *procList)
   return (curr -> procdata);
 }
 
+
 void MCFA_free_proclist(struct MCFA_proc_node *proclist)
 {
   struct MCFA_proc_node *currproc = NULL, *currnext = NULL;
   currproc = proclist;
-  if (proclist !=NULL){
-    do{
+  if (proclist !=NULL) {
+    do {
       currnext = currproc->next;
       if(NULL != currproc->procdata->hostname)
         free(currproc->procdata->hostname);
       free(currproc);
       currproc = currnext;
-      
-    }while(currproc !=NULL);
+    } while(currproc !=NULL);
   }
 }
+
 
 int MCFA_proc_close(struct MCFA_proc_node *proclist, int procid)
 {
@@ -488,6 +463,7 @@ int MCFA_proc_close(struct MCFA_proc_node *proclist, int procid)
   return MCFA_SUCCESS;	
 }
 
+
 int MCFA_clear_procs(struct MCFA_proc_node *procList)
 {
   struct MCFA_proc_node *next = NULL;
@@ -495,17 +471,17 @@ int MCFA_clear_procs(struct MCFA_proc_node *procList)
   int count = 0;
   
   curr = procList;
-  while(curr != NULL)
-    {
-      next = curr->next;
-      if (curr->procdata->status == 0){
-        MCFA_remove_proc(&procList,curr->procdata->id);
-        count++;
-      }
-      curr = next;
+  while(curr != NULL) {
+    next = curr->next;
+    if (curr->procdata->status == 0) {
+      MCFA_remove_proc(&procList,curr->procdata->id);
+      count++;
     }
+    curr = next;
+  }
   return count;
 }
+
 
 int MCFA_proc_exists(struct MCFA_proc_node *procList,int id)
 {
@@ -517,17 +493,16 @@ int MCFA_proc_exists(struct MCFA_proc_node *procList,int id)
 	return 0;            
 }
 
+
 int MCFA_procjob_exists(struct MCFA_proc_node *procList,int id)
 {
   struct MCFA_proc_node *currproc = procList;
-  while(NULL != currproc)
-    {
-      if(id == currproc->procdata->jobid && 0 != currproc->procdata->status)
-        return 1;
-      currproc = currproc->next;
-    }
+  while(NULL != currproc) {
+    if(id == currproc->procdata->jobid && 0 != currproc->procdata->status)
+      return 1;
+    currproc = currproc->next;
+  }
   return 0;
-  
 }
 
 

@@ -6,6 +6,7 @@
   # Additional copyrights may follow
   #
 */
+
 #include "MCFA.h"
 #include "MCFA_internal.h"
 #include "SL.h"
@@ -29,9 +30,8 @@ char ** MCFA_set_args(struct MCFA_host *host, char *path, char *argg,int port, i
      arg[7]  = redundancy
      arg[8]  = spawn flag
      arg[9]  = cluster flag	
-     arg[10]  = number of proccesses on each host
+     arg[10] = number of proccesses on each host
      arg[11] = SL_id of procs
-     
      arg[12] = NULL
   **/
 
@@ -97,7 +97,7 @@ char ** MCFA_set_args(struct MCFA_host *host, char *path, char *argg,int port, i
   char *tprocid;
   char *procids;
   int i;
-  procids = (char*)malloc(4*host->numofProcs*sizeof(char));
+  procids = (char *) malloc (4*host->numofProcs*sizeof(char));
   tprocid = (char *) malloc (sizeof(int) + 1);
   
   sprintf(tprocid, "%d", host->id[0].procID);
@@ -142,18 +142,13 @@ char ** MCFA_set_args(struct MCFA_host *host, char *path, char *argg,int port, i
     arg[11] = NULL;
     arg[12] = NULL;
   }
+
+
+  free(procids);
+  free(tprocid);
+
   return arg;
 }
-
-
-
-
-
-
-
-
-
-
 
 
 struct MCFA_proc_node* MCFA_set_lists1(int initid,char **hostName, char *path, int port, int jobID, int numprocs,int hostCount, int redundancy)
@@ -172,8 +167,6 @@ struct MCFA_proc_node* MCFA_set_lists1(int initid,char **hostName, char *path, i
   */
   
   struct      MCFA_host *node=NULL;
-  //      struct 	    MCFA_host_node *currhost=NULL;
-  //	struct	    MCFA_process *proc=NULL;
   int         i,id, j=0;
   char        fullrank[16];
   char        level = 'A';
@@ -181,18 +174,10 @@ struct MCFA_proc_node* MCFA_set_lists1(int initid,char **hostName, char *path, i
   struct    MCFA_proc_node *newproclist = NULL;
   char	newlevel;
   
-  /*        node = MCFA_search_hostname(hostList,starthost);
-            currhost = hostList;
-            while(strcmp(currhost->hostdata->hostname,node->hostname)){
-            currhost = currhost->next;
-            }
-  */
-  
   for(i=0;i<numprocs;i++)
     {
       id = MCFA_get_nextID();
       node = MCFA_search_hostname(hostList,hostName[j]);		
-      //	    node = currhost->hostdata;
       if(node != NULL){
         node->id[node->numofProcs].procID = id;
         node->id[node->numofProcs].jobID = jobID;
@@ -210,13 +195,12 @@ struct MCFA_proc_node* MCFA_set_lists1(int initid,char **hostName, char *path, i
           rank = 0;
           level++;
         }
-        else
+        else{
           rank++;
-        
+        }
         sprintf(fullrank,"%d,%c",rank,level);
       }
-      
-      
+
       port = node->lastPortUsed ;
       PRINTF(("MCFA_startprocs: Adding proc %d with jobid %d hostname %s to processList\n",id,jobID,hostname));
       MCFA_add_proc(&procList, id, node->hostname,port, jobID,-1, 1,path,fullrank);    //for each process adding it process list
@@ -225,17 +209,10 @@ struct MCFA_proc_node* MCFA_set_lists1(int initid,char **hostName, char *path, i
       if (j==hostCount){
         j=0;
       } 
-      /*
-	    if(currhost->next == NULL)
-		currhost = hostList;
-	    else
-		currhost = currhost->next;
-      */
-      
     }/* end for */
   return(newproclist);
-  
 }
+
 
 char MCFA_search_rank_lastlevel(struct MCFA_proc_node *procList, int initid)
 {
@@ -255,14 +232,14 @@ char MCFA_search_rank_lastlevel(struct MCFA_proc_node *procList, int initid)
   
 }
 
+
 struct MCFA_host_node* MCFA_set_hostlist(char *hostFile, char *hostname, int numprocs, int port, int *hostCount, char ***hostName)
 {
-  char        **thostName=NULL;
-  //	int         hostCount = 0;
-  int         maxprocspernode = MAXPROCSPERNODE;
-  int 	    i;
-  struct      MCFA_host *newnode=NULL;
-  struct 	    MCFA_host_node *newhostlist;
+  char **thostName           = NULL;
+  int maxprocspernode        = MAXPROCSPERNODE;
+  int i;
+  struct MCFA_host *newnode  = NULL;
+  struct MCFA_host_node *newhostlist;
   
   if (hostFile != NULL){
     /* allocating hostfile to array named hostName */
@@ -270,7 +247,6 @@ struct MCFA_host_node* MCFA_set_hostlist(char *hostFile, char *hostname, int num
     /* counting number of hosts */
     *hostCount = *hostCount-1;
   }
-  
   else{                                                       //if hostfile option do not exist all procceses
     thostName = (char**)malloc(sizeof(char*));
     if (NULL == hostName){
@@ -295,13 +271,11 @@ struct MCFA_host_node* MCFA_set_hostlist(char *hostFile, char *hostname, int num
         MCFA_add_host(&hostList, newnode);
         MCFA_add_host(&newhostlist, newnode);
       }
-	  
     }
   *hostName = thostName;
   
   return newhostlist;
 }
-
 
 
 void MCFA_create_condordesc(char *deamon, char *exec, int numprocs)

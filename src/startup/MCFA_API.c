@@ -35,7 +35,6 @@ typedef struct MCFA_init_nodes MCFA_init_nodes;
 
 int MCFA_time_sort(MCFA_init_nodes *a, int size);
 int MCFA_update_slprocid(int oldid, int newid);
-
 char ** local_read_argfile();
 
 
@@ -64,16 +63,16 @@ int MCFA_Init(int argc, char **argv)
   spawn_flag          = atoi (arg[6]);
   cluster_flag        = atoi (arg[7]);
 #else
-  path 		 = strdup(getenv("MCFA_PATH"));
-  hostname 	 = strdup(getenv("MCFA_HOSTNAME"));
-  port 		 = atoi(getenv("MCFA_PORT"));
-  id 		 = atoi(getenv("MCFA_ID"));
-  event_handler_id  = atoi(getenv("MCFA_EVENT_HANDLER"));
-  redundancy		= atoi(getenv("MCFA_REDUNDANCY"));
-  spawn_flag		= atoi(getenv("MCFA_SPAWN_FLAG"));	
-  cluster_flag	    = atoi(getenv("MCFA_CLUSTER_FLAG"));	
+  path 		          = strdup(getenv("MCFA_PATH"));
+  hostname 	          = strdup(getenv("MCFA_HOSTNAME"));
+  port 		          = atoi(getenv("MCFA_PORT"));
+  id 		          = atoi(getenv("MCFA_ID"));
+  event_handler_id    = atoi(getenv("MCFA_EVENT_HANDLER"));
+  redundancy	      = atoi(getenv("MCFA_REDUNDANCY"));
+  spawn_flag		  = atoi(getenv("MCFA_SPAWN_FLAG"));	
+  cluster_flag	      = atoi(getenv("MCFA_CLUSTER_FLAG"));	
 #endif
-  
+
   PRINTF(("path           : %s\n \
         hostname         : %s\n \
         port             : %d\n \
@@ -171,15 +170,12 @@ int MCFA_Init(int argc, char **argv)
   
 
   //free(hname);
-  /*for(i=0; i<8; i++){
-    free(arg[i]);
-  }
-  free(arg);
-  */
+
 
   free(msgbuf);	
   return MCFA_SUCCESS;
 }
+
 
 int MCFA_Finalize ( void )
 {
@@ -339,12 +335,10 @@ int SL_start_communication(void *buf, int id)
       SL_Send (buf1, MAX_LEN,id, 0, 0 );
     }
   }
-
   
-  //free(buf1);
-  //free(initialnodes);
-  //free(buffer);
-
+  free(buf1);
+  free(initialnodes);
+  free(buffer);
 
   return MCFA_SUCCESS;
 }
