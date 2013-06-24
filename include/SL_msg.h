@@ -1,12 +1,12 @@
 /*
-  #
-  # Copyright (c) 2006-2012      University of Houston. All rights reserved.
-  # $COPYRIGHT$
-  #
-  # Additional copyrights may follow
-  #
-  # $HEADER$
-  #
+#
+# Copyright (c) 2006-2012      University of Houston. All rights reserved.
+# $COPYRIGHT$
+#
+# Additional copyrights may follow
+#
+# $HEADER$
+#
 */
 #ifndef __SL_MSG__
 #define __SL_MSG__
@@ -26,12 +26,12 @@
 
 void SL_msg_progress ( void );
 SL_msg_header * SL_msg_get_header ( int cmd, int from, int to, int tag, int context, 
-                                    int len, int, int );
+				    int len, int, int );
 
 int SL_send_post ( void *buf, int len, int dest, int tag, int context_id, double timeout,int loglength, int reuse, 
-                   SL_msg_request **req );
+		   SL_msg_request **req );
 int SL_recv_post ( void *buf, int len, int src, int tag, int context_id, double timeout, 
-                   SL_msg_request **req );
+		   SL_msg_request **req );
 
 int SL_send_post_self(SL_proc *dproc, SL_msg_header *header, char *buf ,int len);
 int SL_recv_post_self(SL_proc *dproc, SL_msg_header *header, char *buf,int len);

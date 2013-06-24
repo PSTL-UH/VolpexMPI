@@ -1,12 +1,12 @@
 /*
-  #
-  # Copyright (c) 2006-2012      University of Houston. All rights reserved.
-  # $COPYRIGHT$
-  #
-  # Additional copyrights may follow
-  #
-  # $HEADER$
-  #
+#
+# Copyright (c) 2006-2012      University of Houston. All rights reserved.
+# $COPYRIGHT$
+#
+# Additional copyrights may follow
+#
+# $HEADER$
+#
 */
 
 #ifndef __SL_INTERNAL__
@@ -16,12 +16,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
+//#include <gsl/gsl_fit.h>
 #include <sys/time.h>
 #include <time.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <math.h>
 #include <errno.h>
+//#include <papi.h>
 #ifdef MINGW
 #include <windows.h>
 #include <winsock2.h>
@@ -52,15 +54,15 @@ extern int SL_init_numprocs;
 extern int SL_proxy_numprocs;
 /* Message header send before any message */
 struct SL_msg_header {
-  int      cmd; /* what type of message is this */
-  int     from; /* id of the src process */
-  int       to; /* id of the dest. process */
-  int      tag; /* tag of the message */
-  int  context; /* context id */
-  int      len; /* Message length in bytes */
-  int       id; /* Id of the last fragment */
-  int loglength;
-  int     temp;
+    int      cmd; /* what type of message is this */
+    int     from; /* id of the src process */
+    int       to; /* id of the dest. process */
+    int      tag; /* tag of the message */
+    int  context; /* context id */
+    int      len; /* Message length in bytes */
+    int       id; /* Id of the last fragment */
+    int loglength;
+    int     temp;
 };
 typedef struct SL_msg_header SL_msg_header;
 
@@ -71,49 +73,49 @@ struct SL_proc;
 typedef int SL_msg_comm_fnct ( struct SL_proc *dproc, int fd );
 
 struct SL_proc {
-  int                         id;
-  char                 *hostname;
-  int                       port;
-  int                       sock;
-  int                      state;
-  int           connect_attempts; /* number of connect attempts */
-  double    connect_start_tstamp; /* time stamp when we started to accept or connect
-                                     for this proc */
-  double                 timeout; /* max time a process should wait before disconnecting */
-  
-  struct SL_msgq_head    *squeue; /* Send queue */
-  struct SL_msgq_head    *rqueue; /* Recv queue */
-  struct SL_msgq_head   *urqueue; /* Unexpected msgs queue */
-  struct SL_msgq_head   *scqueue; /* Send complete queue */
-  struct SL_msgq_head   *rcqueue; /* Recv complete queue */
-  struct SL_qitem   *currecvelem;
-  struct SL_qitem   *cursendelem;
-  SL_msg_comm_fnct     *recvfunc;
-  SL_msg_comm_fnct     *sendfunc;
-  struct SL_msg_perf    *msgperf; /*to keep track of time and msglenth for each communication */
-  struct SL_msg_perf   *insertpt;
-  struct SL_network_perf *netperf;
+    int                         id;
+    char                 *hostname;
+    int                       port;
+    int                       sock;
+    int                      state;
+    int           connect_attempts; /* number of connect attempts */
+    double    connect_start_tstamp; /* time stamp when we started to accept or connect
+				       for this proc */
+    double                 timeout; /* max time a process should wait before disconnecting */
+
+    struct SL_msgq_head    *squeue; /* Send queue */
+    struct SL_msgq_head    *rqueue; /* Recv queue */
+    struct SL_msgq_head   *urqueue; /* Unexpected msgs queue */
+    struct SL_msgq_head   *scqueue; /* Send complete queue */
+    struct SL_msgq_head   *rcqueue; /* Recv complete queue */
+    struct SL_qitem   *currecvelem;
+    struct SL_qitem   *cursendelem;
+    SL_msg_comm_fnct     *recvfunc;
+    SL_msg_comm_fnct     *sendfunc;
+    struct SL_msg_perf    *msgperf; /*to keep track of time and msglenth for each communication */
+    struct SL_msg_perf   *insertpt;
+    struct SL_network_perf *netperf;
 };
 
 struct SL_msg_perf {
-  struct SL_msg_perf  *fwd;
-  struct SL_msg_perf  *back;
-  int 		   msglen;
-  double		     time;
-  int 		      pos;
-  int 		  msgtype; /*send type(0) or recieve type(1)*/
-  int 		   elemid;
-  struct SL_proc      *proc;
+	struct SL_msg_perf  *fwd;
+	struct SL_msg_perf  *back;
+	int 		   msglen;
+	double		     time;
+	int 		      pos;
+	int 		  msgtype; /*send type(0) or recieve type(1)*/
+	int 		   elemid;
+        struct SL_proc      *proc;
 };
 typedef struct SL_msg_perf SL_msg_perf;
 
 struct SL_network_perf {
-  struct SL_network_perf	 *fwd;
-  struct SL_network_perf	*back;
-  double 	              latency;
-  double 		    bandwidth;
-  int 			  pos;
-  
+	struct SL_network_perf	 *fwd;
+	struct SL_network_perf	*back;
+	double 	              latency;
+	double 		    bandwidth;
+	int 			  pos;
+
 };
 typedef struct SL_network_perf SL_network_perf;
 
@@ -122,8 +124,8 @@ typedef struct SL_proc SL_proc;
 
 #ifdef MINGW
 struct iovec {
-  char	*iov_base;	/* Base address. */
-  size_t	 iov_len;	/* Length. */
+	char	*iov_base;	/* Base address. */
+	size_t	 iov_len;	/* Length. */
 };
 
 #define	TCP_MAXSEG		0x02	/* set maximum segment size */
@@ -136,36 +138,36 @@ struct iovec {
    it decsribes */
 struct SL_msgq_head;
 struct SL_qitem {
-  int                       id;
-  int                   iovpos;
-  int                   lenpos;
-  int                    error;
-  struct iovec          iov[2];
-  struct SL_msgq_head *move_to;
-  struct SL_msgq_head    *head;
-  struct SL_qitem        *next;
-  struct SL_qitem        *prev;
-  double             starttime;
-  double               endtime;
+    int                       id;
+    int                   iovpos;
+    int                   lenpos;
+    int                    error;
+    struct iovec          iov[2];
+    struct SL_msgq_head *move_to;
+    struct SL_msgq_head    *head;
+    struct SL_qitem        *next;
+    struct SL_qitem        *prev;
+    double             starttime;
+    double               endtime;
 };
 typedef struct SL_qitem SL_qitem;
 
 /* A message queue */
 struct SL_msgq_head {
-  int               count;
-  char              *name;
-  struct SL_qitem  *first;
-  struct SL_qitem   *last;
+    int               count;
+    char              *name;
+    struct SL_qitem  *first;
+    struct SL_qitem   *last;
 };
 typedef struct SL_msgq_head SL_msgq_head;
 
 /* Request object identifying an ongoing communication */
 struct SL_msg_request {
-  struct SL_proc        *proc;
-  int                    type; /* Send or Recv */
-  int                      id;
-  struct SL_qitem       *elem;
-  struct SL_msgq_head *cqueue; /* completion queue to look for */
+    struct SL_proc        *proc;
+    int                    type; /* Send or Recv */
+    int                      id;
+    struct SL_qitem       *elem;
+    struct SL_msgq_head *cqueue; /* completion queue to look for */
 };
 typedef struct SL_msg_request SL_msg_request;
 
@@ -173,6 +175,15 @@ typedef struct SL_msg_request SL_msg_request;
 struct SL_msgq_head     *SL_event_sendq;
 struct SL_msgq_head     *SL_event_recvq;
 struct SL_msgq_head     *SL_event_sendcq;
+
+
+/* MACROS */
+/*#ifdef PRINTF
+  #undef PRINTF
+  #define PRINTF(A) printf A 
+#else
+  #define PRINTF(A)
+#endif*/
 
 #define FALSE 0
 #define TRUE  1

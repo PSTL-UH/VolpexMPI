@@ -1,16 +1,16 @@
 /*
-  #
-  # Copyright (c) 2006-2012      University of Houston. All rights reserved.
-  # $COPYRIGHT$
-  #
-  # Additional copyrights may follow
-  #
-  # $HEADER$
-  #
+#
+# Copyright (c) 2006-2012      University of Houston. All rights reserved.
+# $COPYRIGHT$
+#
+# Additional copyrights may follow
+#
+# $HEADER$
+#
 */
 
 #include "SL_internal.h"
-
+ 
 #define SL_CMD_ADD_PROC			1
 #define SL_CMD_DELETE_PROC		2
 #define SL_CMD_ADD_EXISTING_PROC        17
@@ -36,18 +36,26 @@ int SL_event_post(void *buf, int len, int dest, int tag, int context_id,SL_msg_r
 void SL_event_progress(SL_qitem*);
 SL_qitem* SL_get_next_event();
 
+/*struct SL_event_msg_header{
+	int cmd;
+	int procid;
+};*/
+
 struct SL_event_msg_header{
-  int     cmd;
-  int 	id;
-  int     jobid;
-  int     procid;
-  int     numprocs;
-  char    executable[256];
-  char    hostfile[256];
-  char    hostname[256];
-  int 	msglen;
-  int 	port;
+                int     cmd;
+		int 	id;
+                int     jobid;
+                int     procid;
+                int     numprocs;
+                char    executable[256];
+                char    hostfile[256];
+                char    hostname[256];
+		int 	msglen;
+		int 	port;
 };
+
+
+
 
 typedef struct SL_event_msg_header SL_event_msg_header;
 
@@ -61,7 +69,7 @@ int SL_start_communication(void *buf, int id);
 
 SL_event_msg_header* SL_init_msgheader();
 SL_event_msg_header* SL_get_msg_header (int cmd, int id, int jobid, int procid, int numprocs, int msglen, int port ,
-                                        char *executable, char *hostfile, char *hostname);
+                             char *executable, char *hostfile, char *hostname);
 
 
 SL_qitem* SL_get_next_event_noremove();

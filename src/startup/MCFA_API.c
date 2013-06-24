@@ -7,6 +7,7 @@
   #
   #
 */
+
 #include "mpi.h"
 #include "MCFA_internal.h"
 #include "SL.h"
@@ -50,8 +51,6 @@ int MCFA_Init(int argc, char **argv)
   int ret;
   char **arg;
   
-#define COMPILE_HPX 1 
-
 #ifdef COMPILE_HPX
   arg = local_read_argfile();
   path                = strdup (arg[1]);
@@ -440,4 +439,3 @@ char ** local_read_argfile()
 
   return arg;
 }
-

@@ -85,7 +85,7 @@ char** MCFA_allocate_func(char fileName[MAXHOSTNAMELEN], int *num)
   
   if (inputFile == NULL) {
     printf("Cannot open file : %s \n",fileName);
-    exit(-1);
+    return 0;
   }
   name = (char**)malloc(100 * sizeof(char *));//TO BE CORRECTED (read the number of hosts from hostfile fist, and use that instead of fixed 100)
   if(name == NULL) {

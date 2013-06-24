@@ -1,12 +1,12 @@
 /*
-  #
-  # Copyright (c) 2006-2012      University of Houston. All rights reserved.
-  # $COPYRIGHT$
-  #
-  # Additional copyrights may follow
-  #
-  # $HEADER$
-  #
+#
+# Copyright (c) 2006-2012      University of Houston. All rights reserved.
+# $COPYRIGHT$
+#
+# Additional copyrights may follow
+#
+# $HEADER$
+#
 */
 
 #ifndef __MCFA_INTERNAL__
@@ -71,41 +71,42 @@ char  *MCFA_EVENT_HANDLER;
 
 
 struct MCFA_ID{
-  int procID;
-  int jobID;
-  char exec[MAXNAMELEN];
-};
+        int procID;
+        int jobID;
+	char exec[MAXNAMELEN];
+        };
 
 struct MCFA_host{
-  char 	hostname[MAXHOSTNAMELEN];
-  int 	numofProcs;
-  int 	lastPortUsed;
-  struct 	MCFA_ID *id;
-  int 	status;
-};
+        char 	hostname[MAXHOSTNAMELEN];
+        int 	numofProcs;
+        int 	lastPortUsed;
+	struct 	MCFA_ID *id;
+        int 	status;
+        };
 
 
 struct MCFA_host_node{
-  struct MCFA_host_node *next;
-  struct MCFA_host *hostdata;
-};
+        struct MCFA_host_node *next;
+        struct MCFA_host *hostdata;
+        };
 
 struct MCFA_process{
-  int 	id;
-  int volpex_id;
-  char 	*hostname;
-  int 	portnumber;
-  int 	jobid;
-  int 	sock;
-  int 	status;
-  char 	*executable;
-  char    fullrank[MAXRANK];
-};
+        int 	id;
+	int volpex_id;
+	char 	*hostname;
+        int 	portnumber;
+        int 	jobid;
+        int 	sock;
+	int 	status;
+	char 	*executable;
+	char    fullrank[MAXRANK];
+        };
+
 
 struct MCFA_proc_node{
-  struct MCFA_proc_node *next;
-  struct MCFA_process *procdata;
-};
+        struct MCFA_proc_node *next;
+        struct MCFA_process *procdata;
+        };
 
 int MCFA_dump_info_host(char *host,struct MCFA_host_node *hostList);
 int MCFA_dump_info_jobID(int id, struct MCFA_host_node *hostList);
@@ -119,6 +120,7 @@ int MCFA_add_hostname(struct MCFA_host_node **hostList, char *hostname,int numof
 int MCFA_printHostlist(struct MCFA_host_node *hostList);
 struct MCFA_host* MCFA_init_hostnode(char *name, int ,int);
 
+
 int MCFA_pack_int(void *packbuf, int *from, int count, int *pos);
 int MCFA_pack_string(void *packbuf, char *from, int count, int *pos);
 int MCFA_pack_size(int num_of_ints, int num_of_chars, int *buffer_length);
@@ -127,7 +129,7 @@ int MCFA_unpack_string(void *unpackbuf, char *to, int count, int *pos);
 
 int MCFA_initProcList(struct MCFA_proc_node **procList);
 int MCFA_add_proc(struct MCFA_proc_node **procList, int procID ,char *host, int portNumber,int jobID,
-                  int sock,int status, char *exec, char*fullrank );
+			int sock,int status, char *exec, char*fullrank );
 struct MCFA_process* MCFA_search_proc(struct MCFA_proc_node *procList, int procID);
 int MCFA_printProclist(struct MCFA_proc_node *procList);
 struct MCFA_process* MCFA_getlast_proc(struct MCFA_proc_node *procList);
@@ -135,10 +137,12 @@ void MCFA_free_hostlist(struct MCFA_host_node *hostList);
 void MCFA_free_proclist(struct MCFA_proc_node *procList);
 int MCFA_proc_close(struct MCFA_proc_node *proclist, int procid);
 
+
 void write_string ( int hdl, char *buf, int num );
 void read_string ( int hdl, char *buf, int num );
 void write_int ( int hdl, int val );
 void read_int ( int hdl, int *val );
+
 
 int MCFA_get_nextjobID();
 int MCFA_get_nextID();
@@ -156,13 +160,15 @@ struct MCFA_process* MCFA_unpack_procstatus(char *buffer, int len);
 char* MCFA_pack_hoststatus(struct MCFA_host_node *hostList,char *host, int *msglen);
 struct MCFA_host* MCFA_unpack_hoststatus(char *buffer, int len);
 
+
+
 int MCFA_printf_init ( int jobid, int procid );
 int MCFA_printf_finalize ( void );
 
 int MCFA_init_env();
 int MCFA_set_env1(char *path, char *hostname, int port, int jobid, int id, int ehandler, char* rank, int red, int flag);
 int MCFA_set_env(char *path, char *hostname, int port, int id, int ehandler, int red , 
-                 int flag, int cluster_flag);
+			int flag, int cluster_flag);
 int MCFA_get_total_hosts(struct MCFA_host_node *hostlist);
 
 struct MCFA_proc_node* MCFA_add_procs(struct SL_event_msg_header *header);
@@ -170,6 +176,9 @@ struct MCFA_proc_node* MCFA_delete_proc( struct SL_event_msg_header *header);
 struct MCFA_proc_node* MCFA_delete_job( struct SL_event_msg_header *header, int *);
 int MCFA_clear_procs(struct MCFA_proc_node *procList);
 
+/*struct MCFA_proc_node* MCFA_add_procs(struct MCFA_header *header);
+struct MCFA_proc_node* MCFA_delete_proc( struct MCFA_header *header);
+struct MCFA_proc_node* MCFA_delete_job( struct MCFA_header *header, int *);*/
 int MCFA_remove_proc(struct MCFA_proc_node **procList, int procid);
 
 int MCFA_add_host(struct MCFA_host_node **hostList,struct MCFA_host *node);
@@ -186,9 +195,12 @@ int MCFA_connect(int id);
 int MCFA_connect_stage2();
 
 
+
 struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, char *argg, int port, int jobID, 
-                                            int numprocs,int hostCount, int redundancy, int condor_flag,
-                                            int cluster_flag, struct MCFA_proc_node *newproclist);
+			int numprocs,int hostCount, int redundancy, int condor_flag,
+			int cluster_flag, struct MCFA_proc_node *newproclist);
+
+
 
 void MCFA_get_abs_path(char *arg, char **path);
 void MCFA_get_path(char *arg, char **path);
@@ -202,6 +214,7 @@ int MCFA_check_proc(struct MCFA_proc_node *procList);
 
 char MCFA_search_rank_lastlevel(struct MCFA_proc_node *procList, int initid);
 
+
 int MCFA_event_addprocs(SL_event_msg_header *header, int numprocs);
 int MCFA_event_deletejob(SL_event_msg_header *header, int numprocs, int *num);
 int MCFA_event_deleteproc(SL_event_msg_header *header, int numprocs);
@@ -212,27 +225,28 @@ int MCFA_event_printalljobstatus(SL_event_msg_header *header);
 int MCFA_event_printallhoststatus(SL_event_msg_header *header);
 
 
+
 /*****Function to spawn processes with diffrent allocation strategies*************/
 /***1. Round Robin
     2. Concentrate- to maximize locality
     3. Using hosts specified in host file as it is
-    
+
 ***/
 
 typedef struct MCFA_proc_node* MCFA_set_lists_func(int id,char **hostName, char *path, int port, 
-                                                   int jobID, int numprocs,int hostCount, int redundancy);
+							int jobID, int numprocs,int hostCount, int redundancy);
 
 
 struct MCFA_proc_node* MCFA_set_liststraight(int id,char **hostName, char *path, int port, 
-                                             int jobID, int numprocs,int hostCount, int redundancy);
+							int jobID, int numprocs,int hostCount, int redundancy);
 struct MCFA_proc_node* MCFA_set_listsroundrobin(int initid,char **hostName, char *path, int port, 
-                                                int jobID, int numprocs,int hostCount, int redundancy);
+							int jobID, int numprocs,int hostCount, int redundancy);
 struct MCFA_proc_node* MCFA_set_listsconcentrate(int initid,char **hostName, char *path, int port,
-                                                 int jobID, int numprocs,int hostCount, int redundancy);
+                                                        int jobID, int numprocs,int hostCount, int redundancy);
 
 
 struct MCFA_proc_node* MCFA_set_listsrandom(int initid,char **hostName, char *path, int port,
-                                            int jobID, int numprocs,int hostCount, int redundancy);
+							int jobID, int numprocs,int hostCount, int redundancy);
 
 /*******Function to use communication matrix for NAS_parallel benchmark******/
 typedef int MCFA_create_comm_matrix_func(int redundancy, int **appcomm);
@@ -271,17 +285,17 @@ int MCFA_proc_read_init(char *msgbuf,int len);
 /*------------------MCFA_node_selection----------------------*/
 
 struct MCFA_nodes{
-  int timeval;
-  int id1;
-  int id2;
-  int color;
+    int timeval;
+    int id1;
+    int id2;
+    int color;
 };
 typedef struct MCFA_nodes MCFA_nodes;
 
 struct MCFA_node{
-  int left;
-  int right;
-  double distance;
+        int left;
+        int right;
+        double distance;
 };
 typedef struct MCFA_node MCFA_node;
 
@@ -319,7 +333,7 @@ int* MCFA_sortedlist (int ** clusters, int nclusters, int *numelements, int redu
 void MCFA_printtree(MCFA_node* result, int nnodes);
 void MCFA_printclusterdist(int *clusterid);
 MCFA_node** MCFA_create_subtree(int ***subdistmat, int redundancy, int *newnodes
-                                );
+);
 int* MCFA_create_mapping(MCFA_node *mpitree, MCFA_node *coretree, int nnodes);
 int*** MCFA_dividedistmatrix(int **distmatrix, int redundancy, int *newnodes);
 void MCFA_print_submatrix(int ***subdistmat, int redundancy, int *newnodes);

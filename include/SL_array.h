@@ -11,17 +11,17 @@
 #define __SL_ARRAY_H__
 
 struct SL_array_elem_s {
-  int     id;  /* id to search for */
-  int in_use;  /* is this element currently occupied? */
-  void  *ptr;  /* data ptr */
+    int     id;  /* id to search for */
+    int in_use;  /* is this element currently occupied? */
+    void  *ptr;  /* data ptr */
 };
 typedef struct SL_array_elem_s SL_array_elem_t;
 
 struct SL_array_s {
-  char            name[64];  /* name of the type, for debugging purposes */
-  int                 size;  /* length of the data array */
-  int                 last;  /* last used element */
-  SL_array_elem_t *array;
+    char            name[64];  /* name of the type, for debugging purposes */
+    int                 size;  /* length of the data array */
+    int                 last;  /* last used element */
+    SL_array_elem_t *array;
 };
 typedef struct SL_array_s SL_array_t;
 

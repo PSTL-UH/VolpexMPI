@@ -1,12 +1,12 @@
 /*
-  #
-  # Copyright (c) 2006-2012      University of Houston. All rights reserved.
-  # $COPYRIGHT$
-  #
-  # Additional copyrights may follow
-  #
-  # $HEADER$
-  #
+#
+# Copyright (c) 2006-2012      University of Houston. All rights reserved.
+# $COPYRIGHT$
+#
+# Additional copyrights may follow
+#
+# $HEADER$
+#
 */
 #ifndef __MPI_FORTRAN__
 #define __MPI_FORTRAN__
@@ -105,22 +105,22 @@ double mpi_wtime__ ( );
 double MPI_WTIME   ( );
 
 void  mpi_alltoall   ( void *, int *,  int *, void *, int *,  int *, 
-                       int *, int * );
+       int *, int * );
 void  mpi_alltoall_  ( void *, int *,  int *, void *, int *,  int *, 
-                       int *, int * );
+		       int *, int * );
 void  mpi_alltoall__ ( void *, int *,  int *, void *, int *,  int *, 
-                       int *, int * );
+		       int *, int * );
 void  MPI_ALLTOALL   ( void *, int *,  int *, void *, int *,  int *, 
-                       int *, int * );
+		       int *, int * );
 
 void  mpi_alltoallv   ( void *, int *, int *,  int *, void *, int *, int *, 
-                        int *,  int *, int * );
+		        int *,  int *, int * );
 void  mpi_alltoallv_  ( void *, int *, int *,  int *, void *, int *, int *, 
-                        int *,  int *, int * );
+		        int *,  int *, int * );
 void  mpi_alltoallv__ ( void *, int *, int *,  int *, void *, int *, int *, 
-                        int *,  int *, int * );
+		        int *,  int *, int * );
 void  MPI_ALLTOALLV   ( void *, int *, int *,  int *, void *, int *, int *, 
-                        int *,  int *, int * );
+		        int *,  int *, int * );
 
 
 void mpi_rank(int *, int *);
