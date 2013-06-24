@@ -211,16 +211,16 @@ int SL_proc_init_conn ( SL_proc * proc )
   
   if ( proc->id < SL_this_procid ) {
     SL_open_socket_conn ( &proc->sock, proc->hostname, proc->port );
-	SL_configure_socket_nb ( proc->sock );
-	proc->state = SL_PROC_CONNECTED;	
+    SL_configure_socket ( proc->sock );
+    proc->state = SL_PROC_CONNECTED;	
 	proc->connect_attempts++;
   }
   else {
     int tmp_handle;
 	SL_open_socket_bind ( &tmp_handle, SL_this_procport );
 	proc->sock = SL_open_socket_listen  ( tmp_handle );
-	SL_configure_socket_nb ( proc->sock );
-	proc->state = SL_PROC_CONNECTED;
+    SL_configure_socket_nb ( proc->sock );
+    proc->state = SL_PROC_CONNECTED;
   }
   
   /* set the read and write fd sets */
@@ -362,7 +362,9 @@ void SL_proc_set_connection ( SL_proc *dproc, int sd )
   
   dproc->sock  = sd;
   dproc->state = SL_PROC_CONNECTED;
+  
   SL_configure_socket_nb ( sd );
+  
   if ( sd > SL_fdset_lastused ) {
 	SL_fdset_lastused = sd;
   }
