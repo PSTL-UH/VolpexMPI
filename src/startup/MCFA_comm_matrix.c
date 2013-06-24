@@ -13,6 +13,7 @@
 #include "SL.h"
 extern MCFA_create_comm_matrix_func *MCFA_create_comm_matrix;
 
+
 int MCFA_create_comm_matrix_sp(int redundancy, int **appcomm)
 {
   int i,j;
