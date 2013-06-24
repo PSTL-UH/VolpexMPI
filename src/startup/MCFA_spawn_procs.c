@@ -143,10 +143,8 @@ char ** MCFA_set_args(struct MCFA_host *host, char *path, char *argg,int port, i
     arg[12] = NULL;
   }
 
-
   free(procids);
   free(tprocid);
-
   return arg;
 }
 
