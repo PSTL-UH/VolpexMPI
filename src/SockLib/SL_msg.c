@@ -34,7 +34,7 @@ void SL_msg_progress ( void )
 {
   SL_qitem *elem=NULL;
   SL_proc *dproc=NULL;
-  int i, ret, nd=0,j,size;
+  int i, ret, nd=0;
   struct timeval tout;
   
   static int SL_event_handle_counter = 0;
@@ -392,6 +392,7 @@ int SL_msg_recv_newmsg ( SL_proc *dproc, int fd )
   return ret;
 }
 
+
 int SL_msg_send_knownmsg ( SL_proc *dproc, int fd )
 {
   int ret=SL_SUCCESS;
@@ -399,7 +400,6 @@ int SL_msg_send_knownmsg ( SL_proc *dproc, int fd )
   SL_qitem *elem=dproc->cursendelem;
   int iovpos = elem->iovpos;
   int lenpos = elem->lenpos;
-  
   
   PRINTF(("[%d]: 5clearing socket:%d\n", SL_this_procid, fd));
   FD_CLR ( fd, &send_fdset );
@@ -428,9 +428,9 @@ int SL_msg_send_knownmsg ( SL_proc *dproc, int fd )
       dproc->sendfunc = SL_msg_send_newmsg;
     }
   }
-  
   return ret;
 }
+
 
 int SL_msg_send_newmsg ( SL_proc *dproc, int fd )
 {
@@ -479,14 +479,12 @@ int SL_msg_send_newmsg ( SL_proc *dproc, int fd )
       }
 #endif
 	}
-    
-    
   }
   else
 	PRINTF(("[%d]:ERROR!!in SL_socket_write_nb for proc:%d\n",SL_this_procid,dproc->id));
-  
   return ret;
 }
+
 
 int SL_msg_accept_newconn ( SL_proc *dproc, int fd )
 {
@@ -527,7 +525,6 @@ int SL_msg_accept_newconn ( SL_proc *dproc, int fd )
 	FD_SET ( dproc->sock, &SL_send_fdset );
 	FD_SET ( dproc->sock, &SL_recv_fdset );    
   }
-  
   else{
     if ( EWOULDBLOCK != errno  ||
          ECONNABORTED!= errno  ||
@@ -536,9 +533,9 @@ int SL_msg_accept_newconn ( SL_proc *dproc, int fd )
       ret = SL_SUCCESS;
     }
   }
-  
   return ret;
 }
+
 
 int SL_msg_accept_stage2(SL_proc *dproc, int fd)
 {
@@ -773,7 +770,6 @@ int SL_msg_connect_newconn ( SL_proc *dproc, int fd )
 
 int SL_msg_connect_stage2(SL_proc* dproc, int fd)
 {   
-  
   int tmp;
   int ret = SL_SUCCESS; 
   
@@ -816,11 +812,13 @@ int SL_msg_connect_stage2(SL_proc* dproc, int fd)
   return SL_SUCCESS;
 }
 
+
 int SL_msg_closed ( SL_proc *dproc, int fd )
 {
   PRINTF(("[%d]:SL_msg_closed: connection to %d is marked as closed\n", SL_this_procid,dproc->id ));
   return SL_MSG_CLOSED;
 }
+
 
 void SL_msg_set_nullstatus ( SL_Status *status )
 {

@@ -15,9 +15,7 @@ extern SL_array_t *SL_proc_array;
 extern SL_array_t *Volpex_proc_array;
 extern SL_array_t *Volpex_comm_array;
 extern int SL_this_procid;
-
 extern NODEPTR head, insertpt, curr;
-
 extern int Volpex_numprocs;
 extern int redundancy;
 extern char fullrank[16];
@@ -27,7 +25,6 @@ extern int next_avail_comm;
 extern int request_counter;
 extern int Volpex_numcomms;
 extern Volpex_returnheaderlist *returnheaderList;
-
 extern Max_tag_reuse *maxtagreuse;
 Volpex_dest_source_fnct *Volpex_dest_source_select;
 Volpex_target_list *Volpex_targets;
@@ -72,20 +69,17 @@ int numofcores()
   int num=0;
   
   fp = fopen("tempfile.txt","r");
-  if(fp == NULL)
-    {
-      printf("Source file not found !\n");
-      exit(-1);
-    }
+  if(fp == NULL) {
+    printf("Source file not found !\n");
+    exit(-1);
+  }
   
-  while (!feof(fp))
-    {
-      fgets(procnum,30,fp);
-      num++;
-    }
+  while (!feof(fp)) {
+    fgets(procnum,30,fp);
+    num++;
+  }
   printf("Number of cores = %d\n",num-1);
   return (num-1);
-  
 }
 
 

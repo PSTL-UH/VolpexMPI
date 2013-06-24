@@ -1,12 +1,12 @@
 /*
-#
-# Copyright (c) 2006-2012      University of Houston. All rights reserved.
-# $COPYRIGHT$
-#
-# Additional copyrights may follow
-#
-# $HEADER$
-#
+  #
+  # Copyright (c) 2006-2012      University of Houston. All rights reserved.
+  # $COPYRIGHT$
+  #
+  # Additional copyrights may follow
+  #
+  # $HEADER$
+  #
 */
 #include "SL.h"
 
@@ -15,271 +15,263 @@ extern int SL_this_procid;
 int SL_socket ( void )
 {
 #ifdef MINGW 
-    SOCKET handle;
-
-    if (( handle = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == INVALID_SOCKET) {
-        printf("WinSL: Error at socket(): %ld\n", WSAGetLastError());
-        WSACleanup();
-        return 0;
-    }
+  SOCKET handle;
+  
+  if (( handle = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == INVALID_SOCKET) {
+    printf("WinSL: Error at socket(): %ld\n", WSAGetLastError());
+    WSACleanup();
+    return 0;
+  }
 #else
-    int handle;
-
-    if ( ( handle = socket ( AF_INET, SOCK_STREAM, 0 ) ) == -1 ) {
+  int handle;
+  
+  if ( ( handle = socket ( AF_INET, SOCK_STREAM, 0 ) ) == -1 ) {
 	printf("[%d]:SL_socket: socket failed, %d %s\n", SL_this_procid,errno, strerror(errno));
 	return -1;
-    }
+  }
 #endif
-    return ( handle );
+  return ( handle );
 }
+
 
 int SL_bind_static ( int handle, int port )
 {
   struct sockaddr_in lserver;
-
+  
   lserver.sin_family      = AF_INET;
   lserver.sin_addr.s_addr = INADDR_ANY;
   lserver.sin_port        = htons (port);
-
+  
 #if MINGW
-    if (bind((SOCKET)handle, (SOCKADDR *)&lserver, sizeof(lserver)) == SOCKET_ERROR)
-    {
-        PRINTF(("Windows SL_bind_static: bind() failed: %ld.\n", WSAGetLastError()));
-        return -1;
-    }
+  if (bind((SOCKET)handle, (SOCKADDR *)&lserver, sizeof(lserver)) == SOCKET_ERROR) {
+    PRINTF(("Windows SL_bind_static: bind() failed: %ld.\n", WSAGetLastError()));
+    return -1;
+  }
 #else
-
-  if ( bind ( handle,(struct sockaddr *) &lserver, sizeof (lserver) ) )
-    {
-      printf("SL_bind_static: %d faild to bind to port %d, %d %s\n", 
-	     SL_this_procid, port, errno, strerror(errno) );
-      return -1;
-    }
+  if ( bind ( handle,(struct sockaddr *) &lserver, sizeof (lserver) ) ) {
+    printf("SL_bind_static: %d faild to bind to port %d, %d %s\n", 
+           SL_this_procid, port, errno, strerror(errno) );
+    return -1;
+  }
 #endif
-
   return ( ntohs(lserver.sin_port) );
 }
+
 
 int SL_bind_dynamic (  int handle, int port )
 {
   struct sockaddr_in lserver;
   int retry=0;
-
+  
   lserver.sin_family      = AF_INET;
   lserver.sin_addr.s_addr = INADDR_ANY;
   lserver.sin_port        = htons (port);
-
+  
 #if MINGW
-    while ( (bind((SOCKET)handle, (SOCKADDR *)&lserver, sizeof(lserver)) == SOCKET_ERROR) &&  ( retry < SL_RECONN_MAX ))
-    {
-        PRINTF(("Windows SL_open_bind_static: bind() failed: %ld.\n", WSAGetLastError()));
-		lserver.sin_port = htons (port++);
-        retry++;
-    }
+  while ( (bind((SOCKET)handle, (SOCKADDR *)&lserver, sizeof(lserver)) == SOCKET_ERROR) &&  ( retry < SL_RECONN_MAX )) {
+    PRINTF(("Windows SL_open_bind_static: bind() failed: %ld.\n", WSAGetLastError()));
+    lserver.sin_port = htons (port++);
+    retry++;
+  }
 #else
   while ( ( bind ( handle,(struct sockaddr *) &lserver, sizeof (lserver) ) ) &&
-          ( retry < SL_RECONN_MAX ))
-    {
-      PRINTF(("SL_open_bind_dynamic: %d faild to bind to port %d\n", SL_this_procid,port ));
-      lserver.sin_port = htons (port++);
-      retry++;
-    }
+          ( retry < SL_RECONN_MAX )) {
+    PRINTF(("SL_open_bind_dynamic: %d faild to bind to port %d\n", SL_this_procid,port ));
+    lserver.sin_port = htons (port++);
+    retry++;
+  }
 #endif
-
   return ( ntohs(lserver.sin_port) );
 }
+
 
 int SL_socket_close ( int handle )
 {
 #ifdef MINGW
-	Sleep(1);
-    
-    	PRINTF(("close_socket: close socket\n"));
-    	if ( closesocket( handle) < 0) {
+  Sleep(1);
+  
+  PRINTF(("close_socket: close socket\n"));
+  if ( closesocket( handle) < 0) {
 	printf("close_socket: failed , reason: %s\n", strerror(errno));
 	return -1;
-    }
+  }
 #else
-//    sleep(1);
-    
-    PRINTF(("[%d]:close_socket: close socket %d\n",SL_this_procid, handle));
-    if ( close( handle) < 0) {
+  
+  PRINTF(("[%d]:close_socket: close socket %d\n",SL_this_procid, handle));
+  if ( close( handle) < 0) {
 	printf("[%d]:close_socket: failed , reason: %s\n", SL_this_procid,strerror(errno));
 	return -1;
-    }
+  }
 #endif
-    return SL_SUCCESS;
+  return SL_SUCCESS;
 }
+
 
 int SL_open_socket_conn ( int *handle, const char *as_host, int port )
 {
-    struct sockaddr_in server;
-    struct hostent     *host;
-    int conn_ret=-1;
-    int reconn=0;
-    unsigned sleep_ret=0;
-    
-    do {
+  struct sockaddr_in server;
+  struct hostent     *host;
+  int conn_ret=-1;
+  int reconn=0;
+  unsigned sleep_ret=0;
+  
+  do {
 	/*
 	** Get a socket
 	*/
 	*handle = SL_socket ();
-	
+    
 	/*
 	** Bind it to any port starting with port+SL_BIND_PORTSHIFT
 	*/
 	SL_bind_dynamic ( *handle, port+SL_BIND_PORTSHIFT );
-	
+    
 	/*
 	** make the socket fast and nice
 	*/
 	SL_configure_socket( *handle);
-	
+    
 	/*
 	** Get the hostent structure of the host we want to connect
 	** ATTENTION: gethostbyname does NOT set errno, but instead the h_errno!!!
 	!
 	*/
 	if ( (host = gethostbyname ( as_host ) ) == NULL )   {
-	    printf("[%d]:SL_open_socket_conn: failed to get hostname:%s, %d %s\n", SL_this_procid,
-		    as_host, h_errno, strerror(h_errno));
-	    return -1;
+      printf("[%d]:SL_open_socket_conn: failed to get hostname:%s, %d %s\n", SL_this_procid,
+             as_host, h_errno, strerror(h_errno));
+      return -1;
 	}
-
+    
 	/*
 	** Fill in the important elements of the server-structure
 	*/
 	memcpy (&server.sin_addr, host->h_addr, host->h_length );
 	server.sin_family = AF_INET;
 	server.sin_port   = htons ( port );
-	
-	do  {
-	    conn_ret = connect(*handle,(struct sockaddr *)&server, sizeof(server));
-	    if ( conn_ret < 0 )  {
+    
+	do {
+      conn_ret = connect(*handle,(struct sockaddr *)&server, sizeof(server));
+      if ( conn_ret < 0 )  {
 		printf("[%d]:SL_open_socket_conn: Connect returned with ret = %d, "
-			"reason %s", SL_this_procid,conn_ret, strerror(errno ));
+               "reason %s", SL_this_procid,conn_ret, strerror(errno ));
 #ifdef MINGW
 		Sleep (SL_SLEEP_TIME);
 #else
 		sleep_ret = sleep (SL_SLEEP_TIME);
 		if ( sleep_ret != 0 )
-		    sleep (SL_SLEEP_TIME);
+          sleep (SL_SLEEP_TIME);
 #endif
-            }
-        } while( (conn_ret < 0) && (errno==EINTR)  );
-
+      }
+    } while( (conn_ret < 0) && (errno==EINTR)  );
+    
 	/*
 	** If the host was not ready for the connect call, we retry
 	*/
-	if ( conn_ret < 0 )
-        {
-	    printf("SL_open_socket_conn: Connect %d failed to host %s on "
-		    "port %d \n",
-		    reconn, as_host, port );
-	    SL_socket_close ( *handle);
-	    reconn++;
+	if ( conn_ret < 0 ) {
+      printf("SL_open_socket_conn: Connect %d failed to host %s on "
+             "port %d \n",
+             reconn, as_host, port );
+      SL_socket_close ( *handle);
+      reconn++;
 #ifdef MINGW
-		Sleep (SL_SLEEP_TIME);
+      Sleep (SL_SLEEP_TIME);
 #else
-	    sleep_ret = sleep (SL_SLEEP_TIME);
-	    if ( sleep_ret != 0 ) {
-		sleep (SL_SLEEP_TIME);
-	    }
+      sleep_ret = sleep (SL_SLEEP_TIME);
+      if ( sleep_ret != 0 ) {
+        sleep (SL_SLEEP_TIME);
+      }
 #endif
-        }
-	
-    } while ( (conn_ret < 0) && (reconn < SL_RECONN_MAX ) ) ;
-
-    /*
-    ** After SL_RECONN_MAX repetitions we give up contacting the host
-    */
-    if ( conn_ret < 0) {
+    }
+  } while ( (conn_ret < 0) && (reconn < SL_RECONN_MAX ) ) ;
+  
+  /*
+  ** After SL_RECONN_MAX repetitions we give up contacting the host
+  */
+  if ( conn_ret < 0) {
 	printf("[%d]:SL_open_socket_conn: failed to open connection with port %d",SL_this_procid,port);
 	return -1;
-    }
-
-
-    return SL_SUCCESS;
+  }
+  return SL_SUCCESS;
 }
 
 
 int SL_open_socket_conn_nb ( int *handle, const char *as_host, int port )
 {
-    struct sockaddr_in server;
-    struct hostent     *host;
-    int conn_ret=-1;
-    
-    /*
-    ** Get a socket
-    */
-    *handle = SL_socket ();
-    
-    /*
-    ** Bind it to any port starting with port+SL_BIND_PORTSHIFT
-    */
-    SL_bind_dynamic ( *handle, port+SL_BIND_PORTSHIFT );
-    
-    /*
-    ** make the socket fast and nice
-    */
-    SL_configure_socket_nb ( *handle);
-    
-    /*
-    ** Get the hostent structure of the host we want to connect
-    ** ATTENTION: gethostbyname does NOT set errno, but instead the h_errno!!!
-    */
-    if ( (host = gethostbyname ( as_host ) ) == NULL )   {
-      printf("[%d]:SL_open_socket_conn_nb: failed to get hostname:%s, %d %s\n", SL_this_procid,
-	      as_host, h_errno, strerror(h_errno));
-      return -1;
-    }
-    
-    /*
-    ** Fill in the important elements of the server-structure
-    */
-    memcpy (&server.sin_addr, host->h_addr, host->h_length );
-    server.sin_family = AF_INET;
-    server.sin_port   = htons ( port );
-    
-    conn_ret = connect(*handle,(struct sockaddr *)&server, sizeof(server));
-
+  struct sockaddr_in server;
+  struct hostent     *host;
+  int conn_ret=-1;
+  
+  /*
+  ** Get a socket
+  */
+  *handle = SL_socket ();
+  
+  /*
+  ** Bind it to any port starting with port+SL_BIND_PORTSHIFT
+  */
+  SL_bind_dynamic ( *handle, port+SL_BIND_PORTSHIFT );
+  
+  /*
+  ** make the socket fast and nice
+  */
+  SL_configure_socket_nb ( *handle);
+  
+  /*
+  ** Get the hostent structure of the host we want to connect
+  ** ATTENTION: gethostbyname does NOT set errno, but instead the h_errno!!!
+  */
+  if ( (host = gethostbyname ( as_host ) ) == NULL ) {
+    printf("[%d]:SL_open_socket_conn_nb: failed to get hostname:%s, %d %s\n", SL_this_procid,
+           as_host, h_errno, strerror(h_errno));
+    return -1;
+  }
+  
+  /*
+  ** Fill in the important elements of the server-structure
+  */
+  memcpy (&server.sin_addr, host->h_addr, host->h_length );
+  server.sin_family = AF_INET;
+  server.sin_port   = htons ( port );
+  
+  conn_ret = connect(*handle,(struct sockaddr *)&server, sizeof(server));
+  
 #ifdef MINGW
-	if ( conn_ret < 0 && errno != WSAEINPROGRESS) {
-        printf("SL_open_socket_conn_nb: Connect returned with ret = %d, reason %s\n", conn_ret, strerror(errno));
+  if ( conn_ret < 0 && errno != WSAEINPROGRESS) {
+    printf("SL_open_socket_conn_nb: Connect returned with ret = %d, reason %s\n", conn_ret, strerror(errno));
 	return errno;
-    }
+  }
 #else
-    if ( conn_ret < 0 && errno != EINPROGRESS)  {
-        PRINTF (("[%d]:SL_open_socket_conn_nb: Connect returned with ret = %d, "
-		"reason %s\n", SL_this_procid,conn_ret, strerror(errno)));
+  if ( conn_ret < 0 && errno != EINPROGRESS) {
+    PRINTF (("[%d]:SL_open_socket_conn_nb: Connect returned with ret = %d, "
+             "reason %s\n", SL_this_procid,conn_ret, strerror(errno)));
 	return errno;
-    }
+  }
 #endif    
-	PRINTF(("[%d]:SL_open_socket_conn: open connection with socket:%d %d\n", 
-			SL_this_procid, *handle, errno));
-    return SL_SUCCESS;
+  PRINTF(("[%d]:SL_open_socket_conn: open connection with socket:%d %d\n", 
+          SL_this_procid, *handle, errno));
+  return SL_SUCCESS;
 }
 
 
 int SL_open_socket_bind ( int *handle, int port )
 {
   int local_port;
-
+  
   /*
   ** Get a socket
   */
   *handle = SL_socket ();
-
+  
   /*
   ** Bind a port to this socket
   */
   local_port = SL_bind_static ( *handle, port );
-
+  
   /*
   ** make the socket fast and nice
   */
   SL_configure_socket( *handle);
-
+  
   return (  local_port );
 }
 
@@ -287,56 +279,57 @@ int SL_open_socket_bind ( int *handle, int port )
 int SL_open_socket_listen ( int sock )
 {
 #ifdef MINGW
-    SOCKET handle;
+  SOCKET handle;
 #else
-    int handle;
+  int handle;
 #endif
-    
-    if(listen ( sock, 20) < 0 ) {
+  
+  if(listen ( sock, 20) < 0 ) {
 	printf("[%d]:SL_open_socket_list: error in listen, %d %s\n",SL_this_procid, 
 	       errno, strerror(errno));
 	return -1;
-    }
-    
-    do {
+  }
+  
+  do {
 	handle = accept ( sock, 0, 0 );       
-    } while( (handle==-1) && (errno==EINTR) );
-    
-    if (  handle < 0 )  {
+  } while( (handle==-1) && (errno==EINTR) );
+  
+  if (  handle < 0 ) {
 	printf("[%d]:SL_open_socket_list: failed to listen at socket %d, %d %s",SL_this_procid,
 	       sock, errno, strerror(errno));
 	return -1;
-    }
-
-    SL_configure_socket (handle);
-    return ( handle );
+  }
+  
+  SL_configure_socket (handle);
+  return ( handle );
 }
+
 
 int SL_open_socket_listen_nb ( int *handle, int port )
 {
-    /*
-    ** Get a socket
-    */
-    *handle = SL_socket ();
-    
-     /*
-    ** Bind a port to this socket
-    */
-    SL_bind_static ( *handle, port );
-    
-    /*
-    ** make the socket fast and nice
-    */
-    SL_configure_socket_nb ( *handle);
-    
-    if(listen ( *handle, 5 ) < 0 ) {
+  /*
+  ** Get a socket
+  */
+  *handle = SL_socket ();
+  
+  /*
+  ** Bind a port to this socket
+  */
+  SL_bind_static ( *handle, port );
+  
+  /*
+  ** make the socket fast and nice
+  */
+  SL_configure_socket_nb ( *handle);
+  
+  if(listen ( *handle, 5 ) < 0 ) {
 	printf("[%d]:SL_open_socket_listen_nb: error in listen, %d %s\n", SL_this_procid,
 	       errno, strerror(errno));
 	return errno;
-    }
-    
-	PRINTF(("[%d]:SL_open_socket_listen_nb: into function : %d\n",SL_this_procid,port));
-    return SL_SUCCESS;
+  }
+  
+  PRINTF(("[%d]:SL_open_socket_listen_nb: into function : %d\n",SL_this_procid,port));
+  return SL_SUCCESS;
 }
 
 /* 
@@ -354,13 +347,13 @@ int SL_open_socket_listen_nb ( int *handle, int port )
 
 int SL_socket_write ( int hdl, char *buf, int num, double timeout )
 {
-    int lcount=0;
-    int a;
-    char *wbuf = buf;
-    double starttime = SL_Wtime();
-    double endtime;
-
-    do {
+  int lcount=0;
+  int a;
+  char *wbuf = buf;
+  double starttime = SL_Wtime();
+  double endtime;
+  
+  do {
 #ifdef MINGW
 	a = send ( hdl, wbuf, num, 0 );
 #else
@@ -368,204 +361,202 @@ int SL_socket_write ( int hdl, char *buf, int num, double timeout )
 #endif
 #ifdef MINGW
 	if ( a == -1 ) {
-	    if ( errno == WSAEINTR || errno == WSAEINTR || errno == WSAEINPROGRESS ||
-		 errno == WSAEWOULDBLOCK ) {
-	    }
-	    else {
+      if ( errno == WSAEINTR || errno == WSAEINTR || errno == WSAEINPROGRESS ||
+           errno == WSAEWOULDBLOCK ) {
+      }
+      else {
 		printf("SL_socket_write: error while writing to socket %s\n", 
-			strerror(errno));
+               strerror(errno));
 		return errno;
-	    }
-	    lcount++;
-	    a=0;
-//	    continue;
+      }
+      lcount++;
+      a=0;
 	}
 #else
 	if ( a == -1 ) {
-	    if ( errno == EINTR || errno == EAGAIN || errno == EINPROGRESS ||
-		 errno == EWOULDBLOCK ) {
+      if ( errno == EINTR || errno == EAGAIN || errno == EINPROGRESS ||
+           errno == EWOULDBLOCK ) {
 		PRINTF(("[%d]:SL_socket_write: noerror while writing to socket %d %s\n", SL_this_procid,hdl,
-                        strerror(errno)));
-		
-	    }
-	    else {
+                strerror(errno)));
+      }
+      else {
 		PRINTF(("[%d]:SL_socket_write: error while writing to socket %d %s\n", SL_this_procid,hdl,
-			strerror(errno)));
+                strerror(errno)));
 		return errno;
-	    }
-	    lcount++;
-	    a=0;
-//	    continue;
+      }
+      lcount++;
+      a=0;
 	}    
 #endif
 	wbuf += a;
 	num -= a;
-	
-	if ( timeout > 0 ) {
-	    endtime = SL_Wtime();
-	    if ( (endtime - starttime) > timeout ) {
-		printf("[%d]:SL_socket_write: data transfer operation timed out after %lf secs\n",SL_this_procid,
-			(endtime-starttime));
-		return SL_ERR_PROC_UNREACHABLE;
-	    }
-	}
-	
-    } while ( num > 0 );
-    PRINTF (("[%d]:SL_socket_write: wrote %d bytes to %d lcount=%d num=%d\n", SL_this_procid,
-	     a, hdl, lcount, num ));
     
-    return SL_SUCCESS;
+	if ( timeout > 0 ) {
+      endtime = SL_Wtime();
+      if ( (endtime - starttime) > timeout ) {
+		printf("[%d]:SL_socket_write: data transfer operation timed out after %lf secs\n",SL_this_procid,
+               (endtime-starttime));
+		return SL_ERR_PROC_UNREACHABLE;
+      }
+	}
+    
+  } while ( num > 0 );
+  PRINTF (("[%d]:SL_socket_write: wrote %d bytes to %d lcount=%d num=%d\n", SL_this_procid,
+           a, hdl, lcount, num ));
+  
+  return SL_SUCCESS;
 }
+
 
 int SL_socket_write_nb ( int hdl, char *buf, int num, int *numwritten )
 {
-    int ret;
+  int ret;
 #ifdef MINGW
-    ret = send ( hdl, buf, num, 0 );
+  ret = send ( hdl, buf, num, 0 );
 #else    
-    ret = write ( hdl, buf, num);
+  ret = write ( hdl, buf, num);
 #endif
 #ifdef MINGW
-    if ( ret == -1 ) {
+  if ( ret == -1 ) {
 	*numwritten = 0;
 	if ( errno == WSAEINTR || errno == WSAEINTR || errno == WSAEINPROGRESS ||
 	     errno == WSAEWOULDBLOCK ) {
-	    ret = SL_SUCCESS;
+      ret = SL_SUCCESS;
 	}
 	else {
-	    printf("SL_socket_write_nb: error while writing to socket %s\n", 
-		    strerror(errno));
-	    ret =  errno;
+      printf("SL_socket_write_nb: error while writing to socket %s\n", 
+             strerror(errno));
+      ret =  errno;
 	}
 #else
-    if ( ret == -1 ) {
-	*numwritten = 0;
-	if ( errno == EINTR || errno == EAGAIN || errno == EINPROGRESS ||
-	     errno == EWOULDBLOCK ) {
-	    ret = SL_SUCCESS;
-	}
-	else {
-	    printf("[%d]:SL_socket_write_nb: error while writing to socket %s\n", SL_this_procid,
-		    strerror(errno));
-	    ret =  errno;
-	}
-#endif
+  if ( ret == -1 ) {
+    *numwritten = 0;
+    if ( errno == EINTR || errno == EAGAIN || errno == EINPROGRESS ||
+         errno == EWOULDBLOCK ) {
+      ret = SL_SUCCESS;
     }
     else {
-	*numwritten = ret;
-	ret = SL_SUCCESS;
+      printf("[%d]:SL_socket_write_nb: error while writing to socket %s\n", SL_this_procid,
+             strerror(errno));
+      ret =  errno;
     }
-
-    return ret;
+#endif
+  }
+  else {
+    *numwritten = ret;
+    ret = SL_SUCCESS;
+  }
+  return ret;
 }
+
 
 int SL_socket_read ( int hdl, char *buf, int num, double timeout )
 {
-    int lcount=0;
-    int a;
-    char *wbuf = buf;
-    double starttime = SL_Wtime();
-    double endtime;
-    
-    do {
+  int lcount=0;
+  int a;
+  char *wbuf = buf;
+  double starttime = SL_Wtime();
+  double endtime;
+  
+  do {
 #ifdef MINGW
-	a = recv ( hdl, wbuf, num, 0 );
+    a = recv ( hdl, wbuf, num, 0 );
 #else
-	a = read ( hdl, wbuf, num);
+    a = read ( hdl, wbuf, num);
 #endif
 #ifdef MINGW
-	
-	if ( a < 0 ) {
-	    errno = WSAGetLastError();
-	    if ( errno == WSAEINTR ||  errno == WSAEINPROGRESS ||
-		 errno == WSAEWOULDBLOCK) {
-	    }
-	    else {
-		PRINTF(("SL_socket_read: error while reading from socket %s\n", 
-			strerror(errno)));
-		return errno;
-	    }
-	    lcount++;
-	    a=0;
-//	    continue;
-	}
-#else
-	if ( a == -1 ) {
-	    if ( errno == EINTR || errno == EAGAIN || errno == EINPROGRESS ||
-		 errno == EWOULDBLOCK) {
-	    }
-	    else {
-		PRINTF(("[%d]:SL_socket_read: error while reading from socket %d %s\n", SL_this_procid,
-			hdl,strerror(errno)));
-		return errno;
-	    }
-	    lcount++;
-	    a=0;
-//	    continue;
-	}	
-#endif
-
-	num -= a;
-	wbuf += a;
-
-	if ( timeout > 0 ) {
-	    endtime = SL_Wtime();
-	    if ( (endtime - starttime) > timeout ) {
-		printf("[%d]:SL_socket_read: data transfer operation timed out after %lf secs socket:%d\n",SL_this_procid,
-			(endtime-starttime), hdl);
-		return SL_ERR_PROC_UNREACHABLE;
-	    }
-	}
-    } while ( num > 0 );
-    PRINTF(("[%d]:SL_socket_read: read %d bytes from %d lcount=%d num=%d\n", SL_this_procid,
-	     a, hdl, lcount, num ));
     
-    return SL_SUCCESS;
+    if ( a < 0 ) {
+      errno = WSAGetLastError();
+      if ( errno == WSAEINTR ||  errno == WSAEINPROGRESS ||
+           errno == WSAEWOULDBLOCK) {
+      }
+      else {
+        PRINTF(("SL_socket_read: error while reading from socket %s\n", 
+                strerror(errno)));
+        return errno;
+      }
+      lcount++;
+      a=0;
+      //	    continue;
+    }
+#else
+    if ( a == -1 ) {
+      if ( errno == EINTR || errno == EAGAIN || errno == EINPROGRESS ||
+           errno == EWOULDBLOCK) {
+      }
+      else {
+        PRINTF(("[%d]:SL_socket_read: error while reading from socket %d %s\n", SL_this_procid,
+                hdl,strerror(errno)));
+        return errno;
+      }
+      lcount++;
+      a=0;
+      //	    continue;
+    }	
+#endif
+    
+    num -= a;
+    wbuf += a;
+    
+    if ( timeout > 0 ) {
+      endtime = SL_Wtime();
+      if ( (endtime - starttime) > timeout ) {
+        printf("[%d]:SL_socket_read: data transfer operation timed out after %lf secs socket:%d\n",SL_this_procid,
+               (endtime-starttime), hdl);
+        return SL_ERR_PROC_UNREACHABLE;
+      }
+    }
+  } while ( num > 0 );
+  PRINTF(("[%d]:SL_socket_read: read %d bytes from %d lcount=%d num=%d\n", SL_this_procid,
+          a, hdl, lcount, num ));
+  
+  return SL_SUCCESS;
 }
+ 
 
 int SL_socket_read_nb ( int hdl, char *buf, int num, int* numread )
 {
-    int ret;
-    
+  int ret;
+  
 #ifdef MINGW
-    ret = recv ( hdl, buf, num, 0 );
+  ret = recv ( hdl, buf, num, 0 );
 #else
-    ret = read ( hdl, buf, num);
+  ret = read ( hdl, buf, num);
 #endif
 #ifdef MINGW
-    if ( ret == -1 ) {
-	*numread = 0;
-	errno = WSAGetLastError();
-	if ( errno == WSAEINTR  || errno == WSAEINPROGRESS ||
-	     errno == WSAEWOULDBLOCK) {
-	    ret = SL_SUCCESS;
-	}
-	else {
-	    PRINTF(("SL_socket_read_nb: error while reading from socket %s\n", 
-		    strerror(errno)));
-	    return errno;
-		}
-	}
-#else
-    if ( ret == -1 ) {
-	*numread = 0;
-	if ( errno == EINTR || errno == EAGAIN || errno == EINPROGRESS ||
-	     errno == EWOULDBLOCK) {
-	    ret = SL_SUCCESS;
-	}
-	else {
-	    printf("[%d]:SL_socket_read_nb: error while reading from socket %d %s\n", SL_this_procid,
-		    hdl, strerror(errno));
-	    return errno;
-#endif
-	}
+  if ( ret == -1 ) {
+    *numread = 0;
+    errno = WSAGetLastError();
+    if ( errno == WSAEINTR  || errno == WSAEINPROGRESS ||
+         errno == WSAEWOULDBLOCK) {
+      ret = SL_SUCCESS;
     }
     else {
-	*numread = ret;
-	ret = SL_SUCCESS;
-	PRINTF(("[%d]:SL_socket_read_nb: read %d bytes from %d num=%d\n", SL_this_procid,
-             *numread, hdl, num ));
-
+      PRINTF(("SL_socket_read_nb: error while reading from socket %s\n", 
+              strerror(errno)));
+      return errno;
     }
-    return ret;
+  }
+#else
+  if ( ret == -1 ) {
+    *numread = 0;
+    if ( errno == EINTR || errno == EAGAIN || errno == EINPROGRESS ||
+         errno == EWOULDBLOCK) {
+      ret = SL_SUCCESS;
+    }
+    else {
+      printf("[%d]:SL_socket_read_nb: error while reading from socket %d %s\n", SL_this_procid,
+             hdl, strerror(errno));
+      return errno;
+#endif
+    }
+  }
+  else {
+    *numread = ret;
+    ret = SL_SUCCESS;
+    PRINTF(("[%d]:SL_socket_read_nb: read %d bytes from %d num=%d\n", SL_this_procid,
+            *numread, hdl, num ));
+  }
+  return ret;
 }

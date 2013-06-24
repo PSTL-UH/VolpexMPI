@@ -83,19 +83,19 @@ char** MCFA_allocate_func(char fileName[MAXHOSTNAMELEN], int *num)
   FILE *inputFile = NULL;
   inputFile=fopen(fileName,"r");
   
-  if (inputFile == NULL){
+  if (inputFile == NULL) {
     printf("Cannot open file : %s \n",fileName);
     return 0;
   }
   name = (char**)malloc(100 * sizeof(char *));//TO BE CORRECTED (read the number of hosts from hostfile fist, and use that instead of fixed 100)
-  if(name == NULL){
+  if(name == NULL) {
     printf("ERROR: in allocating memory\n");
     exit(-1);
   }
   
-  while(!feof(inputFile)){
+  while(!feof(inputFile)) {
     name[i] = (char *) malloc (MAXHOSTNAMELEN * sizeof(char ));
-    if(name[i] == NULL){
+    if(name[i] == NULL) {
       printf("ERROR: in allocating memory\n");
       exit(-1);
     }
@@ -118,7 +118,6 @@ int MCFA_get_exec_name(char *path, char *filename)
     filenameStart++;
 
   strcpy(filename,filenameStart);
-  
   return 0;
 }
 
@@ -134,11 +133,11 @@ char ** MCFA_get_hostarray(struct MCFA_host_node *hostlist, char *starthost)
   hostName = (char**)malloc(hostCount*sizeof(char*));
   
   curr = hostlist;
-  while(strcmp(curr->hostdata->hostname,starthost)){
+  while(strcmp(curr->hostdata->hostname,starthost)) {
     curr = curr->next;
   }
   
-  for(i=0;i<hostCount;i++){
+  for(i=0;i<hostCount;i++) {
     hostName[i] = (char *) malloc (MAXHOSTNAMELEN *sizeof(char));
     hostName[i]= curr->hostdata->hostname;
     if(NULL != curr->next)

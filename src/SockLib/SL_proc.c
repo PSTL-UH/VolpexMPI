@@ -77,10 +77,8 @@ int SL_proc_init ( int proc_id, char *hostname, int port )
 
 int SL_proc_finalize(SL_proc *proc)
 {
-  
   SL_net_performance_free(proc);
   SL_msg_performance_free(proc);
-  
   SL_msgq_head_finalize(proc->squeue);
   SL_msgq_head_finalize(proc->rqueue);
   SL_msgq_head_finalize(proc->urqueue);
@@ -94,14 +92,15 @@ int SL_proc_finalize(SL_proc *proc)
   return SL_SUCCESS;	
 }
 
+
 int SL_init_eventq()
 {
   char name[32];
   sprintf(name, "SL_event_recvq");
   SL_event_recvq = SL_msgq_head_init ( name );
-  
   return SL_SUCCESS;
 }
+
 
 int SL_init_internal()
 {
@@ -152,7 +151,6 @@ SL_proc*  SL_proc_get_byfd ( int fd )
       break;
 	}
   }
-  
   return dproc;
 }
 
@@ -203,7 +201,6 @@ void SL_proc_close ( SL_proc * proc )
   free ( header );
   return;
 }
-
 
 
 int SL_proc_init_conn ( SL_proc * proc ) 
@@ -320,6 +317,7 @@ int SL_proc_init_conn_nb ( SL_proc * proc, double timeout )
   SL_proc_dumpall();
   return SL_SUCCESS;
 }
+
 
 /* this is just a temporary routine to test things quickly */
 int SL_proc_read_and_set ( char *filename )
@@ -474,6 +472,7 @@ void SL_proc_handle_error ( SL_proc* proc, int err, int flag )
   return;
 }
 
+
 int SL_proc_id_generate(int flag)
 {
   static int id = -2;
@@ -488,11 +487,13 @@ int SL_proc_id_generate(int flag)
   return SL_SUCCESS;
 }
 
+
 int SL_proc_port_generate()
 {
   static int port = 45001;
   return port++;
 }
+
 
 double SL_papi_time()
 {
