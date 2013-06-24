@@ -439,7 +439,6 @@ struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, char *a
     execvp(arg[0],arg);
   }
   
-  
   if (spawn_flag == BOINC) {
     MCFA_set_boinc_dir();
     
@@ -451,6 +450,7 @@ struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, char *a
     MCFA_create_boinc_script(arg[2], arg[3], numprocs);
     printf("HURRAY!!!we currently do provide support for BOINC\n");
   }
+
   if (spawn_flag == CONDOR) {
     strcpy(exec, "");
     strcpy(deamon, "");
@@ -461,7 +461,6 @@ struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, char *a
   }
   
   if (spawn_flag == CONDOR || spawn_flag == BOINC || spawn_flag == RANDOM || spawn_flag == HPX) {
-    
     k=0;
     while(k<numprocs) {
       SL_msg_progress();
@@ -493,13 +492,12 @@ struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, char *a
     PRINTF(("MCFA_startprocs:Total number of processes spawned %d\n",numprocs));
 
     struct MCFA_proc_node *curr = newproclist;
-    for(k=0;k<numprocs;k++)
-      {
-        PRINTF(("MCFA_startprocs:sending procList to process with id  %d\n",curr->procdata->id));
-        SL_Send(&msglen, sizeof(int), curr->procdata->id, 0, 0);
-        SL_Send(buf, msglen, curr->procdata->id, 0, 0 );
-        curr = curr->next;
-      }	
+    for(k=0;k<numprocs;k++) {
+      PRINTF(("MCFA_startprocs:sending procList to process with id  %d\n",curr->procdata->id));
+      SL_Send(&msglen, sizeof(int), curr->procdata->id, 0, 0);
+      SL_Send(buf, msglen, curr->procdata->id, 0, 0 );
+      curr = curr->next;
+    }	
     
 #ifdef CLUSTER    
     if(cluster_flag != 0 && numprocs/redundancy > 1)
@@ -514,7 +512,7 @@ struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, char *a
         curr = curr->next;
       }
   }    
-    
+
   free(buf);
   return newproclist;
 }

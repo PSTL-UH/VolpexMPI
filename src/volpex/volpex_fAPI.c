@@ -1,12 +1,12 @@
 /*
-#
-# Copyright (c) 2006-2012      University of Houston. All rights reserved.
-# $COPYRIGHT$
-#
-# Additional copyrights may follow
-#
-# $HEADER$
-#
+  #
+  # Copyright (c) 2006-2012      University of Houston. All rights reserved.
+  # $COPYRIGHT$
+  #
+  # Additional copyrights may follow
+  #
+  # $HEADER$
+  #
 */
 #include "mpi.h"
 #include "SL_proc.h"
@@ -34,11 +34,11 @@ extern int request_counter;
 
 void mpi_init(int *ierr)
 {
-    int argc=1;
-    char ***argv=NULL;
-
-    *ierr = MPI_Init (&argc, argv);
-    return;
+  int argc=1;
+  char ***argv=NULL;
+  
+  *ierr = MPI_Init (&argc, argv);
+  return;
 }
 
 
@@ -51,8 +51,8 @@ void mpi_init(int *ierr)
 
 void mpi_finalize( int *ierr)
 {
-    *ierr = MPI_Finalize();
-    return;
+  *ierr = MPI_Finalize();
+  return;
 }
 /********************************************************************************/
 /********************************************************************************/
@@ -64,8 +64,8 @@ void mpi_finalize( int *ierr)
 
 void mpi_comm_size( int *comm, int *size, int *ierr)
 {
-    *ierr = MPI_Comm_size(*comm, size);
-    return;
+  *ierr = MPI_Comm_size(*comm, size);
+  return;
 }
 /********************************************************************************/
 /********************************************************************************/
@@ -76,8 +76,8 @@ void mpi_comm_size( int *comm, int *size, int *ierr)
 
 void mpi_comm_rank( int *comm, int *rank, int *ierr)
 {
-    *ierr = MPI_Comm_rank(*comm, rank);
-    return;
+  *ierr = MPI_Comm_rank(*comm, rank);
+  return;
 }
 /********************************************************************************/
 /********************************************************************************/
@@ -87,10 +87,10 @@ void mpi_comm_rank( int *comm, int *rank, int *ierr)
 #pragma weak MPI_SEND    = mpi_send
 
 void mpi_send(void *buf, int *count,  int *datatype, int *dest, int *tag, 
-	      int *comm, int *ierr)
+              int *comm, int *ierr)
 {
-    *ierr = MPI_Send(buf, *count, *datatype, *dest, *tag, *comm);
-    return;
+  *ierr = MPI_Send(buf, *count, *datatype, *dest, *tag, *comm);
+  return;
 }
 /********************************************************************************/
 /********************************************************************************/
@@ -100,10 +100,10 @@ void mpi_send(void *buf, int *count,  int *datatype, int *dest, int *tag,
 #pragma weak MPI_RECV    = mpi_recv
 
 void mpi_recv(void *buf, int *count,  int *datatype, int *source, int *tag, 
-	      int *comm, int *status, int *ierr)
+              int *comm, int *status, int *ierr)
 {
-    *ierr = MPI_Recv(buf, *count, *datatype, *source, *tag, *comm, (MPI_Status *)status);
-    return;
+  *ierr = MPI_Recv(buf, *count, *datatype, *source, *tag, *comm, (MPI_Status *)status);
+  return;
 }
 /********************************************************************************/
 /********************************************************************************/
@@ -113,10 +113,10 @@ void mpi_recv(void *buf, int *count,  int *datatype, int *source, int *tag,
 #pragma weak MPI_BCAST    = mpi_bcast
 
 void mpi_bcast(void *buf, int *count,  int *datatype, int *root, 
-	       int *comm, int *ierr)
+               int *comm, int *ierr)
 {
-    *ierr = MPI_Bcast(buf, *count, *datatype, *root, *comm);
-    return;
+  *ierr = MPI_Bcast(buf, *count, *datatype, *root, *comm);
+  return;
 }
 /********************************************************************************/
 /********************************************************************************/
@@ -126,10 +126,10 @@ void mpi_bcast(void *buf, int *count,  int *datatype, int *root,
 #pragma weak MPI_REDUCE    = mpi_reduce
 
 void mpi_reduce(void *sendbuf, void *recvbuf, int *count,  int *datatype, 
-	        int *op, int *root,  int *comm, int *ierr)
+                int *op, int *root,  int *comm, int *ierr)
 {
-    *ierr = MPI_Reduce(sendbuf, recvbuf, *count, *datatype, *op, *root, *comm);
-    return;
+  *ierr = MPI_Reduce(sendbuf, recvbuf, *count, *datatype, *op, *root, *comm);
+  return;
 }
 /********************************************************************************/
 /********************************************************************************/
@@ -139,10 +139,10 @@ void mpi_reduce(void *sendbuf, void *recvbuf, int *count,  int *datatype,
 #pragma weak MPI_ALLREDUCE    = mpi_allreduce
 
 void mpi_allreduce(void *sendbuf, void *recvbuf, int *count,  int *datatype, 
-		   int *op,  int *comm, int *ierr)
+                   int *op,  int *comm, int *ierr)
 {
-    *ierr = MPI_Allreduce(sendbuf, recvbuf, *count, *datatype, *op, *comm);
-    return;
+  *ierr = MPI_Allreduce(sendbuf, recvbuf, *count, *datatype, *op, *comm);
+  return;
 }
 /********************************************************************************/
 /********************************************************************************/
@@ -152,10 +152,10 @@ void mpi_allreduce(void *sendbuf, void *recvbuf, int *count,  int *datatype,
 #pragma weak MPI_ISEND    = mpi_isend
 
 void mpi_isend(void *buf, int *count,  int *datatype, int *dest, int *tag, 
-	       int *comm, int *request, int *ierr)
+               int *comm, int *request, int *ierr)
 {
-    *ierr = MPI_Isend(buf, *count, *datatype, *dest, *tag, *comm, request);
-    return;
+  *ierr = MPI_Isend(buf, *count, *datatype, *dest, *tag, *comm, request);
+  return;
 }
 /********************************************************************************/
 /********************************************************************************/
@@ -165,10 +165,10 @@ void mpi_isend(void *buf, int *count,  int *datatype, int *dest, int *tag,
 #pragma weak MPI_IRECV    = mpi_irecv
 
 void mpi_irecv(void *buf, int *count,  int *datatype, int *source, int *tag, 
-	       int *comm, int *request, int *ierr)
+               int *comm, int *request, int *ierr)
 {
-    *ierr = MPI_Irecv(buf, *count, *datatype, *source, *tag, *comm, request);
-    return;
+  *ierr = MPI_Irecv(buf, *count, *datatype, *source, *tag, *comm, request);
+  return;
 }
 /********************************************************************************/
 /********************************************************************************/
@@ -179,8 +179,8 @@ void mpi_irecv(void *buf, int *count,  int *datatype, int *source, int *tag,
 
 void  mpi_waitall(int *count, int *request, int *status, int *ierr)
 {
-    *ierr = MPI_Waitall(*count, request, (MPI_Status *) status);
-    return;
+  *ierr = MPI_Waitall(*count, request, (MPI_Status *) status);
+  return;
 }
 /********************************************************************************/
 /********************************************************************************/
@@ -191,11 +191,11 @@ void  mpi_waitall(int *count, int *request, int *status, int *ierr)
 
 void  mpi_waitany (int *count, int *request, int *index, int *status, int *ierr)
 {
-    int c_index;
-
-    *ierr = MPI_Waitany(*count, request, &c_index, (MPI_Status *)status);
-    *index = c_index + 1; /* Fortran counts from one not from zero */
-    return;
+  int c_index;
+  
+  *ierr = MPI_Waitany(*count, request, &c_index, (MPI_Status *)status);
+  *index = c_index + 1; /* Fortran counts from one not from zero */
+  return;
 }
 /********************************************************************************/
 /********************************************************************************/
@@ -206,8 +206,8 @@ void  mpi_waitany (int *count, int *request, int *index, int *status, int *ierr)
 
 void mpi_wait(int *request, int *status, int *ierr)
 {
-    *ierr = MPI_Wait(request, (MPI_Status *)status);
-    return;
+  *ierr = MPI_Wait(request, (MPI_Status *)status);
+  return;
 }
 /********************************************************************************/
 /********************************************************************************/
@@ -218,8 +218,8 @@ void mpi_wait(int *request, int *status, int *ierr)
 
 void mpi_test(int *request, int *flag, int *status, int *ierr)
 {
-    *ierr = MPI_Test(request, flag, (MPI_Status *) status);
-    return;
+  *ierr = MPI_Test(request, flag, (MPI_Status *) status);
+  return;
 }
 /********************************************************************************/
 /********************************************************************************/
@@ -230,8 +230,8 @@ void mpi_test(int *request, int *flag, int *status, int *ierr)
 
 void mpi_barrier( int *comm, int *ierr)
 {
-    *ierr = MPI_Barrier(*comm);
-    return;
+  *ierr = MPI_Barrier(*comm);
+  return;
 }
 /********************************************************************************/
 /********************************************************************************/
@@ -242,10 +242,10 @@ void mpi_barrier( int *comm, int *ierr)
 
 void mpi_abort( int *comm, int *errorcode, int *ierr)
 {
-    printf("Error %d occured on context_id %d. Aborting.\n", *errorcode, *comm);
-    *ierr = 0;
-    exit(*errorcode);
-    return;
+  printf("Error %d occured on context_id %d. Aborting.\n", *errorcode, *comm);
+  *ierr = 0;
+  exit(*errorcode);
+  return;
 }
 /********************************************************************************/
 /********************************************************************************/
@@ -256,7 +256,7 @@ void mpi_abort( int *comm, int *errorcode, int *ierr)
 
 double mpi_wtime()
 {
-    return MPI_Wtime();
+  return MPI_Wtime();
 }
 /********************************************************************************/
 /********************************************************************************/
@@ -266,10 +266,10 @@ double mpi_wtime()
 #pragma weak MPI_ALLTOALL    = mpi_alltoall
 
 void  mpi_alltoall(void *sendbuf, int *sendcount,  int *sendtype, void *recvbuf, 
-		  int *recvcount,  int *recvtype,  int *comm, int *ierr)
+                   int *recvcount,  int *recvtype,  int *comm, int *ierr)
 {
-    *ierr = MPI_Alltoall(sendbuf, *sendcount, *sendtype, recvbuf, *recvcount, *recvtype, *comm);
-    return;      
+  *ierr = MPI_Alltoall(sendbuf, *sendcount, *sendtype, recvbuf, *recvcount, *recvtype, *comm);
+  return;      
 }
 /********************************************************************************/
 /********************************************************************************/
@@ -279,12 +279,12 @@ void  mpi_alltoall(void *sendbuf, int *sendcount,  int *sendtype, void *recvbuf,
 #pragma weak MPI_ALLTOALLV    = mpi_alltoallv
 
 void mpi_alltoallv(void *sendbuf, int *sendcount, int *sdispls,  int *sendtype, 
-		  void *recvbuf, int *recvcount, int *rdispls,  int *recvtype,
-		   int *comm, int *ierr)
+                   void *recvbuf, int *recvcount, int *rdispls,  int *recvtype,
+                   int *comm, int *ierr)
 {
-    *ierr = MPI_Alltoallv(sendbuf, sendcount, sdispls, *sendtype, recvbuf, recvcount, 
-			     rdispls, *recvtype, *comm);
-    return;      
+  *ierr = MPI_Alltoallv(sendbuf, sendcount, sdispls, *sendtype, recvbuf, recvcount, 
+                        rdispls, *recvtype, *comm);
+  return;      
 }
 /********************************************************************************/
 /********************************************************************************/
@@ -295,8 +295,8 @@ void mpi_alltoallv(void *sendbuf, int *sendcount, int *sdispls,  int *sendtype,
 
 void mpi_comm_dup( int *comm,  int *newcomm, int *ierr)
 {
-    *ierr = MPI_Comm_dup(*comm, newcomm);
-    return;
+  *ierr = MPI_Comm_dup(*comm, newcomm);
+  return;
 }
 /********************************************************************************/
 /********************************************************************************/
@@ -306,10 +306,10 @@ void mpi_comm_dup( int *comm,  int *newcomm, int *ierr)
 #pragma weak MPI_COMM_SPLIT    = mpi_comm_split
 
 void mpi_comm_split( int *comm, int *color, int *key,  int *newcomm, 
-		   int *ierr)
+                     int *ierr)
 {
-    *ierr = MPI_Comm_split(*comm, *color, *key, newcomm);
-    return;
+  *ierr = MPI_Comm_split(*comm, *color, *key, newcomm);
+  return;
 }
 /********************************************************************************/
 /********************************************************************************/
@@ -319,11 +319,11 @@ void mpi_comm_split( int *comm, int *color, int *key,  int *newcomm,
 #pragma weak MPI_GATHER    = mpi_gather
 
 void mpi_gather(void *sendbuf, int *sendcnt,  int *sendtype, void *recvbuf, 
-	       int *recvcnt,  int *recvtype, int *root,  int *comm, 
-	       int *ierr)
+                int *recvcnt,  int *recvtype, int *root,  int *comm, 
+                int *ierr)
 {
-    *ierr = MPI_Gather(sendbuf, *sendcnt, *sendtype, recvbuf, *recvcnt, *recvtype, *root, *comm);
-    return;
+  *ierr = MPI_Gather(sendbuf, *sendcnt, *sendtype, recvbuf, *recvcnt, *recvtype, *root, *comm);
+  return;
 }
 /********************************************************************************/
 /********************************************************************************/
@@ -333,10 +333,10 @@ void mpi_gather(void *sendbuf, int *sendcnt,  int *sendtype, void *recvbuf,
 #pragma weak MPI_ALLGATHER    = mpi_allgather
 
 void mpi_allgather(void *sendbuf, int *sendcount,  int *sendtype, void *recvbuf, 
-		  int *recvcount,  int *recvtype,  int *comm, int *ierr)
+                   int *recvcount,  int *recvtype,  int *comm, int *ierr)
 {
-    *ierr = MPI_Allgather(sendbuf, *sendcount, *sendtype, recvbuf, *recvcount, *recvtype, *comm);
-    return;
+  *ierr = MPI_Allgather(sendbuf, *sendcount, *sendtype, recvbuf, *recvcount, *recvtype, *comm);
+  return;
 }
 /********************************************************************************/
 /********************************************************************************/
@@ -346,10 +346,10 @@ void mpi_allgather(void *sendbuf, int *sendcount,  int *sendtype, void *recvbuf,
 #pragma weak MPI_PACK    = mpi_pack
 
 void mpi_pack(void *inbuf, int *count,  int * datatype, void *outbuf, 
-		  int *outsize,  int *position,  int *comm, int *ierr)
+              int *outsize,  int *position,  int *comm, int *ierr)
 {
-    *ierr = MPI_Pack(inbuf, *count, *datatype, outbuf, *outsize, position, *comm);
-    return;
+  *ierr = MPI_Pack(inbuf, *count, *datatype, outbuf, *outsize, position, *comm);
+  return;
 }
 /********************************************************************************/
 /********************************************************************************/
@@ -359,10 +359,10 @@ void mpi_pack(void *inbuf, int *count,  int * datatype, void *outbuf,
 #pragma weak MPI_UNPACK    = mpi_unpack
 
 void mpi_unpack(void *inbuf, int *insize,  int *position, void *outbuf, 
-		  int *outcount,  int *datatype,  int *comm, int *ierr)
+                int *outcount,  int *datatype,  int *comm, int *ierr)
 {
-    *ierr = MPI_Unpack(inbuf, *insize, position, outbuf, *outcount, *datatype, *comm);
-    return;
+  *ierr = MPI_Unpack(inbuf, *insize, position, outbuf, *outcount, *datatype, *comm);
+  return;
 }
 
 /********************************************************************************/
@@ -374,9 +374,9 @@ void mpi_unpack(void *inbuf, int *insize,  int *position, void *outbuf,
 
 void mpi_type_size ( int *datatype, int *size, int *ierr )
 {
-
-    *ierr = MPI_Type_size ( *datatype, size );
-    return;
+  
+  *ierr = MPI_Type_size ( *datatype, size );
+  return;
 }
 
 #pragma weak mpi_rank_   = mpi_rank
@@ -385,8 +385,6 @@ void mpi_type_size ( int *datatype, int *size, int *ierr )
 
 void mpi_rank(int *actualrank, int *ierr)
 {
-	*ierr = MPI_rank(actualrank);
-	return;
+  *ierr = MPI_rank(actualrank);
+  return;
 }
-
-

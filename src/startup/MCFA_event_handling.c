@@ -38,7 +38,6 @@ char** MCFA_get_startproc( SL_event_msg_header *header, int *hostcount)
       }
       curr = curr->next;
     }
-    
 	hostName = MCFA_get_hostarray( hostList, curr->hostdata->hostname);
 	hostCount = MCFA_get_total_hosts(hostList);
   }	
