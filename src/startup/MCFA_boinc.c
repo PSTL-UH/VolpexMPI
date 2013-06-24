@@ -20,7 +20,6 @@ void MCFA_set_boinc_dir()
 {
   BOINCDIR = (char*)malloc(50 * sizeof(char));
   strcpy(BOINCDIR, "../../../");
-  
 }
 
 
@@ -342,7 +341,6 @@ int MCFA_get_ip(char **ip)
     temp[i] = ipp[i];
     i++;
   }
-  
   strcpy (*ip, temp);
   pclose(fp);
   free(temp);

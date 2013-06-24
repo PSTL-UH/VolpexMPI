@@ -40,7 +40,6 @@ char ** local_read_argfile();
 
 int MCFA_Init(int argc, char **argv)
 {
-  
   char *hostname;
   char  *msgbuf = NULL;
   int port;
@@ -168,10 +167,6 @@ int MCFA_Init(int argc, char **argv)
   SL_Recv ( msgbuf, msglen, MCFA_MASTER_ID, 0, 0, SL_STATUS_NULL);
   Volpex_numprocs = MCFA_proc_read_volpex_procs(msgbuf,msglen);
   
-
-  //free(hname);
-
-
   free(msgbuf);	
   return MCFA_SUCCESS;
 }
@@ -182,6 +177,7 @@ int MCFA_Finalize ( void )
   SL_Finalize ();
   return MCFA_SUCCESS;
 }
+
 
 int MCFA_proc_read_volpex_procs(char *msgbuf,int len)
 {
@@ -253,6 +249,7 @@ int SL_add_proc(void *buf, int len)
   return SL_SUCCESS;
 }
 
+
 int SL_add_existing_proc(void *buf, int len)
 {
   Volpex_proc *proc;
@@ -285,6 +282,7 @@ int SL_delete_proc(void *buf, int len)
     }
   return SL_SUCCESS;
 }
+
 
 int SL_start_communication(void *buf, int id)
 {
