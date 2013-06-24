@@ -17,6 +17,7 @@ extern MCFA_set_lists_func *MCFA_set_lists;
 extern struct      MCFA_host_node *hostList;
 extern struct      MCFA_proc_node *procList;
 
+
 char** MCFA_get_startproc( SL_event_msg_header *header, int *hostcount)
 {
   struct      MCFA_host_node *curr = NULL, *next = NULL;
@@ -27,7 +28,6 @@ char** MCFA_get_startproc( SL_event_msg_header *header, int *hostcount)
   if (strcmp(header->hostfile,"")!=0){
     curr = MCFA_set_hostlist(header->hostfile, NULL, header->numprocs, SL_this_procport,&hostCount, &hostName);
   }
-  
   else{
     curr = hostList;
 	while(curr->next != NULL){
@@ -45,6 +45,7 @@ char** MCFA_get_startproc( SL_event_msg_header *header, int *hostcount)
   *hostcount = hostCount;
   return (hostName);
 }
+
 
 int MCFA_inform_existing_procs(SL_event_msg_header *SL_header, char *buf, int numprocs)
 {
@@ -74,7 +75,6 @@ int MCFA_inform_existing_procs(SL_event_msg_header *SL_header, char *buf, int nu
     }
   return 1;
 }
-
 
 
 int MCFA_event_addprocs(SL_event_msg_header *header, int numprocs)
@@ -123,8 +123,11 @@ int MCFA_event_addprocs(SL_event_msg_header *header, int numprocs)
   cluster_flag = 0;
   char *argg = NULL;
   MCFA_spawn_processes(start_host,path,argg,port,jobID,newnumprocs,hostCount,redundancy,spawn_flag,cluster_flag,list);  
+
+  free (buf);
   return MCFA_SUCCESS;
 }
+
 
 int MCFA_event_addprocid(SL_event_msg_header *header)
 {
@@ -151,6 +154,7 @@ int MCFA_event_addprocid(SL_event_msg_header *header)
   }
   return MCFA_SUCCESS;
 }
+
 
 int MCFA_event_deletejob(SL_event_msg_header *header, int numprocs, int *num)
 {
@@ -186,8 +190,10 @@ int MCFA_event_deletejob(SL_event_msg_header *header, int numprocs, int *num)
       }
     }
   }
+  free(buf);
   return MCFA_SUCCESS;
 }
+
 
 int MCFA_event_deleteproc(SL_event_msg_header *header, int numprocs)
 {
@@ -228,6 +234,7 @@ int MCFA_event_deleteproc(SL_event_msg_header *header, int numprocs)
   }
   MCFA_proc_close(procList, header->procid);
   
+  free(buf);
   return MCFA_SUCCESS;
 }
 
@@ -240,8 +247,11 @@ int MCFA_event_printjobstatus(SL_event_msg_header *header)
   buf = MCFA_pack_jobstatus(procList, header->jobid, &msglen);
   SL_Send(&msglen, sizeof(int), header->id, 0, 0);
   SL_Send(buf, msglen, header->id, 0, 0 );
+
+  free(buf);
   return MCFA_SUCCESS;
 }
+
 
 int MCFA_event_printprocstatus(SL_event_msg_header *header)
 {
@@ -252,8 +262,10 @@ int MCFA_event_printprocstatus(SL_event_msg_header *header)
   SL_Send(&msglen, sizeof(int), header->id, 0, 0);
   SL_Send(buf, msglen, header->id, 0, 0 );
   
+  free(buf);
   return MCFA_SUCCESS;
 }
+
 
 int MCFA_event_printalljobstatus(SL_event_msg_header *header)
 {
@@ -264,8 +276,10 @@ int MCFA_event_printalljobstatus(SL_event_msg_header *header)
   SL_Send(&msglen, sizeof(int), header->id, 0, 0);
   SL_Send(buf, msglen, header->id, 0, 0 );
   
+  free(buf);
   return MCFA_SUCCESS;
 }
+
 
 int MCFA_event_printhoststatus(SL_event_msg_header *header)
 {
@@ -276,8 +290,10 @@ int MCFA_event_printhoststatus(SL_event_msg_header *header)
   SL_Send(&msglen, sizeof(int), header->id, 0, 0);
   SL_Send(buf, msglen, header->id, 0, 0 );
   
+  free(buf);
   return MCFA_SUCCESS;
 }
+
 
 int MCFA_event_printallhoststatus(SL_event_msg_header *header)
 {
@@ -287,5 +303,7 @@ int MCFA_event_printallhoststatus(SL_event_msg_header *header)
   buf = MCFA_pack_hostlist(hostList,&msglen);
   SL_Send(&msglen, sizeof(int), header->id, 0, 0);
   SL_Send(buf, msglen, header->id, 0, 0 );
+
+  free(buf);
   return MCFA_SUCCESS;
 }
