@@ -7,7 +7,6 @@
   #
   #
 */
-
 #include "mpi.h"
 #include "MCFA_internal.h"
 #include "SL.h"
@@ -441,3 +440,4 @@ char ** local_read_argfile()
 
   return arg;
 }
+

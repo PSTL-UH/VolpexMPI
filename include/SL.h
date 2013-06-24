@@ -1,12 +1,12 @@
 /*
-#
-# Copyright (c) 2006-2012      University of Houston. All rights reserved.
-# $COPYRIGHT$
-#
-# Additional copyrights may follow
-#
-# $HEADER$
-#
+  #
+  # Copyright (c) 2006-2012      University of Houston. All rights reserved.
+  # $COPYRIGHT$
+  #
+  # Additional copyrights may follow
+  #
+  # $HEADER$
+  #
 */
 #ifndef __SL_H__
 #define __SL_H__
@@ -46,16 +46,13 @@ typedef struct SL_status SL_Status;
 #define SL_PROC_WORLD 0
 #define SL_PROC_SELF  1
 
-
 #define SL_MAXHOSTNAMELEN       256
 
-
-
 #ifdef PRINTF
-  #undef PRINTF
-  #define PRINTF(A) printf A
+#undef PRINTF
+#define PRINTF(A) printf A
 #else
-  #define PRINTF(A)
+#define PRINTF(A)
 #endif
 
 /* Prototypes */
