@@ -475,7 +475,7 @@ struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, char *a
           MCFA_update_proclist(procList, header->id, header->hostname,header->port);
           MCFA_update_proclist(newproclist,header->id,header->hostname,header->port);
           //				MCFA_update_hostlist(hostList, ......)
-          PRINTF("\n\n");
+          PRINTF(("\n\n"));
           k++;
         }
         else {

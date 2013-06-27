@@ -17,7 +17,7 @@ CLUSTER		= 0
 
 
 CC	    = cc
-CFLAGS      = -O0 -g -Wall -I$(VOLPEX_INC_DIR) -I.  
+CFLAGS      = -O0 -g -Wall -I$(VOLPEX_INC_DIR) -I.  -DPRINTF -DCOMPILE_HPX
 
 
 LDFLAGS     =  $(VOLPEX_LIB_DIR)/$(VOLPEX_LIB) -ldl  -lm 
