@@ -51,7 +51,6 @@ int MCFA_Init(int argc, char **argv)
   int ret;
   char **arg;
   
-#define COMPILE_HPX 1
 #ifdef COMPILE_HPX
   arg = local_read_argfile();
   path                = strdup (arg[1]);
