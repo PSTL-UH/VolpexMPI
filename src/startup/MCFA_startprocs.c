@@ -404,8 +404,11 @@ struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, char *a
       char agas_server[128];
       gethostname(agas_server, sizeof agas_server);
       
-      char *argv[6];
+      char *argv[2];
       argv[0] = strdup(path);
+      
+      argv[1] = NULL;
+      /*
       argv[1] = (char *) malloc ( 128 );
       sprintf (argv[1],"-x%s:7912",agas_server);
       //sprintf (argv[3],"-x%s:7912",currhost->hostdata->hostname);
@@ -414,7 +417,7 @@ struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, char *a
       argv[3] = strdup("--hpx:console");
       argv[4] = strdup("--hpx:run-agas-server");
       argv[5] = NULL;
-      
+      */    
       execvp(argv[0], argv); 
     }    
     

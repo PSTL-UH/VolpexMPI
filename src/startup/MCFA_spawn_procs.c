@@ -128,7 +128,9 @@ char ** MCFA_set_args(struct MCFA_host *host, char *path, char *argg,int port, i
     char port[] = ":7912";
     char agas_server[128];
     gethostname(agas_server, sizeof agas_server);
-    arg[2] = strdup(arg[3]);
+        
+    arg[2] = strdup(arg[3]); 
+    /*
     arg[3] = strdup("-x");
     arg[4] = strdup(arg[1]);
     arg[4] = strcat(arg[4], port);
@@ -136,6 +138,17 @@ char ** MCFA_set_args(struct MCFA_host *host, char *path, char *argg,int port, i
     arg[6] = strdup(agas_server);
     arg[6] = strcat(arg[6], port);
     arg[7] = strdup("--hpx:worker");
+    
+    arg[0] = strdup("ssh");
+    arg[1] = strdup("-X");
+    arg[2] = strdup(host->hostname);
+    arg[3] = strdup("xterm");
+    arg[4] = strdup("-e");
+    arg[5] = strdup("gdb");
+    arg[6] = strdup(path);
+    */
+    arg[3] = arg[4] = arg[5] = arg[6] = arg[7] = NULL;
+    
     arg[8] = NULL;
     arg[9] = NULL;
     arg[10] = NULL;
