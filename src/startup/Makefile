@@ -44,10 +44,10 @@ $(OBJ):	$(HEADER)
 
 ifeq ($(CLUSTER), 1)
 MCFA_startprocs: $(HEADER)  $(OBJ)
-	$(CC) $(CFLAGS) -o mcfarun MCFA_startprocs.c $(LDFLAGS) -DCLUSTER
+	$(CC) $(CFLAGS) -o ../../bin/mcfarun MCFA_startprocs.c $(LDFLAGS) -DCLUSTER
 else
 MCFA_startprocs: $(HEADER)  $(OBJ)
-	$(CC) $(CFLAGS) -o mcfarun MCFA_startprocs.c $(LDFLAGS)
+	$(CC) $(CFLAGS) -o ../../bin/mcfarun MCFA_startprocs.c $(LDFLAGS)
 endif
 
 
@@ -58,8 +58,8 @@ MCFA_monitor: $(HEADER) $(OBJ)
 	$(CC) $(CFLAGS) -o mcfamonitor MCFA_monitor.c $(LDFLAGS)
 
 MCFA_startup_d: $(HEADER) $(OBJ)
-	$(CC) $(CFLAGS) -o mcfastart_d MCFA_startup_d.c $(LDFLAGS)
+	$(CC) $(CFLAGS) -o ../../bin/mcfastart_d MCFA_startup_d.c $(LDFLAGS)
 
 clean:
 	rm -rf *.o *~ *.out 
-	rm -f mcfacontrol mcfamonitor mcfarun mcfastart_d
+	rm -f mcfacontrol mcfamonitor ../../bin/mcfarun ../../bin/mcfastart_d
