@@ -56,7 +56,6 @@
 #define	CONDOR		1
 #define BOINC		2
 #define RANDOM		3
-#define HPX             4
 
 char *BOINCDIR;
 

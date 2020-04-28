@@ -100,10 +100,6 @@ int main(int argc, char *argv[])
       condor_flag = 3;
       next = next +1;
     }
-    else if(!strcmp(argv[next], "-hpx")||!strcmp(argv[next], "--hpx")) {
-      condor_flag = 4;
-      next = next +1;
-    }
     else if(!strcmp(argv[next],"-help")||!strcmp(argv[next],"--help")) {
       print_Options();
       exit(-1);
@@ -388,59 +384,8 @@ struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, char *a
     }
     fclose(fp);
   }
-  else if (spawn_flag == HPX) { //hpx
-    //for hpx we spawn another process for agas server 
-    currhost = hostList;
-    arg = MCFA_set_args(currhost->hostdata, path, argg, port, redundancy, RANDOM, 
-                        cluster_flag);
-    sprintf(fname, "volpex");
-    PRINTF(("Creating a file:%s \n", fname));
-    fp = fopen(fname, "w");
-    for(k=3; k<MAXARGUMENTS-1; k++) {
-      fprintf(fp,"%s\n",arg[k]);
-    }
-    fclose(fp);
-
-    pid = fork();
-    if(pid==0) { //child
-      //here we set the arguments for front node (console + agas_server)
-      //hard-coded for testing purposes
-      char agas_server[128];
-      gethostname(agas_server, sizeof agas_server);
-      
-      char *argv[5];
-      argv[0] = strdup(path);
-      argv[1] = (char *) malloc ( 128 );
-      sprintf (argv[1],"-x%s:7912",agas_server);
-      //sprintf (argv[1],"-x%s:7912",currhost->hostdata->hostname);
-      argv[2] = (char *) malloc ( 32);
-      sprintf (argv[2],"-l%d",(numprocs));
-      argv[3] = strdup("--hpx:console");
-      argv[4] = NULL;
-                     
-      execvp(argv[0], argv); 
-    }    
-    
-    if(numprocs != 1){
-      i=0;
-      while(currhost != NULL && pid !=0 ){
-        arg = MCFA_set_args(currhost->hostdata, path, argg, port, redundancy, spawn_flag, 
-                            cluster_flag);
-        
-        pid=fork();
-        if(pid<0) {
-          printf("fork failed errno is %d (%s)\n", errno, strerror(errno));
-        }
-        
-        currhost = currhost->next;
-        i++;
-        if (i == numprocs-1)
-          break;
-      } 
-    }
-  }
   
-  if ( pid==0 && (spawn_flag == SSH || spawn_flag == RANDOM || spawn_flag == HPX) ) {
+  if ( pid==0 && (spawn_flag == SSH || spawn_flag == RANDOM ) ) {
     execvp(arg[0],arg);
   }
   
@@ -465,7 +410,7 @@ struct MCFA_proc_node* MCFA_spawn_processes(char **hostName, char *path, char *a
     MCFA_start_condorjob();
   }
     
-  if (spawn_flag == CONDOR || spawn_flag == BOINC || spawn_flag == RANDOM || spawn_flag == HPX) {
+  if (spawn_flag == CONDOR || spawn_flag == BOINC || spawn_flag == RANDOM ) {
     k=0;
     
     while(k<numprocs) {

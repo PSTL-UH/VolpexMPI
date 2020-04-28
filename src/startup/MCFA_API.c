@@ -51,17 +51,6 @@ int MCFA_Init(int argc, char **argv)
   int ret;
   char **arg;
   
-#ifdef COMPILE_HPX
-  arg = local_read_argfile();
-  path                = strdup (arg[1]);
-  hostname            = strdup ( arg[2] );
-  port                = atoi ( arg[3] );
-  id                  = 1234;
-  event_handler_id    = atoi (arg[4]);
-  redundancy          = atoi (arg[5]);
-  spawn_flag          = atoi (arg[6]);
-  cluster_flag        = atoi (arg[7]);
-#else
   path 		          = strdup(getenv("MCFA_PATH"));
   hostname 	          = strdup(getenv("MCFA_HOSTNAME"));
   port 		          = atoi(getenv("MCFA_PORT"));
@@ -70,7 +59,6 @@ int MCFA_Init(int argc, char **argv)
   redundancy	      = atoi(getenv("MCFA_REDUNDANCY"));
   spawn_flag		  = atoi(getenv("MCFA_SPAWN_FLAG"));	
   cluster_flag	      = atoi(getenv("MCFA_CLUSTER_FLAG"));	
-#endif
 
   PRINTF(("path           : %s\n \
         hostname         : %s\n \
@@ -110,7 +98,7 @@ int MCFA_Init(int argc, char **argv)
   
   
   /*CONDOR*/
-  if(spawn_flag == CONDOR || spawn_flag == BOINC || spawn_flag == RANDOM || spawn_flag == HPX ){
+  if(spawn_flag == CONDOR || spawn_flag == BOINC || spawn_flag == RANDOM ){
     hname = (char*) malloc (256 *sizeof(char));
     
     MCFA_get_ip(&hname);

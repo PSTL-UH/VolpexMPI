@@ -6,7 +6,7 @@
 #
 # $HEADER$
 #
-VOLPEX_DIR      = /home/hadi/VolpexMPI/trunk
+VOLPEX_DIR      = /home/gabriel/VolpexMPI/trunk
 VOLPEX_LIB_DIR  = $(VOLPEX_DIR)/lib
 VOLPEX_INC_DIR  = $(VOLPEX_DIR)/include
 
@@ -17,7 +17,7 @@ CLUSTER		= 0
 
 
 CC	    = cc
-CFLAGS      = -O0 -g -Wall -I$(VOLPEX_INC_DIR) -I. -DCOMPILE_HPX
+CFLAGS      = -O0 -g -Wall -I$(VOLPEX_INC_DIR) -I. 
 
 
 LDFLAGS     =  $(VOLPEX_LIB_DIR)/$(VOLPEX_LIB) -ldl  -lm 
